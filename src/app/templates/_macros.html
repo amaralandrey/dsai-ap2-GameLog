@@ -8,12 +8,31 @@
 {% endif %}
 {% endmacro %}
 
+{% macro stars(v, media=False) %}
+{%- set txt = '%.1f' | format(v) if media else v -%}
+{%- set n = v | round | int -%}
+<span class="stars" role="img" aria-label="Nota {{ txt }} de 10" title="{{ txt }}/10"><span class="on">{{ '★' * n }}</span>{{ '★' * (10 - n) }}</span>
+{%- if media %} <span class="score">{{ txt }}</span>{% endif %}
+{%- endmacro %}
+
+{# Nota 0..10 com 10 estrelas inteiras (EST-01/05/06): radios ocultos, sem JS.
+   As estrelas vêm de 10 a 1 no HTML e o CSS inverte a ordem, para "~" pintar as anteriores. #}
+{% macro star_input(atual=None) %}
+<fieldset class="rate-box"><legend>Nota (0 a 10)</legend>
+  <div class="rate">{% for i in range(10, 0, -1) %}
+    <input type="radio" id="score-{{ i }}" name="score" value="{{ i }}" required {{ 'checked' if atual == i }}>
+    <label for="score-{{ i }}" title="{{ i }}/10"><span aria-hidden="true">★</span><span class="sr">{{ i }} de 10</span></label>
+  {%- endfor %}</div>
+  <label class="rate-zero"><input type="radio" name="score" value="0" {{ 'checked' if atual == 0 }}> Nota 0</label>
+</fieldset>
+{% endmacro %}
+
 {% macro game_card(g, avg=None, n=None) %}
 <a class="card" href="/jogos/{{ g.slug }}">
   <img src="{{ g.cover }}" alt="Capa de {{ g.title }}" loading="lazy">
   <strong>{{ g.title }}</strong>
   <small>{{ g.release_date.year }} · {{ g.developer.name }}</small>
-  {% if avg %}<span class="score">★ {{ '%.1f' | format(avg) }}{% if n %} · {{ n }} avaliações{% endif %}</span>{% endif %}
+  {% if avg %}<span>{{ stars(avg, media=True) }}{% if n %} <span class="score">· {{ n }} avaliações</span>{% endif %}</span>{% endif %}
 </a>
 {% endmacro %}
 

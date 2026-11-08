@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import avatar, pager %}
+{% from "_macros.html" import avatar, pager, stars %}
 {% block title %}{{ u.display_name }} (@{{ u.username }}) — GameLog{% endblock %}
 {% block content %}
 <section class="panel">
@@ -43,13 +43,17 @@
     {% else %}<p class="mut">Ainda sem dados suficientes.</p>{% endfor %}
   </section>
 </div>
+<section class="panel"><h2>Conquistas</h2>
+  {% for icone, nome, desc in conquistas %}<span class="tag" title="{{ desc }}"><span aria-hidden="true">{{ icone }}</span> <strong>{{ nome }}</strong></span>
+  {% else %}<p class="mut">Nenhuma medalha ainda. Avalie 5 jogos para ganhar sua primeira medalha!</p>{% endfor %}
+</section>
 {% if favoritos %}<h2>Jogos favoritos</h2>
 <div class="grid">{% for r in favoritos %}<a class="card" href="/jogos/{{ r.game.slug }}">
   <img src="{{ r.game.cover }}" alt="Capa de {{ r.game.title }}" loading="lazy"><strong>{{ r.game.title }}</strong>
-  <span class="score">★ {{ r.score }}/10</span></a>{% endfor %}</div>{% endif %}
+  {{ stars(r.score) }}</a>{% endfor %}</div>{% endif %}
 <div class="row">
   <section class="panel" style="flex:2"><h2>Linha do tempo de avaliações</h2>
-    {% for r in linha.items %}<p><a href="/jogos/{{ r.game.slug }}">{{ r.game.title }}</a> — ★ {{ r.score }}/10
+    {% for r in linha.items %}<p><a href="/jogos/{{ r.game.slug }}">{{ r.game.title }}</a> — {{ stars(r.score) }}
       <span class="mut">· {{ r.created_at.strftime('%d/%m/%Y') }}</span>
       {% if r.text %}<br><span class="mut">“{{ r.text[:140] }}{{ '…' if r.text | length > 140 }}”</span>{% endif %}</p>
     {% else %}<p class="mut">Nenhuma avaliação ainda.</p>{% endfor %}

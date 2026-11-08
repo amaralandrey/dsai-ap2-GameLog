@@ -1,12 +1,12 @@
 {% extends "base.html" %}
-{% from "_macros.html" import pager %}
+{% from "_macros.html" import pager, stars %}
 {% block title %}Denúncias — Admin{% endblock %}
 {% block content %}
 <h1>Denúncias</h1>
 <p>{% for s in ('pendente', 'ocultada', 'rejeitada', 'revertida') %}<a class="tag" href="?status={{ s }}">{{ s }}</a>{% endfor %}</p>
 {% for r in page.items %}
 <div class="panel">
-  <p><strong>{{ r.review.game.title }}</strong> — ★ {{ r.review.score }}/10 por <a href="/u/{{ r.review.user.username }}">@{{ r.review.user.username }}</a></p>
+  <p><strong>{{ r.review.game.title }}</strong> — {{ stars(r.review.score) }} por <a href="/u/{{ r.review.user.username }}">@{{ r.review.user.username }}</a></p>
   <p>“{{ r.review.text or '(sem texto)' }}”</p>
   <p class="mut">Motivo: {{ r.reason }}{% if r.comment %} — {{ r.comment }}{% endif %} · denunciada por @{{ r.reporter.username }} em {{ r.created_at.strftime('%d/%m/%Y %H:%M') }}</p>
   {% if r.decider %}<p class="mut">Decidida por @{{ r.decider.username }} em {{ r.decided_at.strftime('%d/%m/%Y %H:%M') }}</p>{% endif %}

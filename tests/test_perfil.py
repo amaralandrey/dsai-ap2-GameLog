@@ -158,3 +158,85 @@ def test_prf09_consultas_nao_crescem_com_avaliacoes(app):
             event.remove(db.engine, "before_cursor_execute", conta)
         contagens.append(len(consultas))
     assert contagens[1] <= 15 and contagens[1] <= contagens[0] + 1
+
+
+def conquistas(client):
+    return secao(perfil(client), "<h2>Conquistas</h2>", "</section>")
+
+
+def lista_com(app, user, gids, nome="Minha"):
+    from app.models import ListItem
+    with app.app_context():
+        uid = User.query.filter_by(username=user).one().id
+        lst = GameList(user_id=uid, name=nome)
+        lst.items = [ListItem(game_id=g, position=i) for i, g in enumerate(gids)]
+        db.session.add(lst)
+        db.session.commit()
+
+
+def test_con05_sem_conquistas_mostra_dica(app, client):
+    make_user(app, "ana")
+    html = conquistas(client)
+    assert "Avalie 5 jogos para ganhar sua primeira medalha" in html
+    assert "Crítico" not in html and "Colecionador" not in html and "Pioneiro" not in html
+
+
+def test_con01_critico_com_5_avaliacoes(app, client):
+    make_user(app, "ana")
+    make_user(app, "bia")
+    ids = [jogo(app, f"J{i}") for i in range(5)]
+    for g in ids:
+        avalia(app, "bia", g, 7, dias=2)  # bia chegou antes: ana não é pioneira
+    for g in ids[:4]:
+        avalia(app, "ana", g, 8)
+    assert "Crítico" not in conquistas(client)
+    avalia(app, "ana", ids[4], 8)
+    html = conquistas(client)
+    assert "Crítico" in html and "Pioneiro" not in html and "primeira medalha" not in html
+
+
+def test_con04_ocultas_nao_contam_para_critico(app, client):
+    make_user(app, "ana")
+    make_user(app, "bia")
+    ids = [jogo(app, f"J{i}") for i in range(5)]
+    for g in ids:
+        avalia(app, "bia", g, 7, dias=2)
+    for i, g in enumerate(ids):
+        avalia(app, "ana", g, 8, hidden=(i == 0))
+    assert "Crítico" not in conquistas(client)
+
+
+def test_con01_colecionador_com_20_jogos_distintos(app, client):
+    make_user(app, "ana")
+    ids = [jogo(app, f"J{i}") for i in range(20)]
+    lista_com(app, "ana", ids[:10], "A")
+    lista_com(app, "ana", ids[:19], "B")  # repetidos não contam duas vezes
+    assert "Colecionador" not in conquistas(client)
+    lista_com(app, "ana", ids[19:], "C")
+    assert "Colecionador" in conquistas(client)
+
+
+def test_con01_pioneiro_primeira_avaliacao_do_jogo(app, client):
+    make_user(app, "ana")
+    make_user(app, "bia")
+    a, b = jogo(app, "A"), jogo(app, "B")
+    avalia(app, "bia", a, 7, dias=3)
+    avalia(app, "ana", a, 8, dias=1)
+    assert "Pioneiro" not in conquistas(client)
+    avalia(app, "ana", b, 8, dias=5)
+    avalia(app, "bia", b, 6, dias=1)
+    assert "Pioneiro" in conquistas(client)
+
+
+def test_con06_no_maximo_3_consultas_para_conquistas(app):
+    from app.perfil import conquistas as calcula
+    uid = make_user(app, "ana")
+    with app.app_context():
+        consultas = []
+
+        def conta(*a, _l=consultas):
+            _l.append(1)
+        event.listen(db.engine, "before_cursor_execute", conta)
+        calcula(uid, 0)
+        event.remove(db.engine, "before_cursor_execute", conta)
+    assert len(consultas) <= 3

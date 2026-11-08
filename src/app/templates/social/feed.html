@@ -1,12 +1,12 @@
 {% extends "base.html" %}
-{% from "_macros.html" import pager, avatar %}
+{% from "_macros.html" import pager, avatar, stars %}
 {% block title %}Feed — GameLog{% endblock %}
 {% block content %}
 <h1>Feed</h1>
 {% for a in page.items %}
 <div class="panel">
   {{ avatar(a.user) }} <a href="/u/{{ a.user.username }}"><strong>{{ a.user.display_name }}</strong></a>
-  {% if a.kind == 'avaliou' %}avaliou <a href="/jogos/{{ a.game.slug }}">{{ a.game.title }}</a> — <span class="score">★ {{ a.review.score }}/10</span>
+  {% if a.kind == 'avaliou' %}avaliou <a href="/jogos/{{ a.game.slug }}">{{ a.game.title }}</a> — {{ stars(a.review.score) }}
   {% elif a.kind == 'jogado' %}marcou <a href="/jogos/{{ a.game.slug }}">{{ a.game.title }}</a> como jogado
   {% elif a.kind == 'lista' %}criou a lista <a href="/listas/{{ a.list.id }}">{{ a.list.name }}</a>
   {% elif a.kind == 'lista_jogo' %}adicionou <a href="/jogos/{{ a.game.slug }}">{{ a.game.title }}</a> à lista <a href="/listas/{{ a.list.id }}">{{ a.list.name }}</a>{% endif %}

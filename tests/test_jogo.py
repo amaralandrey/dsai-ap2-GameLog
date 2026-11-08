@@ -28,7 +28,7 @@ def test_pag02_pag03_pag04_media_histograma_ignora_ocultas(app, client):
         make_user(app, n)
         add_review(app, n, slug, sc, hidden=h)
     html = client.get(f"/jogos/{slug}").get_data(as_text=True)
-    assert "★ 7.5" in html and "(2 avaliações)" in html  # oculta ignorada
+    assert 'aria-label="Nota 7.5 de 10"' in html and "(2 avaliações)" in html  # oculta ignorada
     assert len(re.findall(r'title="Nota \d+: \d+"', html)) == 11  # histograma 0..10
     assert 'title="Nota 0: 0"' in html
 
