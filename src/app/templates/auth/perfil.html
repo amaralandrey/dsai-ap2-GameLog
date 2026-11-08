@@ -43,6 +43,10 @@
     {% else %}<p class="mut">Ainda sem dados suficientes.</p>{% endfor %}
   </section>
 </div>
+<section class="panel"><h2>Conquistas</h2>
+  {% for icone, nome, desc in conquistas %}<span class="tag" title="{{ desc }}"><span aria-hidden="true">{{ icone }}</span> <strong>{{ nome }}</strong></span>
+  {% else %}<p class="mut">Nenhuma medalha ainda. Avalie 5 jogos para ganhar sua primeira medalha!</p>{% endfor %}
+</section>
 {% if favoritos %}<h2>Jogos favoritos</h2>
 <div class="grid">{% for r in favoritos %}<a class="card" href="/jogos/{{ r.game.slug }}">
   <img src="{{ r.game.cover }}" alt="Capa de {{ r.game.title }}" loading="lazy"><strong>{{ r.game.title }}</strong>
