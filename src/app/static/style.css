@@ -60,3 +60,12 @@ table{width:100%;border-collapse:collapse}th,td{padding:8px;border-bottom:1px so
 footer{text-align:center;color:var(--mut);padding:24px;font-size:.85rem}
 @media (max-width:900px){.top nav{width:100%;margin-left:0}}
 @media (max-width:600px){.top nav{gap:4px}.top nav .nav-link{min-height:36px;padding:7px 9px;font-size:.88rem}.top nav .nav-logout{padding-left:5px}.grid{grid-template-columns:repeat(2,1fr)}button,.btn{width:auto;min-width:0}.top nav a, .top nav form{display:inline-flex}}
+.stars{color:var(--line);letter-spacing:1px;white-space:nowrap}.stars .on{color:#ffc247}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.rate-box{border:0;padding:0;margin:0 0 8px}.rate-box legend{font-weight:600;padding:0}
+.rate{display:inline-flex;flex-direction:row-reverse;justify-content:flex-end}
+.rate input{position:absolute;opacity:0;width:1px;height:1px}
+.rate label{cursor:pointer;color:var(--line);font-size:min(2rem,8vw);line-height:1;padding:2px;min-width:28px;text-align:center;font-weight:400;margin:0}
+.rate label:hover,.rate label:hover~label,.rate input:checked~label{color:#ffc247}
+.rate input:focus-visible+label{outline:2px solid var(--focus);outline-offset:2px;border-radius:4px}
+.rate-zero{display:inline-flex;align-items:center;gap:6px;font-weight:400;margin-left:8px}.rate-zero input{width:auto}
