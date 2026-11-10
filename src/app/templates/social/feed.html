@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import pager, avatar, stars %}
+{% from "_macros.html" import pager, avatar, stars, comments with context %}
 {% block title %}Feed — GameLog{% endblock %}
 {% block content %}
 <h1>Feed</h1>
@@ -11,6 +11,7 @@
   {% elif a.kind == 'lista' %}criou a lista <a href="/listas/{{ a.list.id }}">{{ a.list.name }}</a>
   {% elif a.kind == 'lista_jogo' %}adicionou <a href="/jogos/{{ a.game.slug }}">{{ a.game.title }}</a> à lista <a href="/listas/{{ a.list.id }}">{{ a.list.name }}</a>{% endif %}
   <div class="mut">{{ a.created_at.strftime('%d/%m/%Y %H:%M') }}</div>
+  {% if a.kind == 'avaliou' and a.review %}<div id="av-{{ a.review.id }}">{{ comments(a.review, page_url(page.page)) }}</div>{% endif %}
 </div>
 {% else %}
 <div class="panel"><p>Seu feed está vazio. Siga outros jogadores para acompanhar o que eles fazem. Sugestões:</p>

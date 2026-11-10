@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import game_card, pager, avatar, stars, star_input %}
+{% from "_macros.html" import game_card, pager, avatar, stars, star_input, comments with context %}
 {% block title %}{{ game.title }} — GameLog{% endblock %}
 {% block description %}{{ game.synopsis[:150] }}{% endblock %}
 {% macro review_card(r, likes) %}
@@ -20,7 +20,8 @@
         <select name="reason" required>{% for k, v in reasons.items() %}<option value="{{ k }}">{{ v }}</option>{% endfor %}</select>
         <input name="comment" maxlength="500" placeholder="Comentário (opcional)"><button class="ghost">Enviar denúncia</button>
       </form></details>
-  {% elif not me %}<a class="mut" href="/entrar?next={{ request.path }}">Entre para curtir</a>{% endif %}
+  {% elif not me %}<a class="mut" href="/entrar?next={{ request.path }}">Entre para curtir e comentar</a>{% endif %}
+  {{ comments(r, request.path) }}
 </article>
 {% endmacro %}
 {% block content %}

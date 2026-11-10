@@ -29,6 +29,7 @@ def create_app(config=None):
     def _sqlite_fold(conn, _):  # busca sem acento/caixa (BUS-01)
         if isinstance(conn, sqlite3.Connection):
             conn.create_function("fold", 1, fold, deterministic=True)
+            conn.execute("PRAGMA foreign_keys=ON")  # ON DELETE CASCADE dos comentários (COM-06)
 
     @app.before_request
     def csrf_protect():
