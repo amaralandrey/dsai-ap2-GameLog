@@ -39,3 +39,31 @@
 {% macro avatar(u, size='') %}
 <span class="avatar {{ size }}" style="background:{{ avatar_style(u.username) }}">{{ u.display_name[:2] | upper }}</span>
 {% endmacro %}
+
+{# Comentários de uma avaliação (COM-01..05). Importar "with context" para enxergar me e csrf_token.
+   O texto passa pelo autoescape do Jinja2 — nada de |safe aqui (COM-04). #}
+{% macro comments(r, next) %}
+{% if not r.hidden %}
+<section class="comments" aria-label="Comentários">
+  {% for c in r.comments %}
+  <div class="comment" id="com-{{ c.id }}">
+    {{ avatar(c.user, 'small') }} <a href="/u/{{ c.user.username }}"><strong>{{ c.user.display_name }}</strong></a>
+    <span class="mut">{{ c.created_at.strftime('%d/%m/%Y %H:%M') }}</span>
+    {% if me and (me.id == c.user_id or me.is_admin) %}
+    <form class="inline" method="post" action="/comentarios/{{ c.id }}/apagar">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="next" value="{{ next }}">
+      <button class="link danger-link">Apagar</button></form>{% endif %}
+    <p>{{ c.text }}</p>
+  </div>
+  {% endfor %}
+  {% if me %}
+  <form class="comment-form" method="post" action="/avaliacoes/{{ r.id }}/comentar">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="next" value="{{ next }}">
+    <label class="sr" for="com-text-{{ r.id }}">Adicionar comentário</label>
+    <input id="com-text-{{ r.id }}" name="text" maxlength="500" required placeholder="Adicionar comentário…">
+    <button class="ghost">Comentar</button>
+  </form>
+  {% endif %}
+</section>
+{% endif %}
+{% endmacro %}

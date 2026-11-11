@@ -115,6 +115,21 @@ class Review(db.Model):
     created_at = db.Column(db.DateTime, default=now, nullable=False)
     user = db.relationship(User)
     game = db.relationship(Game)
+    comments = db.relationship(
+        "Comment", order_by="(Comment.created_at, Comment.id)", cascade="all, delete-orphan", passive_deletes=True,
+        back_populates="review",
+    )
+
+
+class Comment(db.Model):
+    """Comentário numa avaliação (COM-01..06); apagar a avaliação apaga os comentários (COM-06)."""
+    id = db.Column(db.Integer, primary_key=True)
+    review_id = db.Column(db.ForeignKey("review.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = db.Column(db.ForeignKey("user.id"), nullable=False)
+    text = db.Column(db.String(500), nullable=False)
+    created_at = db.Column(db.DateTime, default=now, nullable=False)
+    user = db.relationship(User)
+    review = db.relationship(Review, back_populates="comments")
 
 
 class Like(db.Model):

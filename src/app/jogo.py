@@ -1,8 +1,9 @@
 from flask import Blueprint, render_template, request
 from sqlalchemy import func
+from sqlalchemy.orm import selectinload
 
 from .models import (
-    REPORT_REASONS, STATUSES, Game, GameList, Like, Review, Status, avg_subquery, db, game_genres, game_stats,
+    REPORT_REASONS, STATUSES, Comment, Game, GameList, Like, Review, Status, avg_subquery, db, game_genres, game_stats,
     visible_games,
 )
 from .util import current_user, paginate
@@ -37,6 +38,7 @@ def game_page(slug):
         .outerjoin(Like, Like.review_id == Review.id)
         .filter(Review.game_id == game.id, Review.hidden.is_(False), Review.text != "")
         .group_by(Review.id)
+        .options(selectinload(Review.comments).joinedload(Comment.user))  # COM-02 sem N+1
     )
     sort = "recentes" if request.args.get("ordem") == "recentes" else "curtidas"
     q = q.order_by(likes.desc(), Review.created_at.desc()) if sort == "curtidas" else q.order_by(Review.created_at.desc())

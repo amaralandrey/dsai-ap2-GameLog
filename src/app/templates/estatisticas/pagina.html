@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% from "_macros.html" import game_card, stars %}
+{% block title %}Estatísticas — GameLog{% endblock %}
+{% block description %}Números do catálogo e da comunidade do GameLog: jogos, jogadores, avaliações e os mais avaliados.{% endblock %}
+{% block content %}
+<h1>Estatísticas do catálogo</h1>
+
+<div class="stat-tiles">
+  <div class="panel stat"><strong>{{ totais.jogos }}</strong><span class="mut">jogo{{ 's' if totais.jogos != 1 }} no catálogo</span></div>
+  <div class="panel stat"><strong>{{ totais.usuarios }}</strong><span class="mut">jogador{{ 'es' if totais.usuarios != 1 }} cadastrado{{ 's' if totais.usuarios != 1 }}</span></div>
+  <div class="panel stat"><strong>{{ totais.avaliacoes }}</strong><span class="mut">avaliaç{{ 'ões' if totais.avaliacoes != 1 else 'ão' }} escrita{{ 's' if totais.avaliacoes != 1 }}</span></div>
+</div>
+
+<section class="panel">
+  <h2>Jogo do Momento</h2>
+  {% if momento %}{% set g, avg, n = momento %}
+  <div class="row momento">
+    <div style="flex:0 0 160px;min-width:0"><a href="/jogos/{{ g.slug }}"><img class="cover" src="{{ g.cover }}" alt="Capa de {{ g.title }}"></a></div>
+    <div>
+      <h3><a href="/jogos/{{ g.slug }}">{{ g.title }}</a></h3>
+      <p class="mut">{{ g.release_date.year }} · {{ g.developer.name }}</p>
+      <p style="font-size:1.3rem">{{ stars(avg, media=True) }} <span class="mut">({{ n }} avaliações)</span></p>
+      <p class="mut">Maior nota média entre os jogos com pelo menos {{ minimo }} avaliações.</p>
+    </div>
+  </div>
+  {% else %}<p class="mut">Ainda não há avaliações suficientes: um jogo precisa de pelo menos {{ minimo }} avaliações para concorrer.</p>{% endif %}
+</section>
+
+<section class="panel">
+  <h2>Os 5 jogos mais avaliados da comunidade</h2>
+  {% if mais_avaliados %}
+  <div class="grid">{% for g, avg, n in mais_avaliados %}{{ game_card(g, avg, n) }}{% endfor %}</div>
+  {% else %}<p class="mut">Ainda não há avaliações. <a href="/buscar">Explore o catálogo</a> e seja o primeiro a avaliar.</p>{% endif %}
+</section>
+{% endblock %}

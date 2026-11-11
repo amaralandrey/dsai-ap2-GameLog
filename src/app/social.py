@@ -1,7 +1,8 @@
 from flask import Blueprint, flash, redirect, render_template, request
 from sqlalchemy import func
+from sqlalchemy.orm import selectinload
 
-from .models import Activity, Follow, Game, GameList, Review, User, db
+from .models import Activity, Comment, Follow, Game, GameList, Review, User, db
 from .util import current_user, login_required, paginate
 
 bp = Blueprint("social", __name__)
@@ -82,5 +83,6 @@ def suggestions(me, limit=5):
 @login_required
 def feed():
     me = current_user()
-    page = paginate(feed_query(me.id), request.args.get("page"))
+    q = feed_query(me.id).options(selectinload(Activity.review).selectinload(Review.comments).joinedload(Comment.user))
+    page = paginate(q, request.args.get("page"))
     return render_template("social/feed.html", page=page, suggestions=suggestions(me) if not page.items else [])
