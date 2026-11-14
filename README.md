@@ -1,4 +1,4 @@
-# GameLog — AP1 DSAI 2026
+# GameLog — AP2 DSAI 2026
 
 Catálogo de jogos com avaliações, listas/status (wishlist = "planejado"), feed social, recomendações e painel de moderação.
 Desenvolvido com **Spec-Driven Development**: cada parte tem uma spec datada em [`SPEC/`](SPEC/), commitada antes do código.
