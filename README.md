@@ -3,10 +3,7 @@
 Catálogo de jogos com avaliações, listas/status (wishlist = "planejado"), feed social, recomendações e painel de moderação.
 Desenvolvido com **Spec-Driven Development**: cada parte tem uma spec datada em [`SPEC/`](SPEC/), commitada antes do código.
 
-- **URL pública:** https://gamelog-r41f.onrender.com
-- **Equipe:** Artur ([@arturgomesc](https://github.com/arturgomesc)) — implementação · Fernanda Borges ([@fenalk](https://github.com/fenalk)) — specs e visual dos botões
 - **Stack:** Python 3.12+, Flask 3, Flask-SQLAlchemy (SQLite), Jinja2, pytest, gunicorn. Sem JS de build, sem serviços externos.
-- **Ferramentas/modelos de IA:** Claude Code — Opus 5.5 (planejamento) e Sonnet 5.5 (implementação). Fernanda: Copilot no VS Code (sessão de 06/10, registrada em `prompts/sessoes/2026-10-06-1750-copilot.md`). Sessões em [`prompts/sessoes/`](prompts/sessoes/).
 
 ## Como rodar
 
@@ -53,20 +50,3 @@ Variáveis: `SECRET_KEY` (gerada), `ADMIN_EMAIL`, `ADMIN_PASSWORD`.
 | perfil-rico (PRF-01..09) | `perfil.py`, `auth.py`, `templates/auth/perfil.html` | `tests/test_perfil.py` |
 | importar-pelo-admin (IAD-01..09) | `admin.py`, `fontes/steam.py`, `templates/admin/importar.html` | `tests/test_importar_admin.py` |
 | catalogo-real (CRE-01..09) | `seed.py`, `fontes/arquivo.py`, `dados/jogos.json` | `tests/test_catalogo_real.py` |
-
-## cloc
-
-```
-$ cloc . --vcs=git --exclude-dir=node_modules,vendor,dist,build,prompts --exclude-lang=Markdown,JSON,YAML,CSV,Text,SVG --not-match-f='(lock|\.min\.)'
-Language        files   blank   comment   code
-Python           40     847        55   3435
-HTML             26       5         0    571
-CSS               1       0         0     42
-Bourne Shell      1       1         2     13
-INI               1       0         0      3
-SUM:             69     853        57   4064
-```
-
-**Nota sobre a meta de 100 mil linhas:** o escopo das 18 specs (≈160 critérios de aceitação) resulta em ~3 mil linhas de
-código real. Preferimos entregar a aplicação completa e testada a inflar o número com código duplicado ou gerado;
-o valor medido está reportado acima sem ajuste.
