@@ -3,11 +3,12 @@ from datetime import date
 from flask import Blueprint, render_template, request
 from sqlalchemy import case, func, literal
 
-from .models import Developer, Game, Genre, Platform, avg_subquery, visible_games
+from .models import LOJAS, Developer, Game, Genre, JogoFonte, Platform, avg_subquery, visible_games
 from .util import fold, paginate
 
 bp = Blueprint("busca", __name__)
 SORTS = {"relevancia": "Relevância", "nota": "Nota média", "data": "Lançamento", "titulo": "Título (A–Z)"}
+NOMES_LOJAS = {"steam": "Steam", "gog": "GOG", "epic": "Epic Games"}
 
 
 def _int(value, lo, hi):
@@ -36,6 +37,9 @@ def search_games(args):
     plats = [p for p in args.getlist("plataforma") if p]
     if plats:
         q = q.filter(Game.platforms.any(Platform.slug.in_(plats)))
+    lojas = [loja for loja in args.getlist("loja") if loja in LOJAS]  # valor desconhecido é ignorado (BUS-08)
+    if lojas:
+        q = q.filter(Game.fontes.any(JogoFonte.fonte.in_(lojas)))  # vínculo de loja (GOG-13, FNT-04)
     y0, y1 = _int(args.get("ano_de"), 1, 9999), _int(args.get("ano_ate"), 1, 9999)
     if y0:
         q = q.filter(Game.release_date >= date(y0, 1, 1))
@@ -69,6 +73,7 @@ def search():
     return render_template(
         "busca/buscar.html", page=page, sort=sort, sorts=SORTS,
         genres=Genre.query.order_by(Genre.name).all(), platforms=Platform.query.order_by(Platform.name).all(),
-        sel_genres=request.args.getlist("genero"), sel_plats=request.args.getlist("plataforma"),
-        filtered=any(request.args.get(k) for k in ("q", "genero", "plataforma", "ano_de", "ano_ate", "nota_min")),
+        lojas=NOMES_LOJAS, sel_genres=request.args.getlist("genero"), sel_plats=request.args.getlist("plataforma"),
+        sel_lojas=request.args.getlist("loja"),
+        filtered=any(request.args.get(k) for k in ("q", "genero", "plataforma", "loja", "ano_de", "ano_ate", "nota_min")),
     )

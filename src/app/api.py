@@ -12,7 +12,7 @@ from .util import paginate
 bp = Blueprint("api", __name__, url_prefix="/api")
 PER_PAGE, PER_PAGE_MAX = 20, 50
 ENDPOINTS = {
-    "/api/jogos": "lista e busca (q, genero, plataforma, ano_de, ano_ate, nota_min, ordem, page, per_page)",
+    "/api/jogos": "lista e busca (q, genero, plataforma, loja, ano_de, ano_ate, nota_min, ordem, page, per_page)",
     "/api/jogos/<slug>": "detalhe de um jogo",
     "/api/jogos/<slug>/avaliacoes": "avaliações visíveis de um jogo (page, per_page)",
 }
