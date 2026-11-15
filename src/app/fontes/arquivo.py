@@ -5,6 +5,7 @@ from itertools import islice
 from pathlib import Path
 
 CAMINHO = Path(__file__).resolve().parent.parent / "dados" / "jogos.json"
+LOJA_DE_ORIGEM = "steam"  # o snapshot vem da Steam: cada jogo também ganha o vínculo com a loja (FNT-05)
 
 
 def listar(limite, termo=None):

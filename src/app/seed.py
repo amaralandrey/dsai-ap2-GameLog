@@ -7,7 +7,7 @@ from werkzeug.security import generate_password_hash
 from .models import (
     Activity, Developer, Follow, Game, GameList, Genre, ListItem, Platform, Report, Review, Like, Status, User, db,
 )
-from .fontes import importar
+from .fontes import importar, vincular_existentes
 from .util import slugify
 
 GENRES = ["Ação", "Aventura", "RPG", "Estratégia", "Simulação", "Esportes", "Corrida", "Puzzle", "Plataforma",
@@ -49,6 +49,7 @@ DESTAQUES = 30  # jogos reais que recebem avaliações (CRE-06)
 
 def run(seed=42, real=False):
     if Game.query.first():
+        vincular_existentes()  # banco anterior a JogoFonte: a tabela é criada vazia por create_all (FNT-05)
         return  # idempotente: não duplica
     rng = random.Random(seed)
     if real:

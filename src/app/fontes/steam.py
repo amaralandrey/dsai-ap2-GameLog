@@ -9,6 +9,7 @@ from urllib.request import urlopen
 from . import base
 
 LOJA = "https://store.steampowered.com/api"
+URL_LOJA = "https://store.steampowered.com/app/{}"  # link do vínculo (FNT-05)
 MESES = {  # português e inglês, abreviados sem acento (IMP-10)
     "jan": 1, "fev": 2, "feb": 2, "mar": 3, "abr": 4, "apr": 4, "mai": 5, "may": 5, "jun": 6,
     "jul": 7, "ago": 8, "aug": 8, "set": 9, "sep": 9, "out": 10, "oct": 10, "nov": 11, "dez": 12, "dec": 12,
