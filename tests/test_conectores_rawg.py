@@ -197,6 +197,11 @@ def test_gog06_descricao_sem_versao_texto_usa_o_html_limpo(loja):
     assert j["synopsis"] == "Fuja do inferno." and (j["release_date"], j["data_aproximada"]) == (date(2020, 1, 1), True)
 
 
+def test_gog06_detalhe_sem_nome_nao_vira_jogo(loja):
+    loja.rotas["api.rawg.io/api/games/1?"] = {"detail": "Not found."}
+    assert rawg.detalhe("1") is None
+
+
 @pytest.mark.parametrize("eid", ["hades", "", "1?x=2"])
 def test_gog06_id_que_nao_e_numero_nao_vai_a_rede(loja, eid):
     assert rawg.detalhe(eid) is None and loja.pedidos == []

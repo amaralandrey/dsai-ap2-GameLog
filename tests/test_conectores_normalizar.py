@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from types import SimpleNamespace
 
 import pytest
@@ -73,6 +73,7 @@ def test_gog08_sincronizacao_tambem_normaliza(app):
     ("2015", (date(2015, 1, 1), True)),
     (2015, (date(2015, 1, 1), True)),
     (date(2015, 5, 19), (date(2015, 5, 19), False)),
+    (datetime(2015, 5, 19, 23, 59), (date(2015, 5, 19), False)),
     ("19/05/2015", (None, False)),
     ("May 19, 2015", (None, False)),
     ("2015-02-30", (None, False)),
