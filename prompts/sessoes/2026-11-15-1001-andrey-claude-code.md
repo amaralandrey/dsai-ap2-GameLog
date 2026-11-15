@@ -22,6 +22,8 @@ Medido no log da sessão do Claude Code (`usage` de cada resposta do modelo, sem
 ## Prompts (em ordem)
 
 1. implemente a spec fontes multilojas, atente aos requisitos de documentação de sessão etc
+2. aprove o pr 11 e abra um pr com a funcionalidade depois
+3. opção 1, mescle com o comentário
 
 ## O que foi feito
 
@@ -45,4 +47,6 @@ Validações locais: **270 testes passando** (eram 216); cobertura total 97%; **
 - **Snapshot e Steam são o mesmo jogo:** os jogos do seed (`source="arquivo"`) também ganham o vínculo `steam` com o mesmo id, então importar da Steam um jogo do snapshot não cria duplicata.
 - **Banco existente:** esta spec só cria tabela nova, que o `db.create_all()` já cria; o seed preenche os vínculos que faltam. Mesmo assim o README avisa para usar `./dev.sh reset` nas próximas mudanças de esquema do Épico 2.
 - **Fonte inválida em `/admin/importar`** responde 400; o lote com 0 ou mais de 10 jogos não processa nada e volta com mensagem.
-- **Pendências:** abrir o PR de `feat/fontes-multiloja` (depois do merge do PR #11, ou com base nele), marcar os itens da issue #10 e o item "Atualizar as duas specs" da issue #9.
+- **PR #11 mesclado sem aprovação:** o GitHub não deixa o autor aprovar o próprio PR e o Fabrício não estava disponível. Por decisão do Andrey, o PR foi mesclado com CI verde e um comentário explicando, como nos PRs #4–#7. Isso conta contra o critério de Revisão (100% dos merges aprovados pelo parceiro).
+- **PR da funcionalidade:** `feat/fontes-multiloja` → `main`, aguardando a aprovação do Fabrício.
+- **Pendências:** marcar os itens da issue #10 depois do merge e o item "Atualizar as duas specs" da issue #9.
