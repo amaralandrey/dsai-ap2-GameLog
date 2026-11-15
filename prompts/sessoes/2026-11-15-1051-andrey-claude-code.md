@@ -2,7 +2,7 @@
 
 **Ferramenta:** Claude Code CLI (Claude Opus 5.5, `claude-opus-5-5`)
 **Quem conduziu:** Andrey Amaral
-**Horário:** 10:51–11:20 (horário de Belém)
+**Horário:** 10:51–11:35 (horário de Belém)
 **Spec:** `SPEC/2026-11-15-conectores-gog-rawg.md` (GOG-01..15), sobre a base de `SPEC/2026-11-15-fontes-multiloja.md` (PR #12)
 
 ## Custo
@@ -11,17 +11,19 @@ Medido no log da sessão do Claude Code (`usage` de cada resposta do modelo, sem
 
 | Tipo de token | Tokens | Preço (US$/1M) | Custo (US$) |
 |---|---:|---:|---:|
-| Entrada | 122 | 4,00 | 0,00 |
-| Saída | 79.993 | 20,00 | 1,60 |
-| Leitura de cache | 8.529.098 | 0,20 | 1,71 |
-| Escrita de cache (TTL 1h) | 172.496 | 8,00 | 1,38 |
-| **Total** | **8.781.709** | | **≈ 4,69** |
+| Entrada | 148 | 4,00 | 0,00 |
+| Saída | 87.982 | 20,00 | 1,76 |
+| Leitura de cache | 10.761.382 | 0,20 | 2,15 |
+| Escrita de cache (TTL 1h) | 182.660 | 8,00 | 1,46 |
+| **Total** | **11.032.172** | | **≈ 5,37** |
 
-61 requisições ao modelo, medidas antes de escrever este registro; a escrita dele e o commit final ficam de fora.
+72 requisições ao modelo, recalculadas depois do push, da abertura do PR #13 e da verificação do CI; só a resposta que faz esta atualização fica de fora.
 
 ## Prompts (em ordem)
 
 1. implemente a spec gog-rawg, se atente aos requisitos do plan e da avaliação do projeto, faça ela a partir da branch 12 ainda não aprovada.
+2. push para mostrar so o diff
+3. artefatos e docs ok?
 
 ## O que foi feito
 
@@ -48,4 +50,6 @@ Teste de fumaça com a rede real, num banco temporário: `import-games --fonte g
 - **`import-games` sem traceback:** a falha da fonte agora imprime `erro=fonte indisponivel: ...` com código 1, igual ao `sync-games`.
 - **Fixture da GOG falsa no painel** (`tests/test_fontes_admin.py`): passou a usar `monkeypatch.setitem`, porque o `pop` antigo tirava a GOG real do registro para os testes seguintes.
 - **gitleaks local:** o download do binário foi bloqueado nesta sessão; a conferência foi feita com `git log -p` pela chave do `.env` (0 ocorrências). O job de gitleaks do CI roda no PR.
-- **Pendências:** abrir o PR (não aberto nesta sessão), aprovação do PR #12 pelo Fabrício e, depois, a spec de deduplicação (MRG-14 troca o slug da GOG vindo da RAWG pelo id numérico).
+- **PR #13** (`feat/conectores-gog-rawg` → `feat/fontes-multiloja`, para mostrar só o diff desta spec; a base vira `main` quando o #12 for mesclado): CI verde (testes + cobertura, jscpd e gitleaks), aguardando a aprovação do Fabrício. O gitleaks que não rodou localmente passou no CI.
+- **Conferência final:** README (426 testes, linha da spec na tabela, chave da RAWG), `.env.example`, `render.yaml`, cada critério GOG-01..15 com ao menos um teste nomeado pelo ID; o plano já descreve esta spec e não precisa de mudança.
+- **Pendências:** aprovação do PR #12 pelo Fabrício e, depois, a spec de deduplicação (MRG-14 troca o slug da GOG vindo da RAWG pelo id numérico).
