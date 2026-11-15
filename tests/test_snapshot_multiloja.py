@@ -5,7 +5,7 @@ from types import SimpleNamespace
 import pytest
 
 from app.fontes import FONTES, arquivo, importar, normalizar_url_loja
-from app.models import Game, JogoFonte
+from app.models import Game, JogoFonte, db
 from app.sync import sincronizar
 from conftest import http
 from test_conectores_rawg import CHAVE, EPIC, GOG, PLAYSTATION, STEAM, chave, lojas  # noqa: F401 (chave é fixture)
@@ -143,6 +143,18 @@ def test_snp07_origem_com_id_de_outro_jogo_nao_vira_vinculo(app, monkeypatch, tm
         importar("arquivo", limite=10)
         assert [(v.game.title, v.external_id) for v in JogoFonte.query.filter_by(fonte="rawg")] == [("Hades", "1")]
         assert vinculos(Game.query.filter_by(title="Outro").one()) == ["arquivo", "steam"]
+
+
+def test_snp07_sincronizacao_nao_toca_no_vinculo_do_outro_jogo(app):
+    hades = {**HADES, "release_date": date(2020, 9, 17), "origens": [["rawg", "1"]]}
+    outro = {**OUTRO, "release_date": date(2001, 1, 1), "origens": [["rawg", "1"]]}
+    with app.app_context():
+        sincronizar("steam", modulo=SimpleNamespace(listar=lambda limite, termo=None: [hades]))
+        v = JogoFonte.query.filter_by(fonte="rawg").one()
+        v.ultima_sincronizacao = None
+        db.session.commit()
+        sincronizar("steam", modulo=SimpleNamespace(listar=lambda limite, termo=None: [outro]))
+        assert JogoFonte.query.filter_by(fonte="rawg").one().ultima_sincronizacao is None
 
 
 # ---------- SNP-08: o snapshot versionado ----------
