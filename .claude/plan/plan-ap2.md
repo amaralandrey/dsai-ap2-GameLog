@@ -94,6 +94,7 @@ Expansão da arquitetura `src/app/fontes/` (citada explicitamente pela cliente F
 | SPEC-01 | FNT-01..12 | **Base comum das fontes e vínculos multi-loja** (`SPEC/2026-11-15-fontes-multiloja.md`; `src/app/fontes/base.py`) — HTTP comum com novas tentativas e User-Agent do GameLog, tabela `JogoFonte` (um jogo, várias lojas, incluindo a Epic), seletor de fonte e importação em lote em `/admin/importar`. |
 | SPEC-02 | GOG-01..15 | **Conectores GOG e RAWG** (`SPEC/2026-11-15-conectores-gog-rawg.md`; `src/app/fontes/gog.py`, `src/app/fontes/rawg.py`) — importação da GOG sem chave, RAWG com `RAWG_API_KEY` e vínculos de loja (Steam, GOG, Epic), normalização de gêneros, plataformas e datas, `--fonte todas` e filtro por loja em `/buscar`. |
 | SPEC-03 | MRG-01..15 | **Deduplicação e mesclagem de catálogo** (`SPEC/2026-11-15-deduplicacao-catalogo.md`; `src/app/catalogo_merge.py`) — reconhecimento do mesmo jogo vindo de várias fontes, fila de duplicatas para o admin, mesclagem sem perda de histórico (soft delete e 301) e bloco "Disponível em" na página do jogo. |
+| SPEC-03b | SNP-01..09 | **Snapshot multi-loja do seed** (`SPEC/2026-11-15-snapshot-multiloja.md`; `src/app/snapshot.py`) — `flask enriquecer-snapshot` grava no `src/app/dados/jogos.json` os links de GOG e Epic e o id da RAWG de cada jogo (correspondência só pelo id da Steam), para a URL pública mostrar o multi-loja sem rede nem chave no servidor, já que o Render recria o banco a cada deploy. |
 
 ### Épico 3: Telemetria de partidas, MPC e kills — Demanda #2 da cliente 
 
@@ -148,6 +149,8 @@ Para garantir equilíbrio na autoria de commits e revisão cruzada constante de 
 ## 4. Distribuição estimada das 100.000 linhas novas
 
 Para atingir **≥ 100.000 linhas novas** no `cloc --diff` sem código duplicado ou morto:
+
+> Dados gerados (`src/app/dados/jogos.json`, produzido por `export-games` e `enriquecer-snapshot`) não contam para a meta: medir com `cloc --git --diff main HEAD --exclude-dir=dados`.
 
 | Camada | Onde | Estimativa | Conteúdo |
 |---|---|---|---|
