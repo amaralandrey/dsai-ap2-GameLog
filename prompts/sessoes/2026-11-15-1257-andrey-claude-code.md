@@ -2,7 +2,7 @@
 
 **Ferramenta:** Claude Code CLI (Claude Opus 5.5, `claude-opus-5-5`)
 **Quem conduziu:** Andrey Amaral
-**Horário:** 12:57–13:25 (horário de Belém)
+**Horário:** 12:57–13:35 (horário de Belém)
 **Spec:** `SPEC/2026-11-15-deduplicacao-catalogo.md` (MRG-01..15), sobre `SPEC/2026-11-15-conectores-gog-rawg.md` (PR #13) e `SPEC/2026-11-15-fontes-multiloja.md` (PR #12)
 
 ## Custo
@@ -11,17 +11,19 @@ Medido no log da sessão do Claude Code (`usage` de cada resposta do modelo, sem
 
 | Tipo de token | Tokens | Preço (US$/1M) | Custo (US$) |
 |---|---:|---:|---:|
-| Entrada | 104 | 4,00 | 0,00 |
-| Saída | 75.914 | 20,00 | 1,52 |
-| Leitura de cache | 7.412.677 | 0,20 | 1,48 |
-| Escrita de cache (TTL 1h) | 174.592 | 8,00 | 1,40 |
-| **Total** | **7.663.287** | | **≈ 4,40** |
+| Entrada | 130 | 4,00 | 0,00 |
+| Saída | 85.014 | 20,00 | 1,70 |
+| Leitura de cache | 9.664.329 | 0,20 | 1,93 |
+| Escrita de cache (TTL 1h) | 184.827 | 8,00 | 1,48 |
+| **Total** | **9.934.300** | | **≈ 5,11** |
 
-51 requisições ao modelo até a escrita deste registro; as respostas seguintes (commit deste arquivo, push e PR) ficam de fora.
+62 requisições ao modelo, recalculadas depois do push, da abertura do PR #14 e da verificação do CI; só a resposta que faz esta atualização fica de fora.
 
 ## Prompts (em ordem)
 
 1. implemente a spec deduplicação, atende especialmente ao plan e aos requisitos avaliativos, assim como a documentação de artefatos e rastreabilidade
+2. sim, push e abre o PR
+3. artefatos e docs ok?
 
 ## O que foi feito
 
@@ -50,5 +52,6 @@ Teste de fumaça num banco temporário com o seed real (153 jogos): o seed conti
 - **`sugerir-duplicatas` sugere todo par ≥ 70**, inclusive ≥ 90, porque a mesclagem de jogos que já existem é sempre decisão do admin (fora do escopo da spec mesclar automaticamente).
 - **Pendência com jogo já mesclado em outra** é recusada com mensagem; desfazer mesclagem continua fora do escopo.
 - **Banco local:** a spec acrescenta `game.mesclado_em_id` e a tabela `pendencia_merge`; rode `./dev.sh reset` (no Render o banco é recriado a cada deploy).
-- **Base do PR:** `feat/conectores-gog-rawg` (PR #13), para mostrar só o diff desta spec; a base vira `main` quando os PRs #12 e #13 forem mesclados.
+- **PR #14** (`feat/deduplicacao-catalogo` → `feat/conectores-gog-rawg`, para mostrar só o diff desta spec; a base vira `main` quando os PRs #12 e #13 forem mesclados): CI verde (testes + cobertura, jscpd e gitleaks), aguardando a aprovação do Fabrício.
+- **Conferência final:** cada critério MRG-01..15 tem ao menos um teste nomeado pelo ID; os 11 commits da spec têm os trailers `Agent:` e `Spec:`; README com a seção da deduplicação, a recriação do banco, 515 testes e a linha da spec na tabela specs → código → testes.
 - **Plano:** o Épico 2 do `.claude/plan/plan-ap2.md` já descreve esta spec (SPEC-03, MRG-01..15, `catalogo_merge.py`) e não precisa de mudança.
