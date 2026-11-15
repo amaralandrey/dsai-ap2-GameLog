@@ -30,7 +30,7 @@ Depende de: GAM (eventos e raridades), DIA (sessões e `Status.zerado_em`), NTF 
 - PRG-08: a cada 4 semanas seguidas de sequência, o usuário ganha 1 congelamento, até o máximo de 2. O ganho e o consumo de congelamentos aparecem no extrato com `xp` igual a 0.
 - PRG-09: `/u/<username>/xp` mostra ao dono o nível, a barra de progresso, a sequência, os congelamentos e o extrato paginado (20 por página, do mais recente para o mais antigo).
   - Para outro usuário, a rota responde 404: o extrato é pessoal.
-  - O perfil `/u/<username>` mostra o nível e a sequência a quem pode ver o perfil (`pode_ver_perfil`, DIA).
+  - O perfil `/u/<username>` mostra o nível e a sequência a quem pode ver o perfil (`pode_ver_perfil`, DIA), com 1 consulta (PRF-09, como alterado por DIA).
 - PRG-10: o cabeçalho de quem está logado mostra o nível e a barra de XP, com no máximo 1 consulta a mais por página.
   - Nas noites de domingo, o job semanal (`@tarefa("aviso_sequencia")`, JOB) avisa pela NTF (tipo `sequencia`), no máximo uma vez por semana, quem tem sequência de 2 semanas ou mais e ainda não agiu na semana.
   - O aviso não é enviado quando `pode(user, "aviso_engajamento")` é falso (PMN) nem quando o usuário desligou esse tipo de notificação (NTF).

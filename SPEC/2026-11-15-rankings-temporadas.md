@@ -11,7 +11,7 @@ Depende de: DIA (`minutos_registrados`, `zerado_em`, `pode_ver_perfil`), PRG (`E
   - O seed e o job trimestral (JOB) chamam o mesmo comando.
 - RNK-02: `/rankings` mostra quatro categorias, cada uma somada só dentro da janela escolhida:
   - `zerados`: jogos com `Status.zerado_em` na janela;
-  - `horas`: minutos do diário na janela (`minutos_registrados(..., origens=("manual", "csv"))`, DIA-08), só de sessões de origem `manual` ou `csv` — a sessão de saldo da Steam (HRS) traria de uma vez as horas de anos — mostrados em horas com uma casa decimal;
+  - `horas`: minutos do diário na janela (`consulta_minutos(origens=("manual", "csv"))` agrupada por usuário, DIA-08), só de sessões de origem `manual` ou `csv` — a sessão de saldo da Steam (HRS) traria de uma vez as horas de anos — mostrados em horas com uma casa decimal;
   - `curtidas`: curtidas recebidas em avaliações visíveis, dadas na janela;
   - `xp`: soma do `ExtratoXP` na janela.
   - A tela é paginada de 20 em 20. Quem tem 0 numa categoria não aparece nela.
@@ -19,14 +19,14 @@ Depende de: DIA (`minutos_registrados`, `zerado_em`, `pode_ver_perfil`), PRG (`E
 - RNK-04: o escopo vem de `?escopo=`.
   - `seguindo` é o padrão para quem está logado: inclui o próprio usuário e quem ele segue.
   - `global`: só perfis públicos (`User.perfil_privado` falso) de usuários para quem `pode(user, "ranking_global")` é verdadeiro (PMN).
-  - `clube=<slug>`: só membros do clube (CLB). Clube privado responde 404 a quem não é membro.
+  - `clube` (com `&clube=<slug>`): só membros do clube (CLB). Clube privado responde 404 a quem não é membro.
   - O visitante vê só o `global`. Um `seguindo` pedido sem login redireciona ao login (GLOBAL-02).
 - RNK-05: no escopo `seguindo`, um perfil privado aparece só para quem pode vê-lo (`pode_ver_perfil`, DIA). Um usuário que bloqueou ou foi bloqueado por quem consulta não aparece em nenhum escopo para ele (`bloqueado_entre`, BLQ). Admins não aparecem em nenhum ranking.
 - RNK-06: quando o usuário logado está no escopo e na categoria, um cartão fixo no topo mostra a posição e o valor dele, mesmo fora da página atual. Se ele não pontuou, o cartão diz "Você ainda não pontuou nesta temporada".
 - RNK-07: o desempate é determinístico. Primeiro vem o maior valor; depois quem alcançou o valor antes (o menor instante do último registro que formou o valor); por fim, o menor id de usuário. A mesma consulta sempre devolve a mesma ordem.
 - RNK-08: o comando `flask --app app rankings encerrar-temporada <slug>` só aceita uma temporada cujo `fim` já passou (senão sai com código 1 e `erro=temporada em andamento`). Ele:
   - grava `SnapshotRanking` (temporada, categoria, posição, usuário, valor) com os 100 primeiros do escopo global de cada categoria;
-  - desbloqueia para os 3 primeiros de cada categoria a conquista de pódio correspondente (GAM, códigos `podio-<categoria>`);
+  - desbloqueia para os 3 primeiros de cada categoria a conquista de pódio correspondente (`conceder`, GAM-03, códigos `podio-<categoria>`);
   - notifica cada premiado (`notificar(..., "sistema")`).
   - Rodar o comando de novo não altera o retrato nem premia de novo: imprime `ja_encerrada=1`.
 - RNK-09: os rankings de uma temporada encerrada são lidos do `SnapshotRanking`, que nunca muda depois de gravado, inclusive se dados antigos forem apagados. `/rankings/hall-da-fama` lista, por temporada encerrada (da mais recente para a mais antiga), o pódio de cada categoria. Usuários anonimizados (DIR) aparecem como "usuário removido".
