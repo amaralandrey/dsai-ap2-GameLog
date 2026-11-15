@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  testes:
+    name: Testes + cobertura
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # diff-cover compara com a branch base
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"  # mesma versão do render.yaml
+          cache: pip
+      - run: pip install -r requirements.txt pytest-cov diff-cover
+      - run: python -m pytest -q --cov=src/app --cov-report=term --cov-report=xml
+      - name: Cobertura do diff (≥ 70%)
+        if: github.event_name == 'pull_request'
+        run: diff-cover coverage.xml --compare-branch=origin/${{ github.base_ref }} --fail-under=70
+
+  duplicacao:
+    name: Duplicação (jscpd ≤ 5%)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: npx -y jscpd@4.0.5 src tests --threshold 5 --reporters console
+
+  segredos:
+    name: Segredos (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # varre o histórico inteiro, não só o último commit
+      - run: |
+          curl -sSL https://github.com/gitleaks/gitleaks/releases/download/v8.21.2/gitleaks_8.21.2_linux_x64.tar.gz | tar xz gitleaks
+          ./gitleaks git --redact --no-banner --verbose
