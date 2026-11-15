@@ -221,8 +221,8 @@ def _levar_dispensas(principal, secundario):
 
 
 def _levar_atividades(principal, secundario):
-    """Atividade de avaliação acompanha a avaliação; as demais vão para o principal."""
-    for a in Activity.query.filter_by(game_id=secundario.id):
+    """Atividade de avaliação acompanha a avaliação, nos dois sentidos; as demais vão para o principal."""
+    for a in Activity.query.filter(Activity.game_id.in_((principal.id, secundario.id))):
         a.game_id = a.review.game_id if a.review_id else principal.id
 
 
