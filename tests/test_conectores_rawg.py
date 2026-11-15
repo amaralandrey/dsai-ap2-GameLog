@@ -169,14 +169,21 @@ def test_gog06_vinculo_existente_so_ganha_o_link_que_falta(app, loja):
         assert JogoFonte.query.count() == 4 and steam.ultima_sincronizacao is not None
 
 
-def test_gog06_link_de_outro_jogo_nao_gera_vinculo_nem_erro(app, loja):
+def test_gog06_link_de_outro_jogo_nao_gera_vinculo_nem_erro(app, api, loja):
+    """O jogo da RAWG já existe e a RAWG passa a informar um link Steam de outro jogo: o link não muda de dono.
+
+    Num item novo, o link já conhecido faz dele o mesmo jogo (MRG-02); aqui o item já tem jogo pela identidade.
+    """
     with app.app_context():
+        api.rotas["api.rawg.io/api/games/1/stores"] = lojas(1, GOG, EPIC)
+        assert sincronizar("rawg", limite=1) == (1, 0, 0, 0)
         importar("steam", modulo=type("F", (), {"listar": staticmethod(lambda limite, termo=None: [{
-            "external_id": "1145360", "title": "Hades", "synopsis": "s", "release_date": date(2020, 9, 17),
-            "developer": "Supergiant", "genres": [], "platforms": [], "cover_url": None}])}))
-        assert importar("rawg", limite=1) == (1, 0, 0)
-        steam_hades, rawg_hades = Game.query.filter_by(source="steam").one(), Game.query.filter_by(source="rawg").one()
-        assert [(v.fonte, v.url_loja) for v in steam_hades.fontes] == [  # o link do outro jogo fica intacto
+            "external_id": "1145360", "title": "Outro Jogo", "synopsis": "s", "release_date": date(2001, 1, 1),
+            "developer": "Outra", "genres": [], "platforms": [], "cover_url": None}])}))
+        api.rotas["api.rawg.io/api/games/1/stores"] = lojas(1, STEAM, GOG, EPIC)
+        assert sincronizar("rawg", limite=1) == (0, 0, 1, 0)
+        steam, rawg_hades = Game.query.filter_by(source="steam").one(), Game.query.filter_by(source="rawg").one()
+        assert [(v.fonte, v.url_loja) for v in steam.fontes] == [  # o link do outro jogo fica intacto
             ("steam", "https://store.steampowered.com/app/1145360")]
         assert sorted(v.fonte for v in rawg_hades.fontes) == ["epic", "gog", "rawg"]
 

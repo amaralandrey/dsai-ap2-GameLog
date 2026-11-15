@@ -148,13 +148,26 @@ def _obter(model, nome):
 
 
 def importar_item(fonte, j):
-    """Cria um jogo. Devolve (status, jogo) com status 'ok', 'duplicado' ou 'invalido'."""
+    """Cria um jogo ou liga o item a um jogo que já existe (MRG-02).
+
+    Devolve (status, jogo) com status 'ok', 'vinculado', 'duplicado' ou 'invalido'.
+    """
+    from ..catalogo_merge import assumir_vinculo, reconhecer, registrar_pendencia  # import tardio: usa FONTES
+
     data, aproximada = lancamento(j)
     if not j.get("title") or not data:
         return "invalido", None
     existente = jogo_por_fonte(fonte, j["external_id"])
     if existente:
         return "duplicado", existente
+    decisao = reconhecer(fonte, j, j["title"], data)
+    if decisao.acao == "repetido":
+        return "duplicado", decisao.jogo
+    if decisao.acao == "vincular":
+        assumir_vinculo(decisao.jogo, fonte, j["external_id"])
+        vincular_origem(decisao.jogo, fonte, j)
+        vincular_lojas(decisao.jogo, j.get("lojas"))
+        return "vinculado", decisao.jogo
     slug = slugify(j["title"]) or j["external_id"]
     if Game.query.filter_by(slug=slug).first():
         slug = f"{slug}-{fonte}-{j['external_id']}"
@@ -169,13 +182,16 @@ def importar_item(fonte, j):
     db.session.add(game)
     vincular_origem(game, fonte, j)
     vincular_lojas(game, j.get("lojas"))
+    if decisao.acao == "pendencia":
+        db.session.flush()
+        registrar_pendencia(game, decisao.jogo, decisao.semelhanca)  # MRG-03
     return "ok", game
 
 
 def importar(fonte, limite=40, termo=None, modulo=None):
     """Devolve (importados, ignorados, falhas). `modulo` permite injetar uma fonte falsa nos testes.
 
-    HTTP 429 persistente levanta Interrompido com as contagens do que já foi gravado (GOG-11).
+    Item ligado a um jogo existente conta como importado (MRG-02). HTTP 429 persistente levanta Interrompido com as contagens do que já foi gravado (GOG-11).
     """
     ok = ign = erro = 0
     with registrada(fonte, modulo) as modulo:
@@ -186,7 +202,8 @@ def importar(fonte, limite=40, termo=None, modulo=None):
                     continue
                 status, _ = importar_item(fonte, j)
                 db.session.commit()
-                ok, ign = ok + (status == "ok"), ign + (status != "ok")
+                novo = status in ("ok", "vinculado")
+                ok, ign = ok + novo, ign + (not novo)
         except Exception as exc:
             if base.limitado(exc):
                 raise Interrompido("rate-limit", (ok, ign, erro)) from exc

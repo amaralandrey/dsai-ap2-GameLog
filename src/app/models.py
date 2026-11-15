@@ -77,14 +77,26 @@ class Game(db.Model):
     source = db.Column(db.String(20), nullable=True)  # None = jogo fictício do seed
     external_id = db.Column(db.String(40), nullable=True)
     cover_url = db.Column(db.String(500), nullable=True)
+    mesclado_em_id = db.Column(db.ForeignKey("game.id"), nullable=True)  # jogo principal da mesclagem (MRG-08)
     developer = db.relationship(Developer, backref="games")
     genres = db.relationship(Genre, secondary=game_genres, backref="games")
     platforms = db.relationship(Platform, secondary=game_platforms, backref="games")
     fontes = db.relationship("JogoFonte", back_populates="game", cascade="all, delete-orphan")
 
+    mesclado_em = db.relationship("Game", remote_side=[id])
+
     @property
     def cover(self):
         return self.cover_url or f"/capa/{self.slug}.svg"
+
+    @property
+    def principal(self):
+        """Jogo que responde por este: o próprio, ou o fim da cadeia de mesclagens (MRG-08)."""
+        game, vistos = self, set()
+        while game.mesclado_em is not None and game.id not in vistos:
+            vistos.add(game.id)
+            game = game.mesclado_em
+        return game
 
     @property
     def lojas(self):
@@ -114,6 +126,24 @@ class JogoFonte(db.Model):
         if fonte not in FONTES and fonte not in SO_VINCULADAS:
             raise ValueError(f"fonte desconhecida: {fonte}")
         return fonte
+
+
+PENDENCIA_STATUS = ("pendente", "mesclada", "ignorada")
+
+
+class PendenciaMerge(db.Model):
+    """Par de jogos talvez duplicados, para o admin decidir (MRG-03); o par é guardado com o menor id primeiro."""
+    __table_args__ = (db.UniqueConstraint("jogo_a_id", "jogo_b_id"), db.CheckConstraint("jogo_a_id < jogo_b_id"))
+    id = db.Column(db.Integer, primary_key=True)
+    jogo_a_id = db.Column(db.ForeignKey("game.id"), nullable=False)
+    jogo_b_id = db.Column(db.ForeignKey("game.id"), nullable=False)
+    semelhanca = db.Column(db.Integer, nullable=False)
+    status = db.Column(db.String(10), default="pendente", nullable=False)  # pendente|mesclada|ignorada
+    created_at = db.Column(db.DateTime, default=now, nullable=False)
+    decidida_em = db.Column(db.DateTime, nullable=True)
+    decidida_por = db.Column(db.ForeignKey("user.id"), nullable=True)
+    jogo_a = db.relationship(Game, foreign_keys=[jogo_a_id])
+    jogo_b = db.relationship(Game, foreign_keys=[jogo_b_id])
 
 
 class Status(db.Model):
