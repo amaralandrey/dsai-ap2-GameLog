@@ -2,28 +2,29 @@
 
 **Ferramenta:** Claude Code CLI (Claude Opus 5.5, `claude-opus-5-5`), com subagentes em paralelo
 **Quem conduziu:** Andrey Amaral
-**Horário:** 19:52–20:15 (horário de Belém); o processo do Claude Code reiniciou às 20:04 e a sessão continuou
+**Horário:** 19:52–20:35 (horário de Belém); o processo do Claude Code reiniciou às 20:04 e a sessão continuou
 **Plano:** `.claude/plan/plan-ap2.md` como está na `main` depois do PR #19 (épicos 3 a 10, SPEC-04..34)
 
 ## Custo
 
-Medido nos logs da sessão do Claude Code: a sessão principal, a continuação depois do reinício e os 13 subagentes. Cada resposta do modelo conta uma vez só, com o maior `usage` registrado para o mesmo `message.id`, porque o reinício copiou parte do histórico. Preços de API do Claude Opus 5.5.
+Medido nos logs da sessão do Claude Code: a sessão principal, a continuação depois do reinício e os 18 subagentes (13 da redação e 5 da auditoria de contradições). Cada resposta do modelo conta uma vez só, com o maior `usage` registrado para o mesmo `message.id`, porque o reinício copiou parte do histórico. Preços de API do Claude Opus 5.5.
 
 | Tipo de token | Tokens | Preço (US$/1M) | Custo (US$) |
 |---|---:|---:|---:|
-| Entrada | 347 | 4,00 | 0,00 |
-| Saída | 164.279 | 20,00 | 3,29 |
-| Leitura de cache | 21.579.236 | 0,20 | 4,32 |
-| Escrita de cache (TTL 1h) | 636.073 | 8,00 | 5,09 |
-| **Total** | **22.379.935** | | **≈ 12,69** |
+| Entrada | 492 | 4,00 | 0,00 |
+| Saída | 220.454 | 20,00 | 4,41 |
+| Leitura de cache | 41.246.125 | 0,20 | 8,25 |
+| Escrita de cache (TTL 1h) | 845.047 | 8,00 | 6,76 |
+| **Total** | **42.312.118** | | **≈ 19,42** |
 
-O total soma 165 requisições ao modelo: 56 da conversa principal e 109 dos subagentes. A conta foi feita antes de escrever este arquivo, então ficam de fora as últimas respostas (este registro, o push e o PR).
+O total soma 236 requisições ao modelo: 79 da conversa principal e 157 dos subagentes. A primeira parte (redação, PR #20) custou ≈ US$ 12,69; a auditoria de contradições, ≈ US$ 6,73. A conta foi feita antes desta atualização, então ficam de fora as últimas respostas (este registro e o push).
 
 ## Prompts (em ordem)
 
 1. vamos redigir todas as specs, conforme o plan atualizado - reescrita futura não é um impedimento, reforce os requisitos do projeto não apenas na estrutura da spec, mas com os requisitos gerais do projeto e da avaliação do professor. essa sessão será registrada no diretorio adequado e deve gerar os artefatos pertinentes.
 2. (rodada de decisões, primeira tentativa) o reforço mencionado é sobre o contexto, não sobre reforçar literalmente em texto na spec - uma versão mais clara dos requisitos estão na pasta trabalho gustavo em downloads
 3. (rodada de decisões, respostas) datas: todas 2026-11-15; idade: 12+ com responsável até 16; MCP: stdlib, JSON-RPC à mão; e-mail: SMTP por variáveis de ambiente e console sem configuração.
+4. antes do merge, faça um contraste geral do que ja temos e o que sera implementando pelas novas specs, resolvendo as contradições.
 
 ## Como foi feito
 
@@ -78,7 +79,7 @@ O total soma 165 requisições ao modelo: 56 da conversa principal e 109 dos sub
 - **E-mail:** `smtplib` com as variáveis `SMTP_*`. Sem `SMTP_HOST`, a mensagem vai para o console e fica na caixa de saída.
 - **Sem dependência nova:** nenhuma spec acrescenta uma. O TOTP segue a RFC 6238 com `hmac` da stdlib, e os links assinados usam `itsdangerous`, que já vem com o Flask.
 - **Sequência semanal sem multiplicador de XP:** é uma escolha para evitar uso compulsivo (ECA Digital, art. 8, IV; Decreto 12.880/2026, art. 9, §1). Menores não recebem o aviso de sequência prestes a quebrar nem conquistas por tempo de jogo.
-- **Jobs em produção (JOB-11, corrigido na revisão):** no plano gratuito do Render, um serviço `cron` não enxerga o SQLite do serviço web. Por isso um workflow agendado do GitHub Actions chama `POST /jobs/ciclo`, protegida pelo token `JOBS_TOKEN`, e a trava do JOB-05 impede execução dupla entre os 2 workers do gunicorn. O processo web continua sem agendador nem thread.
+- **Jobs em produção (JOB-11, corrigido na revisão):** no plano gratuito do Render, um serviço `cron` não enxerga o SQLite do serviço web. Por isso um cron HTTP externo (por exemplo, cron-job.org) chama `POST /jobs/ciclo`, protegida pelo token `JOBS_TOKEN`, a cada 15 minutos; a primeira versão usava um workflow agendado do GitHub Actions, trocado na auditoria para não encher o histórico de builds com execuções que dependem do Render acordar, e a trava do JOB-05 impede execução dupla entre os 2 workers do gunicorn. O processo web continua sem agendador nem thread.
 - **Backup (BKP-11, corrigido na revisão):** `BACKUP_RESTAURAR_DE` aceita uma URL `https`, porque o disco do plano gratuito some a cada deploy.
 - **Recomendações (corrigido na revisão):** saíram dos consentimentos (CNS) e ficam na base de execução do contrato, com a oposição prevista em DIR-09. Assim REC e COL e os testes deles não mudam.
 - **Ranking de horas (corrigido na revisão):** conta só sessões `manual` e `csv`, porque a sessão de saldo da Steam traria anos de horas de uma vez. Para isso, `minutos_registrados` (DIA-08) ganhou o filtro `origens`.
@@ -94,3 +95,43 @@ O total soma 165 requisições ao modelo: 56 da conversa principal e 109 dos sub
 - **Fabrício:** o plano divide as specs entre a dupla, mas o Andrey vai implementar sozinho nesta semana. Os PRs #12, #13, #14 e #16 do Épico 2 continuam abertos esperando a aprovação do Fabrício.
 - **ECA Digital:** as specs do Épico 10 citam artigos do decreto lidos por resumo automático. Vale conferir a redação exata dos arts. 24 e 39 da lei e do art. 27 do decreto antes de implementar.
 - **Specs como contrato:** reescrever uma spec antes do código é permitido (o pedido não vê isso como impedimento). Uma mudança depois do primeiro commit de código entra como novo critério ou como "Altera:" em outra spec datada.
+
+## Auditoria de contradições (prompt 4)
+
+Quatro subagentes compararam as specs novas, agrupadas por épicos (3–4, 5–7, 8 e 9–10), com as specs da AP1 e do Épico 2 (lidas da branch `feat/snapshot-multiloja`), com o código e os testes atuais e com as specs vizinhas. Cada um corrigiu o que dava para resolver só nos arquivos do próprio grupo. Depois eu resolvi as divergências entre grupos e escrevi a spec `SPEC/2026-11-15-visao-geral-ap2.md`. Ela registra:
+- o contraste entre o que já existe e o que as specs acrescentam;
+- os critérios globais GLOBAL-09..18 (fuso, testes sem rede, sem dependência nova, mapa de dados, pontos únicos de entrada, segredos, auditoria e permissões);
+- a tabela das divergências resolvidas.
+
+Achados principais, já corrigidos nas specs:
+- **Código:**
+  - o logout já encerra todas as sessões (CAD-05), então CTA-05 só acrescenta "sair dos outros aparelhos";
+  - a CSRF própria (`__init__.py`) barraria a API v2 e `/jobs/ciclo`;
+  - o cache da v1 (`public, max-age=60` em todo `/api/`) sobrescreveria o `no-store` da v2;
+  - `FLASK_ENV` não existe no Flask 3 e foi trocado por `GAMELOG_PRODUCAO`;
+  - os templates usam `style=` e `onchange`, então a CSP permite estilos inline e o `onchange` vai para arquivo estático;
+  - o e-mail anonimizado precisava passar no `EMAIL_RE`;
+  - o `seed` não sobrescreve o banco: os dados somem porque o disco do plano gratuito é apagado a cada deploy.
+- **Testes existentes:**
+  - o cadastro com aceite e data de nascimento e o redirecionamento para `/conta/nascimento` quebrariam `tests/test_auth.py` e todo login;
+  - as specs agora mandam o seed e o `make_user` criarem adultos e o cadastro de teste enviar a data;
+  - `test_con*` passa a chamar `conquistas recalcular`;
+  - os `Follow` existentes são migrados como aprovados.
+- **Entre specs (decididas por mim):**
+  - avaliação de perfil privado fica oculta e conta na média (DIA-13 vale sobre a versão anônima de PMN-12);
+  - `/ofertas` responde 403 com mensagem para menores;
+  - o adiamento noturno vale só para o e-mail não transacional de menor;
+  - o resumo semanal é ligado e desligado só pelo consentimento `email_resumo`;
+  - a denúncia de post de clube vira `Report(alvo_tipo="post_clube")`;
+  - a exclusão de conta com denúncia em preservação desativa a conta na hora e anonimiza depois do prazo;
+  - as conquistas de torneio e de pódio entram nas métricas do GAM.
+- **Specs da AP1:**
+  - EST repetida (estatisticas e avaliacao-interativa) e `/jogo/<id>` em COM-01 e EST-01 ficam registradas na visão geral da AP2, sem reescrever as specs antigas;
+  - a meia estrela de EST-02 nunca foi implementada (o código e `test_estrelas.py` usam nota inteira), e a AP2 confirma a nota inteira de 0 a 10.
+
+Ponto que ficou de fora: a recuperação de senha por e-mail não está em nenhuma spec (CTA e EML a deixam de fora) e precisa de uma spec própria, se a dupla quiser.
+
+Commits da auditoria:
+- `spec(visao-geral-ap2)`, a spec nova, sozinha no commit;
+- um commit de ajustes por épico, com os critérios mantidos na mesma quantidade;
+- este registro e o ponteiro no plano.

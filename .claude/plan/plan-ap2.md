@@ -75,6 +75,8 @@ O que explicitamente não será implementado nesta spec para evitar aumento arti
 Para atingir **100.000 linhas novas** com valor real de produto (duplicação ≤ 5% e cobertura ≥ 70%), o trabalho está
 estruturado em **10 épicos funcionais** (~34 specs principais).
 
+As regras globais da AP2 (GLOBAL-09..18), o contraste com o que a AP1 e o Épico 2 já entregam e as divergências resolvidas entre specs estão em `SPEC/2026-11-15-visao-geral-ap2.md`.
+
 > **Origem das demandas.** Na conversa com a cliente (WhatsApp, 2026-11-10), o pedido explícito foi mais catálogos além da Steam (Épico 2). A frase "seria bom utilizar um mpc e kills" respondeu à pergunta sobre como chegar às 100 mil linhas; a dupla a interpreta como **MCP e skills** (ferramentas de agentes), ainda sem confirmação da cliente. Os épicos 3 e 4 e os clubes são propostas da dupla (FDE), não demandas da cliente.
 
 ### Épico 1: Kickoff, infraestrutura e governança 
