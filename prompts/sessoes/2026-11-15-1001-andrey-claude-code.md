@@ -2,7 +2,7 @@
 
 **Ferramenta:** Claude Code CLI (Claude Opus 5.5, `claude-opus-5-5`)
 **Quem conduziu:** Andrey Amaral
-**Horário:** 10:01–10:14 (horário de Belém)
+**Horário:** 10:01–10:33 (horário de Belém)
 **Spec:** `SPEC/2026-11-15-fontes-multiloja.md` (FNT-01..12); refatoração da Steam justificada na issue #10
 
 ## Custo
@@ -11,13 +11,13 @@ Medido no log da sessão do Claude Code (`usage` de cada resposta do modelo, sem
 
 | Tipo de token | Tokens | Preço (US$/1M) | Custo (US$) |
 |---|---:|---:|---:|
-| Entrada | 60 | 4,00 | 0,00 |
-| Saída | 48.514 | 20,00 | 0,97 |
-| Leitura de cache | 3.274.740 | 0,20 | 0,65 |
-| Escrita de cache (TTL 1h) | 124.603 | 8,00 | 1,00 |
-| **Total** | **3.447.917** | | **≈ 2,62** |
+| Entrada | 88 | 4,00 | 0,00 |
+| Saída | 57.994 | 20,00 | 1,16 |
+| Leitura de cache | 5.127.529 | 0,20 | 1,03 |
+| Escrita de cache (TTL 1h) | 135.403 | 8,00 | 1,08 |
+| **Total** | **5.321.014** | | **≈ 3,27** |
 
-30 requisições ao modelo. O valor é o equivalente em preço de API, calculado até o momento do registro (antes do commit deste arquivo).
+42 requisições ao modelo. O valor é o equivalente em preço de API, recalculado depois do merge do PR #11, da abertura do PR #12 e da verificação do CI; só a resposta que faz esta atualização fica de fora.
 
 ## Prompts (em ordem)
 
@@ -48,5 +48,5 @@ Validações locais: **270 testes passando** (eram 216); cobertura total 97%; **
 - **Banco existente:** esta spec só cria tabela nova, que o `db.create_all()` já cria; o seed preenche os vínculos que faltam. Mesmo assim o README avisa para usar `./dev.sh reset` nas próximas mudanças de esquema do Épico 2.
 - **Fonte inválida em `/admin/importar`** responde 400; o lote com 0 ou mais de 10 jogos não processa nada e volta com mensagem.
 - **PR #11 mesclado sem aprovação:** o GitHub não deixa o autor aprovar o próprio PR e o Fabrício não estava disponível. Por decisão do Andrey, o PR foi mesclado com CI verde e um comentário explicando, como nos PRs #4–#7. Isso conta contra o critério de Revisão (100% dos merges aprovados pelo parceiro).
-- **PR da funcionalidade:** `feat/fontes-multiloja` → `main`, aguardando a aprovação do Fabrício.
+- **PR #12** (`feat/fontes-multiloja` → `main`): CI verde (testes, jscpd e gitleaks), aguardando a aprovação do Fabrício. O pedido de revisão não pôde ser feito pelo `gh` porque o Fabrício ainda não é colaborador do repositório.
 - **Pendências:** marcar os itens da issue #10 depois do merge e o item "Atualizar as duas specs" da issue #9.
