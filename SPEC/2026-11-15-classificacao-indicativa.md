@@ -6,6 +6,7 @@ O catálogo tem 153 jogos reais da Steam e, pelo Épico 2, jogos da GOG e da RAW
 Ressalva: a classificação oficial no Brasil é a da ClassInd (Portaria MJSP 1.048/2025, faixas L, 6, 10, 12, 14, 16 e 18; jogos classificados pelo IARC). O `required_age` da Steam é o bloqueio etário escolhido pelo publisher, e não existe tabela oficial de ESRB para ClassInd. Os mapeamentos abaixo são uma equivalência da dupla, que arredonda sempre para a faixa mais restritiva, e a página diz isso.
 
 Depende de: FNT/GOG (conectores Steam e RAWG), SNP (snapshot do seed), IDA (faixa do usuário), PMN.
+Altera: CAT-01 e ADM-03 (o jogo ganha a classificação, editável pelo admin); BUS-01/02 e API-02 (filtro `classificacao_max` e jogos acima da idade fora para menores); PAG-01 (selo da faixa e página reduzida para menor); REC-01 e COL-03 (jogos acima da idade não são recomendados a menores); EST-03/04 (estatísticas sem esses jogos para menores); CRE-02 (o snapshot pode trazer `classificacao`).
 Respeita: PMN (filtro para menores).
 
 ## Critérios de aceitação
@@ -15,7 +16,7 @@ Respeita: PMN (filtro para menores).
 - CLS-04: quando as fontes divergem, vale a faixa mais restritiva. A classificação definida pelo admin (`origem=admin`) nunca é sobrescrita por sincronização. A mudança pelo admin grava `AuditLog` com o valor antigo e o novo.
 - CLS-05: `export-games` e `enriquecer-snapshot` gravam `classificacao` em cada jogo do `jogos.json`, e o seed importa o campo sem rede. Um jogo do snapshot sem o campo fica `NULL`, como antes (CRE-02).
 - CLS-06: a página do jogo mostra o selo da faixa, ou "Classificação não informada", com a nota "equivalência do GameLog a partir da Steam/RAWG; não é a classificação oficial". A API v1 e a v2 trazem `classificacao` no detalhe do jogo.
-- CLS-07: para um usuário cuja idade (IDA-03) é menor que a faixa do jogo, o jogo não aparece na página inicial, no catálogo, na busca, nos gêneros, nas recomendações, nas listas de outras pessoas, nos rankings de jogos nem na API. A contagem e a paginação já saem filtradas, e a página da busca não fica com buracos.
+- CLS-07: para um usuário cuja idade (IDA-03) é menor que a faixa do jogo, o jogo não aparece na página inicial, no catálogo, na busca, nos gêneros, nas recomendações, nas listas de outras pessoas, nas estatísticas (EST-03/04) nem na API. A contagem e a paginação já saem filtradas, e a página da busca não fica com buracos.
 - CLS-08: esse usuário, ao abrir direto a página do jogo, recebe 200 com o aviso "Este jogo é classificado para N anos", sem capa, sinopse, avaliações nem botões de status. Jogos com classificação `NULL` aparecem para todos com o selo de não informada.
 - CLS-09: `/buscar` e `/api/jogos` aceitam `classificacao_max` (uma das faixas). Valor inválido é ignorado (BUS-08). O filtro está disponível para qualquer pessoa e, para menores, nunca permite passar da própria idade.
 - CLS-10: os testes rodam sem rede, com respostas falsas da Steam e da RAWG, e cobrem: mapeamento de cada `required_age` limite (0, 10, 13, 16, 17, 18) e de cada ESRB, divergência entre fontes, admin preservado na sincronização, snapshot com e sem o campo, filtro em cada listagem para 12, 16 e adulto, página direta com aviso e `classificacao_max` inválido. Todos nomeados `test_cls_NN_*`.
