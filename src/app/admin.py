@@ -4,7 +4,7 @@ from urllib.parse import urlencode
 
 from flask import Blueprint, abort, flash, redirect, render_template, request
 
-from .fontes import FONTES, importar_item, jogo_por_fonte
+from .fontes import FONTES, importar_item, indisponivel, jogo_por_fonte
 from .models import AuditLog, Developer, Game, Genre, JogoFonte, Platform, Report, Review, db, now
 from .util import admin_required, current_user, paginate, slugify
 
@@ -38,8 +38,9 @@ SEM_RESPOSTA = "A fonte não respondeu. Tente de novo em instantes."
 
 
 def fontes_admin():
-    """Fontes que a tela consegue usar: as que oferecem buscar e detalhe (FNT-08)."""
-    return [n for n, m in FONTES.items() if callable(getattr(m, "buscar", None)) and callable(getattr(m, "detalhe", None))]
+    """Fontes que a tela consegue usar: as que oferecem buscar e detalhe e estão ligadas (FNT-08, GOG-04)."""
+    return [n for n, m in FONTES.items()
+            if callable(getattr(m, "buscar", None)) and callable(getattr(m, "detalhe", None)) and not indisponivel(m)]
 
 
 def _fonte_escolhida():

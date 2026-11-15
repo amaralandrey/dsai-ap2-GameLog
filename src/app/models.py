@@ -71,6 +71,7 @@ class Game(db.Model):
     slug = db.Column(db.String(170), unique=True, nullable=False)
     synopsis = db.Column(db.Text, nullable=False)
     release_date = db.Column(db.Date, nullable=False)
+    data_aproximada = db.Column(db.Boolean, default=False, nullable=False)  # só o ano é conhecido (GOG-09)
     developer_id = db.Column(db.ForeignKey("developer.id"), nullable=False)
     removed_at = db.Column(db.DateTime, nullable=True)
     source = db.Column(db.String(20), nullable=True)  # None = jogo fictício do seed
