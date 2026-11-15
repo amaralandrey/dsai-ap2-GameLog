@@ -1,9 +1,9 @@
 # Backup e restore portável do banco (2026-11-15)
 
 ## O quê e por quê
-O Render recria o banco a cada deploy e a cada reinício, porque o `startCommand` do `render.yaml` roda o `seed` antes do gunicorn. Na issue *Primeiras impressões*, isso aparece como evidência de que nenhum dado de usuário real sobrevive em produção. Com diário, conquistas, clubes e tokens, perder o banco passa a custar mais. Esta spec cria um backup completo do estado do SQLite em JSON, portável entre versões do esquema, assinado com HMAC para que um arquivo adulterado não seja restaurado. Ele funciona pela linha de comando e pelo painel admin, usando os serializadores da API v2 para as entidades que eles já cobrem.
+No plano gratuito do Render, o disco do serviço web é apagado a cada deploy e a cada reinício, então o `gamelog.db` volta vazio e o `startCommand` do `render.yaml` roda o `seed` de novo (o `seed` em si não apaga nada: `seed.run` não faz nada quando já há jogos). Na issue *Primeiras impressões*, isso aparece como evidência de que nenhum dado de usuário real sobrevive em produção. Com diário, conquistas, clubes e tokens, perder o banco passa a custar mais. Esta spec cria um backup completo do estado do SQLite em JSON, portável entre versões do esquema, assinado com HMAC para que um arquivo adulterado não seja restaurado. Ele funciona pela linha de comando e pelo painel admin, usando os serializadores da API v2 para as entidades que eles já cobrem.
 
-Depende de: AP2-07 (serializadores), JOB (backup agendado), ADM-09 (auditoria). Respeita: MAP (o backup carrega dados pessoais; o mapa de dados registra a finalidade "continuidade do serviço" e a retenção dos arquivos) e INC (um backup vazado é incidente).
+Depende de: AP2-07 (serializadores), JOB (backup agendado), ADM-09 (auditoria). Respeita: MAP (o backup é cópia integral e não usa `campos_exportaveis`, que é da portabilidade; ele carrega dados pessoais e hashes de autenticação; o mapa de dados registra a finalidade "continuidade do serviço" e a retenção dos arquivos) e INC (um backup vazado é incidente).
 
 ## Critérios de aceitação
 - BKP-01: `flask --app app backup exportar --saida <arquivo.json>` grava um JSON com:
@@ -24,7 +24,7 @@ Depende de: AP2-07 (serializadores), JOB (backup agendado), ADM-09 (auditoria). 
 - BKP-08: `/admin/backup` (só admin; jogador recebe 403, GLOBAL-05) mostra as contagens atuais e oferece "Baixar backup", que gera o mesmo arquivo de BKP-01 como download `gamelog-backup-AAAAMMDD-HHMM.json`. Também oferece "Restaurar", que recebe o arquivo por upload (até 20 MB), mostra a prévia de BKP-05 e só restaura depois de um segundo POST com a confirmação marcada.
 - BKP-09: baixar, pré-visualizar e restaurar gravam no `AuditLog` (`backup.exportar`, `backup.previa` e `backup.restaurar`), com as contagens e o resultado. A restauração preserva o próprio registro de auditoria dela, gravado depois da troca das tabelas. O admin que restaura continua logado se o seu usuário existir no backup, e senão vai ao login.
 - BKP-10: o job `backup` (JOB) roda conforme o agendamento configurado e grava o arquivo em `BACKUP_DIR` (padrão `instance/backups/`, fora do Git e coberto pelo `.gitignore`), mantendo os 7 mais recentes (retenção conferida pelo mapa de dados). Uma falha do job fica no histórico de `/admin/jobs` sem apagar backups antigos.
-- BKP-11: `flask --app app seed --se-vazio` só roda o seed se o banco não tiver usuários. Assim o `startCommand` pode restaurar um backup antes de subir, em vez de sobrescrever os dados. `BACKUP_RESTAURAR_DE` aceita um caminho local ou uma URL `https` (o disco do plano gratuito do Render some a cada deploy); o arquivo baixado passa pela mesma conferência de assinatura de BKP-05, e uma falha deixa o `seed` rodar como hoje. Sem a variável, o comportamento de produção não muda. O README explica o fluxo e os limites do plano gratuito.
+- BKP-11: `flask --app app backup restaurar-inicial` roda no `startCommand` antes do `seed`. Com `BACKUP_RESTAURAR_DE` (caminho local ou URL `https`, porque o disco do plano gratuito some a cada deploy) e o banco sem usuários, obtém o arquivo, confere a assinatura (BKP-05) e restaura (BKP-06); com o banco já populado ou sem a variável, não faz nada e imprime `restaurado=0`. Como o `seed` não faz nada quando já há jogos, os dados restaurados não são sobrescritos. Uma falha imprime `erro=<motivo>` e sai com 0, para o deploy não cair, e o `seed` roda como hoje. O README explica o fluxo e os limites do plano gratuito.
 - BKP-12: os testes rodam sem rede, num banco temporário, e cobrem:
   - ida e volta (exportar, apagar, importar e exportar de novo dá o mesmo conteúdo);
   - assinatura adulterada em um byte (recusada, banco intacto);
@@ -35,7 +35,7 @@ Depende de: AP2-07 (serializadores), JOB (backup agendado), ADM-09 (auditoria). 
   - tabelas excluídas de propósito e a constante cobrindo todo o modelo;
   - rotas admin (403 e auditoria);
   - retenção de 7 arquivos;
-  - `seed --se-vazio`.
+  - `backup restaurar-inicial` com banco vazio, com banco populado, sem a variável e com assinatura inválida.
 
 ## Fora do escopo
 Backup incremental ou contínuo, envio automático para nuvem (S3, Google Drive), criptografia do conteúdo (a assinatura garante integridade, não sigilo), restauração parcial por usuário ou por tabela, migração para PostgreSQL e troca do plano do Render.
