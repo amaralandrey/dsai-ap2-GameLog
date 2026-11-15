@@ -9,7 +9,7 @@ LOJAS_EXTRAS = ("gog", "epic")  # a Steam já vem do próprio snapshot (FNT-05)
 
 def correspondencia(j, modulo=rawg):
     """(id da RAWG, lojas) do resultado cujo link da Steam tem o id do jogo, ou None; sem semelhança de título."""
-    for r in modulo.buscar(j["title"], CANDIDATOS)[:CANDIDATOS]:
+    for r in modulo.buscar(j["title"], CANDIDATOS):
         lojas = modulo.lojas(r["external_id"])
         if any(loja == "steam" and external_id_da_url("steam", url) == j["external_id"] for loja, url in lojas):
             links = ((loja, normalizar_url_loja(loja, url)) for loja, url in lojas if loja in LOJAS_EXTRAS)
