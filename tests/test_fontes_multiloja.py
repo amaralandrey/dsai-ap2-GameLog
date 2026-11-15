@@ -131,6 +131,7 @@ def test_fnt06_comandos_reexecutados_nao_duplicam(app):
     ("steam", "https://store.steampowered.com.evil.com/app/620", None),
     ("steam", "https://user@store.steampowered.com/app/620", None),
     ("steam", "https://store.steampowered.com:8443/app/620", None),
+    ("steam", "https://store.steampowered.com:porta/app/620", None),
     ("steam", "https://www.gog.com/en/game/hades", None),  # host de outra loja
     ("rawg", "https://rawg.io/games/hades", None),  # rawg não é loja
     ("epic", "javascript:alert(1)", None),
