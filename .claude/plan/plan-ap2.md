@@ -163,6 +163,7 @@ Hoje o GameLog não tem política de privacidade nem aceite no cadastro, carrega
 | SPEC-24 | RTN-01..12 | **Retenção e minimização** (`SPEC/2026-11-15-retencao-minimizacao.md`; `src/app/privacidade/retencao.py`) — expurgo por job (Épico 6) de `LoginAttempt`, logs e contas inativas conforme o mapa; proxy e cache das capas para o navegador não falar com a CDN da Steam. |
 | SPEC-25 | INC-01..12 | **Incidentes e segurança** (`SPEC/2026-11-15-incidentes-seguranca.md`; `src/app/privacidade/incidentes.py`) — registro e avaliação de risco de incidentes, modelos de comunicação à ANPD e aos titulares com contagem de prazo, cookies `Secure`/`SameSite` e cabeçalhos de segurança (CSP, HSTS). |
 | SPEC-26 | CTA-01..12 | **Segurança da conta** (`SPEC/2026-11-15-seguranca-da-conta.md`; `src/app/conta.py`) — troca de senha e de e-mail com confirmação, encerramento das outras sessões e 2FA por TOTP com códigos de recuperação. |
+| SPEC-26b | RSN-01..10 | **Recuperação de senha** (`SPEC/2026-11-15-recuperacao-de-senha.md`; `src/app/conta.py`) — "esqueci minha senha" com link assinado de 1 hora e uso único, resposta igual exista a conta ou não, limite de 3 pedidos por hora, sessões derrubadas e 2FA mantido. |
 | SPEC-27 | BLQ-01..10 | **Bloquear e silenciar** (`SPEC/2026-11-15-bloquear-silenciar.md`; `src/app/bloqueios.py`) — bloqueio esconde perfil, avaliações e comentários nos dois sentidos e impede seguir; silenciar só tira do feed. |
 
 ### Épico 9: Torneios e campeonatos — proposta da dupla

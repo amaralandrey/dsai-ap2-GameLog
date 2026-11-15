@@ -20,4 +20,4 @@ Depende de: EML (confirmação do e-mail novo e aviso ao antigo), NTF (aviso de 
 - CTA-12: testes sem rede para: vetores da RFC 6238, janela de ±1 passo, reuso de código, troca de senha com outra sessão derrubada, senha atual errada contando tentativa, link de troca de e-mail válido, vencido, reutilizado e adulterado, e-mail tomado no meio-tempo, aviso ao e-mail antigo, login em dois passos, expiração do passo intermediário, código de recuperação de uso único, regeneração invalidando os antigos, desligar o 2FA e segredo ausente das respostas depois da ativação.
 
 ## Fora do escopo
-Recuperação de senha por e-mail para quem esqueceu (fica para quando o e-mail estiver em produção), chaves de segurança WebAuthn/passkeys, 2FA por SMS, lista de sessões com aparelho e IP, login social, 2FA obrigatório para administradores.
+Recuperação de senha por e-mail para quem esqueceu (spec recuperacao-de-senha, RSN), chaves de segurança WebAuthn/passkeys, 2FA por SMS, lista de sessões com aparelho e IP, login social, 2FA obrigatório para administradores.

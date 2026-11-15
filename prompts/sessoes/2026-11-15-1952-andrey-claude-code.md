@@ -25,6 +25,7 @@ O total soma 236 requisições ao modelo: 79 da conversa principal e 157 dos sub
 2. (rodada de decisões, primeira tentativa) o reforço mencionado é sobre o contexto, não sobre reforçar literalmente em texto na spec - uma versão mais clara dos requisitos estão na pasta trabalho gustavo em downloads
 3. (rodada de decisões, respostas) datas: todas 2026-11-15; idade: 12+ com responsável até 16; MCP: stdlib, JSON-RPC à mão; e-mail: SMTP por variáveis de ambiente e console sem configuração.
 4. antes do merge, faça um contraste geral do que ja temos e o que sera implementando pelas novas specs, resolvendo as contradições.
+5. sim, escreve a spec de recuperação de senha
 
 ## Como foi feito
 
@@ -129,7 +130,13 @@ Achados principais, já corrigidos nas specs:
   - EST repetida (estatisticas e avaliacao-interativa) e `/jogo/<id>` em COM-01 e EST-01 ficam registradas na visão geral da AP2, sem reescrever as specs antigas;
   - a meia estrela de EST-02 nunca foi implementada (o código e `test_estrelas.py` usam nota inteira), e a AP2 confirma a nota inteira de 0 a 10.
 
-Ponto que ficou de fora: a recuperação de senha por e-mail não está em nenhuma spec (CTA e EML a deixam de fora) e precisa de uma spec própria, se a dupla quiser.
+Ponto que ficou de fora: a recuperação de senha por e-mail não estava em nenhuma spec (CTA e EML a deixavam de fora). A pedido do Andrey (prompt 5), ela ganhou a spec `SPEC/2026-11-15-recuperacao-de-senha.md` (RSN-01..10, SPEC-26b no plano).
+- **Link:** assinado com `itsdangerous` sobre o id e uma impressão de `password_hash` com `session_version`. Ele vale 1 hora e serve uma vez só, sem tabela nova.
+- **Resposta:** é igual exista a conta ou não, como na mensagem genérica de CAD-03.
+- **Limite:** 3 pedidos por hora por conta, contados na caixa de saída.
+- **Depois da redefinição:** todas as sessões caem, as tentativas falhas de login são zeradas e o 2FA continua valendo.
+- **Onde o link não fica:** ele é tirado da caixa de saída depois do envio, e em produção sem SMTP a recuperação fica indisponível, para o link nunca parar no log.
+- **Outros arquivos:** CTA, EML, a visão geral da AP2 e o plano passaram a apontar para a spec.
 
 Commits da auditoria:
 - `spec(visao-geral-ap2)`, a spec nova, sozinha no commit;

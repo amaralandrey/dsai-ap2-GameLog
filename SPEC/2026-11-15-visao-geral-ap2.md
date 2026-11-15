@@ -33,7 +33,7 @@ Altera:
 | Social e moderação | Seguir livre; feed; denúncia só de avaliação; perfil sempre público | Bloquear e silenciar (BLQ); pedido de seguir para menores (PMN-03); denúncia de comentário, perfil e post de clube, com fila de risco a menores (DEN) |
 | API e agentes | API v1 pública e só de leitura (API) | Tokens com escopo e API v2 com escrita (AP2); servidor MCP e skills (MCP) |
 | Operação | Comandos manuais; banco recriado a cada deploy | Fila de jobs (JOB); e-mail (EML); backup assinado e restauração na subida (BKP) |
-| Conta | Cadastro, login com bloqueio e logout de todas as sessões | Troca de senha e e-mail, sair dos outros aparelhos, 2FA por TOTP (CTA); data de nascimento e faixas (IDA) |
+| Conta | Cadastro, login com bloqueio e logout de todas as sessões; sem recuperação de senha | Troca de senha e e-mail, sair dos outros aparelhos, 2FA por TOTP (CTA); recuperação de senha por link assinado (RSN); data de nascimento e faixas (IDA) |
 | Privacidade | Nenhuma política, aceite, exportação ou exclusão; `LoginAttempt` e `AuditLog` sem prazo; capas carregadas da CDN da Steam | Mapa de dados (MAP); política e termos versionados (PRV); consentimentos (CNS); direitos do titular (DIR); retenção e proxy de capas (RTN); incidentes e cabeçalhos de segurança (INC) |
 
 ## Critérios de aceitação globais da AP2
@@ -93,4 +93,3 @@ Continuam fora do escopo:
 - upload de imagens de usuário;
 - federação (ActivityPub);
 - conta para menores de 12 anos;
-- recuperação de senha por e-mail, que fica para uma spec própria.
