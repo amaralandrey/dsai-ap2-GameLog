@@ -2,7 +2,7 @@
 
 Repositório: `amaralandrey/dsai-ap2-GameLog` (fork de `fenalk/dsai-ap1-GameLog`).
 Dupla: Andrey Amaral & Fabrício Assunção · Cliente: Fernanda Borges (`@fenalk`) & Artur (`@arturgomesc`).
-Atualizado: 2026-11-14.
+Atualizado: 2026-11-15.
 
 > 📏 **Baseline AP1 (`cloc`):** 4.064 linhas úteis (Python, HTML, CSS, Shell, INI).
 > **Meta AP2 (`cloc --diff`):** ≥ 100.000 linhas novas úteis (total alvo: ~104.064 linhas).
@@ -45,7 +45,7 @@ Qualquer violação abaixo **anula a AP2** ou **zera o critério** na auditoria 
 
 - **Stack:** Python 3.12+, Flask 3, Flask-SQLAlchemy (SQLite), Jinja2, CSS puro (`static/style.css`), `pytest`, `gunicorn`, `render.yaml`.
 - **Módulos existentes em `src/app/`:** `__init__.py`, `models.py`, `util.py`, `seed.py`, `auth.py`, `catalogo.py`, `busca.py`, `jogo.py`, `avaliacoes.py`, `listas.py`, `social.py`, `recomendacoes.py`, `admin.py`, `api.py`, `afinidade.py`, `perfil.py`, `cli.py` e `fontes/` (`steam.py`, `arquivo.py`).
-- **Convenção de testes em `tests/`:** cada arquivo `tests/test_<spec>.py` nomeia os testes com o ID exato do critério de aceitação (ex.: `test_ava_01_exige_login`, `test_epic_01_...`).
+- **Convenção de testes em `tests/`:** cada arquivo `tests/test_<spec>.py` nomeia os testes com o ID exato do critério de aceitação (ex.: `test_ava_01_exige_login`, `test_fnt_01_...`).
 
 ### 1.2. Padrão obrigatório das novas specs (`SPEC/AAAA-MM-DD-<nome>.md`)
 
@@ -87,13 +87,13 @@ estruturado em **6 épicos funcionais** (~15 specs principais).
 
 ### Épico 2: Multi-catálogo de jogos — Demanda #1 da cliente
 
-Expansão da arquitetura `src/app/fontes/` (citada explicitamente pela cliente Fernanda):
+Expansão da arquitetura `src/app/fontes/` (citada explicitamente pela cliente Fernanda). A Epic Games Store entra como loja vinculada, com links obtidos pela RAWG, e não como fonte de importação: a loja não tem API pública que responda a clientes HTTP comuns (decisão na issue #9). A refatoração da fonte Steam para a base comum é justificada na issue #10.
 
 | Spec | Critérios | Entrega |
 |---|---|---|
-| SPEC-01 | EPIC-01..12 | **Conector Epic Games Store** (`src/app/fontes/epic.py`) — busca, mapeamento de metadados, capas verticais e sincronização idempotente via `flask --app app sync-games --fonte epic`. |
-| SPEC-02 | GOG-01..12 | **Conector GOG & RAWG** (`src/app/fontes/gog.py`, `src/app/fontes/rawg.py`) — suporte multi-fonte com normalização de gêneros, plataformas e datas de lançamento. |
-| SPEC-03 | MRG-01..12 | **Deduplicação e mesclagem de catálogo** (`src/app/catalogo_merge.py`) — vinculação do mesmo jogo disponível em múltiplas lojas (Steam + Epic + GOG), comparativo de disponibilidade na página do jogo e painel de auditoria de importações no admin. |
+| SPEC-01 | FNT-01..12 | **Base comum das fontes e vínculos multi-loja** (`SPEC/2026-11-15-fontes-multiloja.md`; `src/app/fontes/base.py`) — HTTP comum com novas tentativas e User-Agent do GameLog, tabela `JogoFonte` (um jogo, várias lojas, incluindo a Epic), seletor de fonte e importação em lote em `/admin/importar`. |
+| SPEC-02 | GOG-01..15 | **Conectores GOG e RAWG** (`SPEC/2026-11-15-conectores-gog-rawg.md`; `src/app/fontes/gog.py`, `src/app/fontes/rawg.py`) — importação da GOG sem chave, RAWG com `RAWG_API_KEY` e vínculos de loja (Steam, GOG, Epic), normalização de gêneros, plataformas e datas, `--fonte todas` e filtro por loja em `/buscar`. |
+| SPEC-03 | MRG-01..15 | **Deduplicação e mesclagem de catálogo** (`SPEC/2026-11-15-deduplicacao-catalogo.md`; `src/app/catalogo_merge.py`) — reconhecimento do mesmo jogo vindo de várias fontes, fila de duplicatas para o admin, mesclagem sem perda de histórico (soft delete e 301) e bloco "Disponível em" na página do jogo. |
 
 ### Épico 3: Telemetria de partidas, MPC e kills — Demanda #2 da cliente 
 
@@ -140,7 +140,7 @@ Para garantir equilíbrio na autoria de commits e revisão cruzada constante de 
 
 | Quem | Épicos | Revisão |
 |---|---|---|
-| **Andrey Amaral** | Épico 1 (CI/CD, Render, hooks) · Épico 2 (conectores Epic Games, GOG/RAWG e deduplicação de catálogo) · Épico 4 (motor de conquistas, XP/streaks e rankings) | Aprova todos os PRs do Fabrício |
+| **Andrey Amaral** | Épico 1 (CI/CD, Render, hooks) · Épico 2 (base comum e vínculos multi-loja, conectores GOG/RAWG e deduplicação de catálogo) · Épico 4 (motor de conquistas, XP/streaks e rankings) | Aprova todos os PRs do Fabrício |
 | **Fabrício Assunção** | Épico 3 (diário de partidas, MPC, kills, importação CSV/JSON e analytics SVG) · Épico 5 (clubes, listas avançadas/reordenação e notificações/itens pendentes AP1) · Épico 6 (API v2 e backup/restore portável) | Aprova todos os PRs do Andrey |
 
 ---
@@ -153,7 +153,7 @@ Para atingir **≥ 100.000 linhas novas** no `cloc --diff` sem código duplicado
 |---|---|---|---|
 | **Código de aplicação** | `src/app/` | ~45.000 linhas Python | Separação limpa em modelos de domínio, camadas de serviço (`services/`), validadores de entrada (`validators/`), blueprints Flask e comandos CLI, com *type hints* completos e tratamento explícito de regras de negócio. |
 | **Suíte de testes** | `tests/` | ~40.000 linhas Python | Cada critério de aceitação (`SIGLA-01..NN`) coberto por múltiplos cenários (`pytest.mark.parametrize` para casos válidos, limites de borda, permissões 401/403/404 e testes que falham se a lógica for revertida). |
-| **Templates e estilos** | `src/app/templates/` e `static/` | ~15.000 linhas HTML/CSS | Interfaces completas e responsivas para dashboards de telemetria (MPC/kills), vitrine de conquistas, comparador multi-loja (Steam/Epic/GOG), clubes, rankings e relatórios administrativos. |
+| **Templates e estilos** | `src/app/templates/` e `static/` | ~15.000 linhas HTML/CSS | Interfaces completas e responsivas para dashboards de telemetria (MPC/kills), vitrine de conquistas, disponibilidade multi-loja (Steam/GOG/Epic), clubes, rankings e relatórios administrativos. |
 
 ---
 

@@ -1,0 +1,26 @@
+# Deduplicação e mesclagem do catálogo multi-loja (2026-11-15)
+
+## O quê e por quê
+Com Steam, GOG e RAWG, o mesmo jogo pode chegar por várias fontes e virar vários registros, espalhando avaliações, status e listas. `src/app/catalogo_merge.py` reconhece o jogo já existente e liga a nova loja a ele por `JogoFonte` (FNT-04); quando a semelhança é incerta, um administrador decide. A mesclagem nunca apaga histórico: o que não cabe no jogo principal fica no jogo secundário, que é removido do catálogo por soft delete (CAT-07/CAT-08).
+
+Altera: IMP-04 (um item novo de uma fonte pode virar um vínculo com um jogo existente em vez de um jogo novo); CAT-07 e PAG-09 (jogo mesclado responde 301 para o principal em vez de 404); API-05 (mesmo redirecionamento na API e o campo `fontes`); ADM-02 (jogo mesclado não pode ser restaurado).
+
+## Critérios de aceitação
+- MRG-01: a semelhança entre dois jogos é um número de 0 a 100: título vale `round(70 × difflib.SequenceMatcher(None, a, b).ratio())` sobre os títulos normalizados (minúsculas, sem acentos e símbolos, sem sufixos de edição de uma lista fixa como "GOTY", "Game of the Year Edition", "Definitive Edition", "Director's Cut"), mesmo ano de lançamento 20 (diferença de 1 ano, 10), mesma desenvolvedora 10; o cálculo é determinístico
+- MRG-02: ao importar ou sincronizar, se um link de loja do item (GOG-06) já pertence a um jogo, o item é desse jogo, sem cálculo de semelhança; senão, um item novo com semelhança ≥ 90 com um jogo existente e diferença de ano de até 2 anos não cria jogo: ganha um `JogoFonte` ligado a ele e conta como `importados` em `import-games` e `atualizados` em `sync-games`
+- MRG-03: semelhança entre 70 e 89, ou ≥ 90 com diferença de ano maior que 2 anos, cria o jogo normalmente e registra uma `PendenciaMerge` (os dois jogos, a semelhança, status `pendente`, `mesclada` ou `ignorada`), única para o par em qualquer ordem
+- MRG-04: `flask --app app sugerir-duplicatas` compara os jogos já existentes no catálogo e registra pendências (MRG-03) sem mesclar nada, e imprime `pendencias=N`
+- MRG-05: `/admin/catalogo/duplicatas` lista as pendências da mais antiga para a mais nova, 20 por página (GLOBAL-04), com os dois jogos lado a lado (capa, título, ano, desenvolvedora, lojas vinculadas, número de avaliações); o admin escolhe qual é o principal
+- MRG-06: `POST /admin/catalogo/mesclar` (CSRF) leva para o principal, numa única transação, os vínculos `JogoFonte`, as avaliações (com curtidas, comentários e denúncias), os status, os itens de lista, as atividades do feed e as recomendações dispensadas do secundário; vínculo de uma loja que o principal já tem fica no secundário (FNT-04)
+- MRG-07: quando o mesmo usuário tem avaliação ou status nos dois jogos, o registro mais recente fica no principal e o outro fica no secundário (AVA-02, LIS-01); quando a mesma lista tem os dois jogos, o item do principal é mantido e o do secundário fica no secundário (LIS-06); quando o usuário dispensou os dois jogos nas recomendações, a dispensa do principal é mantida e a do secundário fica no secundário (REC-07); nada é apagado
+- MRG-08: depois da mesclagem, o secundário fica removido (`removed_at`, CAT-07) com `mesclado_em_id` apontando para o principal; `/jogos/<slug-do-secundário>` e `/api/jogos/<slug-do-secundário>` respondem 301 para o principal, e restaurar o secundário pelo painel é recusado com mensagem (ADM-02); `sync-games` conta como `ignorados`, sem alterar, os itens cujo vínculo ficou num jogo mesclado
+- MRG-09: nota média, histograma (PAG-02, PAG-03) e recomendações do principal passam a contar as avaliações recebidas; mesclar uma pendência já decidida responde com mensagem e não altera nada
+- MRG-10: `POST /admin/catalogo/ignorar-merge` (CSRF) marca a pendência como `ignorada` e o par nunca é sugerido de novo
+- MRG-11: mesclar e ignorar gravam auditoria (`catalogo.mesclar`, `catalogo.ignorar`) com os ids e slugs dos dois jogos (ADM-09); todas as rotas de `/admin/catalogo/*` seguem ADM-01
+- MRG-12: a página `/jogos/<slug>` mostra "Disponível em" com cada loja vinculada (`steam`, `gog`, `epic`, FNT-04) e o link `url_loja` (só `http`/`https`, abrindo em nova aba com `rel="noopener"`); jogo sem vínculo não mostra o bloco
+- MRG-13: `GET /api/jogos/<slug>` inclui `fontes`, lista de `{fonte, external_id, url}` ordenada por fonte; nenhum outro campo de `JogoFonte` é exposto (API-07)
+- MRG-14: quando a fonte GOG importa ou sincroniza um jogo que já tem vínculo `gog` criado pela RAWG com slug (GOG-06), e MRG-02 reconhece o mesmo jogo, o vínculo passa a usar o id numérico e a URL da GOG, sem criar um segundo vínculo
+- MRG-15: testes de integração comprovam que a soma de avaliações, status e itens de lista dos dois jogos é a mesma antes e depois da mesclagem, as regras de conflito de MRG-07, o redirecionamento 301, que o par ignorado não volta e que um link de loja já conhecido vincula o item ao jogo certo (MRG-02)
+
+## Fora do escopo
+Mesclagem automática de jogos que já existem no catálogo (só por decisão do admin), desfazer uma mesclagem, mesclar mais de dois jogos de uma vez, preços por loja, semelhança por aprendizado de máquina ou por imagem da capa.
