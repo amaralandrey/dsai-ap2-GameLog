@@ -75,6 +75,8 @@ O que explicitamente não será implementado nesta spec para evitar aumento arti
 Para atingir **100.000 linhas novas** com valor real de produto (duplicação ≤ 5% e cobertura ≥ 70%), o trabalho está
 estruturado em **10 épicos funcionais** (~34 specs principais).
 
+As regras globais da AP2 (GLOBAL-09..18), o contraste com o que a AP1 e o Épico 2 já entregam e as divergências resolvidas entre specs estão em `SPEC/2026-11-15-visao-geral-ap2.md`.
+
 > **Origem das demandas.** Na conversa com a cliente (WhatsApp, 2026-11-10), o pedido explícito foi mais catálogos além da Steam (Épico 2). A frase "seria bom utilizar um mpc e kills" respondeu à pergunta sobre como chegar às 100 mil linhas; a dupla a interpreta como **MCP e skills** (ferramentas de agentes), ainda sem confirmação da cliente. Os épicos 3 e 4 e os clubes são propostas da dupla (FDE), não demandas da cliente.
 
 ### Épico 1: Kickoff, infraestrutura e governança 
@@ -105,10 +107,10 @@ O GameLog guarda só o status atual de cada jogo, não quando nem quanto se jogo
 
 | Spec | Critérios | Entrega |
 |---|---|---|
-| SPEC-04 | DIA-01..14 | **Diário de jogatina e visibilidade do perfil** (`src/app/diario.py`) — registro de sessões por jogo com data, duração, plataforma, progresso e anotação; registrar sessão de jogo "planejado" muda o status para "jogando"; sessões no feed (`Activity`), horas no perfil e na avaliação ("12h registradas"); perfil público ou privado, que o Épico 4 respeita. |
-| SPEC-05 | IMP-01..12 | **Importação de horas e do diário** (`src/app/diario_import.py`) — horas jogadas da Steam pelo SteamID (`GetOwnedGames`, com `STEAM_API_KEY` e perfil público), reaproveitando o conector do Épico 2; CSV do diário com prévia antes de gravar e idempotência por linha; consistência: duração até 24h, sem sobreposição de horários do mesmo usuário e sem datas futuras. |
-| SPEC-06 | RET-01..12 | **Retrospectiva e gráficos SVG** (`src/app/graficos_svg.py`, `src/app/retrospectiva.py`) — módulo de gráficos SVG server-side (linha, barra, sparkline, sem JS de build), reutilizado no Épico 4; retrospectiva pessoal com horas por mês, gêneros mais jogados e jogos zerados no ano; comparação de horas e gêneros com quem o usuário segue. |
-| SPEC-07 | LSA-01..12 | **Listas inteligentes** (`src/app/listas_inteligentes.py`) — listas por regra ("comecei e larguei há 30 dias", "wishlist disponível na GOG", "zerados este ano"), barra de progresso por status e horas do diário, exportação com os serializadores da API v2 e arrastar e soltar sobre a reordenação que já existe (LIS-07). |
+| SPEC-04 | DIA-01..14 | **Diário de jogatina e visibilidade do perfil** (`SPEC/2026-11-15-diario-de-jogatina.md`; `src/app/diario.py`) — registro de sessões por jogo com data, duração, plataforma, progresso e anotação; registrar sessão de jogo "planejado" muda o status para "jogando"; sessões no feed (`Activity`), horas no perfil e na avaliação ("12h registradas"); perfil público ou privado, que o Épico 4 respeita. |
+| SPEC-05 | HRS-01..12 | **Importação de horas e do diário** (`SPEC/2026-11-15-importacao-horas-diario.md`; `src/app/diario_import.py`) — horas jogadas da Steam pelo SteamID (`GetOwnedGames`, com `STEAM_API_KEY` e perfil público), reaproveitando o conector do Épico 2; CSV do diário com prévia antes de gravar e idempotência por linha; consistência: duração até 24h, sem sobreposição de horários do mesmo usuário e sem datas futuras. |
+| SPEC-06 | RET-01..12 | **Retrospectiva e gráficos SVG** (`SPEC/2026-11-15-retrospectiva-graficos.md`; `src/app/graficos_svg.py`, `src/app/retrospectiva.py`) — módulo de gráficos SVG server-side (linha, barra, sparkline, sem JS de build), reutilizado no Épico 4; retrospectiva pessoal com horas por mês, gêneros mais jogados e jogos zerados no ano; comparação de horas e gêneros com quem o usuário segue. |
+| SPEC-07 | LSA-01..12 | **Listas inteligentes** (`SPEC/2026-11-15-listas-inteligentes.md`; `src/app/listas_inteligentes.py`) — listas por regra ("comecei e larguei há 30 dias", "wishlist disponível na GOG", "zerados este ano"), barra de progresso por status e horas do diário, exportação com os serializadores da API v2 e arrastar e soltar sobre a reordenação que já existe (LIS-07). |
 
 ### Épico 4: Engajamento e comunidade — proposta da dupla
 
@@ -116,19 +118,19 @@ Preenche a lacuna de gamificação apontada na AP1 e evolui as conquistas atuais
 
 | Spec | Critérios | Entrega |
 |---|---|---|
-| SPEC-08 | NTF-01..12 | **Notificações** (`src/app/notificacoes.py`) — avisos de curtida, comentário, novo seguidor, conquista, nível, sequência semanal prestes a quebrar e amigo que zerou um jogo da sua wishlist; preferências por tipo e marcar como lida. |
-| SPEC-09 | GAM-01..15 | **Motor de conquistas orientado a eventos** (`src/app/gamificacao.py`) — catálogo de +40 conquistas (crítica, coleção, explorador multi-loja, social, diário: maratonista, 100h registradas, zerou 10 no ano), progressivas, secretas e idempotentes, avaliadas após as ações do usuário e avisadas pela NTF. |
-| SPEC-10 | PRG-01..12 | **Níveis, XP e sequências semanais** (`src/app/progressao.py`) — XP por avaliações, sessões do diário e jogos zerados, com teto diário anti-farming; sequência **semanal** (registrar algo na semana) com congelamento; extrato de XP no perfil. |
-| SPEC-11 | RNK-01..12 | **Rankings e temporadas** (`src/app/rankings.py`) — jogos zerados, horas registradas, avaliações mais curtidas e XP; escopos "Seguindo" e "Clube" em destaque, global só para perfis públicos; temporadas trimestrais com hall da fama e desclassificação pelo admin. |
-| SPEC-12 | CLB-01..14 | **Clubes de jogos** (`src/app/clubes.py`) — grupos temáticos com jogo do mês e meta coletiva medida pelo diário ("membros somam 100h", "5 membros zeram"), ranking do clube (escopo do RNK), conquistas de clube e mural moderado. |
+| SPEC-08 | NTF-01..12 | **Notificações** (`SPEC/2026-11-15-notificacoes.md`; `src/app/notificacoes.py`) — avisos de curtida, comentário, novo seguidor, conquista, nível, sequência semanal prestes a quebrar e amigo que zerou um jogo da sua wishlist; preferências por tipo e marcar como lida. |
+| SPEC-09 | GAM-01..15 | **Motor de conquistas orientado a eventos** (`SPEC/2026-11-15-motor-conquistas.md`; `src/app/gamificacao.py`) — catálogo de +40 conquistas (crítica, coleção, explorador multi-loja, social, diário: maratonista, 100h registradas, zerou 10 no ano), progressivas, secretas e idempotentes, avaliadas após as ações do usuário e avisadas pela NTF. |
+| SPEC-10 | PRG-01..12 | **Níveis, XP e sequências semanais** (`SPEC/2026-11-15-niveis-xp-sequencias.md`; `src/app/progressao.py`) — XP por avaliações, sessões do diário e jogos zerados, com teto diário anti-farming; sequência **semanal** (registrar algo na semana) com congelamento; extrato de XP no perfil. |
+| SPEC-11 | RNK-01..12 | **Rankings e temporadas** (`SPEC/2026-11-15-rankings-temporadas.md`; `src/app/rankings.py`) — jogos zerados, horas registradas, avaliações mais curtidas e XP; escopos "Seguindo" e "Clube" em destaque, global só para perfis públicos; temporadas trimestrais com hall da fama e desclassificação pelo admin. |
+| SPEC-12 | CLB-01..14 | **Clubes de jogos** (`SPEC/2026-11-15-clubes.md`; `src/app/clubes.py`) — grupos temáticos com jogo do mês e meta coletiva medida pelo diário ("membros somam 100h", "5 membros zeram"), ranking do clube (escopo do RNK), conquistas de clube e mural moderado. |
 
 ### Épico 5: API v2, MCP e portabilidade
 
 | Spec | Critérios | Entrega |
 |---|---|---|
-| SPEC-13 | AP2-01..14 | **Tokens pessoais e API REST v2** (`src/app/tokens.py`, `src/app/api_v2.py`) — tokens com escopo (leitura, escrita), guardados só como hash, com expiração, revogação no perfil, rate-limit e auditoria; endpoints paginados de catálogo multi-loja, diário, listas, conquistas e rankings. |
-| SPEC-14 | MCP-01..12 | **Servidor MCP do GameLog** (`src/app/mcp/`) — ferramentas `buscar_jogos`, `detalhes_jogo`, `minhas_listas`, `marcar_status`, `avaliar`, `registrar_sessao`, `recomendacoes`, `comparar_gosto` e `disponivel_em` sobre a API v2 autenticada por token, via `flask mcp` (stdio), mais skills curtas de uso (`skills/`). Clubes e listas inteligentes entram quando existirem. |
-| SPEC-15 | BKP-01..12 | **Backup e restore portável do banco** (`src/app/backup.py`) — exportação/importação completa do estado do SQLite em JSON assinado via CLI e painel admin (solucionando a volatilidade do banco no plano gratuito do Render), com os serializadores da API v2. |
+| SPEC-13 | AP2-01..14 | **Tokens pessoais e API REST v2** (`SPEC/2026-11-15-api-v2-tokens.md`; `src/app/tokens.py`, `src/app/api_v2.py`) — tokens com escopo (leitura, escrita), guardados só como hash, com expiração, revogação no perfil, rate-limit e auditoria; endpoints paginados de catálogo multi-loja, diário, listas, conquistas e rankings. |
+| SPEC-14 | MCP-01..12 | **Servidor MCP do GameLog** (`SPEC/2026-11-15-servidor-mcp.md`; `src/app/mcp/`) — ferramentas `buscar_jogos`, `detalhes_jogo`, `minhas_listas`, `marcar_status`, `avaliar`, `registrar_sessao`, `recomendacoes`, `comparar_gosto` e `disponivel_em` sobre a API v2 autenticada por token, via `flask mcp` (stdio), mais skills curtas de uso (`skills/`). Clubes e listas inteligentes entram quando existirem. |
+| SPEC-15 | BKP-01..12 | **Backup e restore portável do banco** (`SPEC/2026-11-15-backup-restore.md`; `src/app/backup.py`) — exportação/importação completa do estado do SQLite em JSON assinado via CLI e painel admin (solucionando a volatilidade do banco no plano gratuito do Render), com os serializadores da API v2. |
 
 ### Épico 6: Jobs em segundo plano e e-mail — proposta da dupla
 
@@ -136,15 +138,15 @@ Base que preços, notificações e o resumo semanal usam. Fila própria sobre o 
 
 | Spec | Critérios | Entrega |
 |---|---|---|
-| SPEC-16 | JOB-01..12 | **Fila persistente de jobs** (`src/app/jobs.py`) — tarefas gravadas no banco com novas tentativas e espera crescente, agendamento tipo cron, trava contra execução dupla, `flask jobs rodar` e painel admin com histórico e falhas. Sincronização da Steam e snapshot passam a rodar como jobs. |
-| SPEC-17 | EML-01..12 | **E-mail** (`src/app/email.py`) — caixa de saída enviada pelos jobs, templates em texto e HTML, resumo semanal (atividade de quem o usuário segue e ofertas da wishlist), preferências e descadastro por link assinado; em dev e testes, saída no console. |
+| SPEC-16 | JOB-01..12 | **Fila persistente de jobs** (`SPEC/2026-11-15-fila-de-jobs.md`; `src/app/jobs.py`) — tarefas gravadas no banco com novas tentativas e espera crescente, agendamento tipo cron, trava contra execução dupla, `flask jobs rodar` e painel admin com histórico e falhas. Sincronização da Steam e snapshot passam a rodar como jobs. |
+| SPEC-17 | EML-01..12 | **E-mail** (`SPEC/2026-11-15-email.md`; `src/app/email.py`) — caixa de saída enviada pelos jobs, templates em texto e HTML, resumo semanal (atividade de quem o usuário segue e ofertas da wishlist), preferências e descadastro por link assinado; em dev e testes, saída no console. |
 
 ### Épico 7: Preços e ofertas multi-loja — extensão da demanda #1 da cliente
 
 | Spec | Critérios | Entrega |
 |---|---|---|
-| SPEC-18 | PRC-01..14 | **Preços por loja e histórico** (`src/app/precos.py`) — preço atual e desconto da Steam (`appdetails`, sem chave) e da GOG, histórico de preços, menor preço já visto, atualização por job e preços no snapshot do seed (mesmo esquema do SPEC-03b). |
-| SPEC-19 | OFR-01..12 | **Ofertas e alertas** (`src/app/ofertas.py`) — bloco "onde está mais barato" na página do jogo, página de ofertas da wishlist, alerta de promoção e de preço-alvo pela NTF e pelo e-mail. |
+| SPEC-18 | PRC-01..14 | **Preços por loja e histórico** (`SPEC/2026-11-15-precos-por-loja.md`; `src/app/precos.py`) — preço atual e desconto da Steam (`appdetails`, sem chave) e da GOG, histórico de preços, menor preço já visto, atualização por job e preços no snapshot do seed (mesmo esquema do SPEC-03b). |
+| SPEC-19 | OFR-01..12 | **Ofertas e alertas** (`SPEC/2026-11-15-ofertas-alertas.md`; `src/app/ofertas.py`) — bloco "onde está mais barato" na página do jogo, página de ofertas da wishlist, alerta de promoção e de preço-alvo pela NTF e pelo e-mail. |
 
 ### Épico 8: Privacidade e proteção de dados (LGPD/GDPR) — proposta da dupla
 
@@ -154,21 +156,22 @@ Hoje o GameLog não tem política de privacidade nem aceite no cadastro, carrega
 
 | Spec | Critérios | Entrega |
 |---|---|---|
-| SPEC-20 | MAP-01..10 | **Mapa de dados** (`src/app/privacidade/mapa.py`) — anotação de cada campo dos modelos com categoria, finalidade, base legal e retenção; teste que falha se um campo novo não for anotado; página admin de registro das operações (LGPD art. 37, GDPR art. 30) gerada do mapa. |
-| SPEC-21 | PRV-01..12 | **Transparência** (`src/app/privacidade/transparencia.py`) — política de privacidade e termos versionados, aceite registrado por versão no cadastro, novo aceite quando o texto muda, canal do encarregado, lista de suboperadores (Render, Steam, GOG, RAWG, e-mail) e das transferências internacionais. |
-| SPEC-22 | CNS-01..12 | **Consentimentos** (`src/app/privacidade/consentimentos.py`) — consentimentos granulares e revogáveis (resumo por e-mail, ofertas, recomendações personalizadas), com histórico; consentimento do responsável integrado ao Épico 10. |
-| SPEC-23 | DIR-01..14 | **Direitos do titular** (`src/app/privacidade/direitos.py`) — acesso e portabilidade (JSON e CSV, com os serializadores da API v2), correção, exclusão com anonimização (avaliações ficam como "usuário removido") e oposição (tirar as próprias notas das recomendações colaborativas de outros); fila admin de pedidos com prazo configurável (15 dias LGPD, 1 mês GDPR). |
-| SPEC-24 | RET-01..12 | **Retenção e minimização** (`src/app/privacidade/retencao.py`) — expurgo por job (Épico 6) de `LoginAttempt`, logs e contas inativas conforme o mapa; proxy e cache das capas para o navegador não falar com a CDN da Steam. |
-| SPEC-25 | INC-01..12 | **Incidentes e segurança** (`src/app/privacidade/incidentes.py`) — registro e avaliação de risco de incidentes, modelos de comunicação à ANPD e aos titulares com contagem de prazo, cookies `Secure`/`SameSite` e cabeçalhos de segurança (CSP, HSTS). |
-| SPEC-26 | CTA-01..12 | **Segurança da conta** (`src/app/conta.py`) — troca de senha e de e-mail com confirmação, encerramento das outras sessões e 2FA por TOTP com códigos de recuperação. |
-| SPEC-27 | BLQ-01..10 | **Bloquear e silenciar** (`src/app/bloqueios.py`) — bloqueio esconde perfil, avaliações e comentários nos dois sentidos e impede seguir; silenciar só tira do feed. |
+| SPEC-20 | MAP-01..10 | **Mapa de dados** (`SPEC/2026-11-15-mapa-de-dados.md`; `src/app/privacidade/mapa.py`) — anotação de cada campo dos modelos com categoria, finalidade, base legal e retenção; teste que falha se um campo novo não for anotado; página admin de registro das operações (LGPD art. 37, GDPR art. 30) gerada do mapa. |
+| SPEC-21 | PRV-01..12 | **Transparência** (`SPEC/2026-11-15-transparencia.md`; `src/app/privacidade/transparencia.py`) — política de privacidade e termos versionados, aceite registrado por versão no cadastro, novo aceite quando o texto muda, canal do encarregado, lista de suboperadores (Render, Steam, GOG, RAWG, e-mail) e das transferências internacionais. |
+| SPEC-22 | CNS-01..12 | **Consentimentos** (`SPEC/2026-11-15-consentimentos.md`; `src/app/privacidade/consentimentos.py`) — consentimentos granulares e revogáveis (resumo por e-mail, ofertas, recomendações personalizadas), com histórico; consentimento do responsável integrado ao Épico 10. |
+| SPEC-23 | DIR-01..14 | **Direitos do titular** (`SPEC/2026-11-15-direitos-do-titular.md`; `src/app/privacidade/direitos.py`) — acesso e portabilidade (JSON e CSV, com os serializadores da API v2), correção, exclusão com anonimização (avaliações ficam como "usuário removido") e oposição (tirar as próprias notas das recomendações colaborativas de outros); fila admin de pedidos com prazo configurável (15 dias LGPD, 1 mês GDPR). |
+| SPEC-24 | RTN-01..12 | **Retenção e minimização** (`SPEC/2026-11-15-retencao-minimizacao.md`; `src/app/privacidade/retencao.py`) — expurgo por job (Épico 6) de `LoginAttempt`, logs e contas inativas conforme o mapa; proxy e cache das capas para o navegador não falar com a CDN da Steam. |
+| SPEC-25 | INC-01..12 | **Incidentes e segurança** (`SPEC/2026-11-15-incidentes-seguranca.md`; `src/app/privacidade/incidentes.py`) — registro e avaliação de risco de incidentes, modelos de comunicação à ANPD e aos titulares com contagem de prazo, cookies `Secure`/`SameSite` e cabeçalhos de segurança (CSP, HSTS). |
+| SPEC-26 | CTA-01..12 | **Segurança da conta** (`SPEC/2026-11-15-seguranca-da-conta.md`; `src/app/conta.py`) — troca de senha e de e-mail com confirmação, encerramento das outras sessões e 2FA por TOTP com códigos de recuperação. |
+| SPEC-26b | RSN-01..10 | **Recuperação de senha** (`SPEC/2026-11-15-recuperacao-de-senha.md`; `src/app/conta.py`) — "esqueci minha senha" com link assinado de 1 hora e uso único, resposta igual exista a conta ou não, limite de 3 pedidos por hora, sessões derrubadas e 2FA mantido. |
+| SPEC-27 | BLQ-01..10 | **Bloquear e silenciar** (`SPEC/2026-11-15-bloquear-silenciar.md`; `src/app/bloqueios.py`) — bloqueio esconde perfil, avaliações e comentários nos dois sentidos e impede seguir; silenciar só tira do feed. |
 
 ### Épico 9: Torneios e campeonatos — proposta da dupla
 
 | Spec | Critérios | Entrega |
 |---|---|---|
-| SPEC-28 | CHV-01..14 | **Algoritmos de chaveamento** (`src/app/chaveamento.py`) — eliminação simples e dupla, suíço e pontos corridos, sementes por ranking, byes e critérios de desempate determinísticos. |
-| SPEC-29 | TRN-01..14 | **Torneios** (`src/app/torneios.py`) — criação por usuário ou clube, inscrição, reporte e contestação de resultado, chaveamento em SVG (módulo do SPEC-06) e conquistas de campeão. |
+| SPEC-28 | CHV-01..14 | **Algoritmos de chaveamento** (`SPEC/2026-11-15-chaveamento.md`; `src/app/chaveamento.py`) — eliminação simples e dupla, suíço e pontos corridos, sementes por ranking, byes e critérios de desempate determinísticos. |
+| SPEC-29 | TRN-01..14 | **Torneios** (`SPEC/2026-11-15-torneios.md`; `src/app/torneios.py`) — criação por usuário ou clube, inscrição, reporte e contestação de resultado, chaveamento em SVG (módulo do SPEC-06) e conquistas de campeão. |
 
 ### Épico 10: Proteção de crianças e adolescentes (ECA Digital) — proposta da dupla
 
@@ -178,13 +181,13 @@ O ECA Digital (Lei 15.211/2025) vale para produtos digitais de acesso provável 
 
 | Spec | Critérios | Entrega |
 |---|---|---|
-| SPEC-30 | IDA-01..12 | **Verificação de idade** (`src/app/menores/idade.py`) — data de nascimento e faixas etárias, adaptadores de verificação (autodeclaração como primeiro passo, confirmação pelo responsável e provedor externo simulado) e reverificação quando a idade é contestada. |
-| SPEC-31 | PMN-01..14 | **Política de menores** (`src/app/menores/politica.py`) — módulo central consultado por perfil, feed, rankings, clubes, ofertas e e-mail: menor nasce com perfil privado, fica fora dos rankings globais e não recebe ofertas nem recomendações com fim comercial. |
-| SPEC-32 | RSP-01..12 | **Responsável e supervisão** (`src/app/menores/responsavel.py`) — vínculo responsável ↔ menor de 16 anos com consentimento registrado e painel parental (ver atividade, aprovar seguidores, desligar comentários e clubes). |
-| SPEC-33 | CLS-01..10 | **Classificação indicativa** (`src/app/menores/classificacao.py`) — idade mínima da Steam (`required_age`) e ESRB da RAWG mapeados para a ClassInd, aviso e filtro no catálogo e na busca para menores. |
-| SPEC-34 | DEN-01..12 | **Denúncia de risco a menores** — evolução do `Report` com categoria de risco a menores, fila prioritária, prazo de resposta e trilha de auditoria da comunicação às autoridades. |
+| SPEC-30 | IDA-01..12 | **Verificação de idade** (`SPEC/2026-11-15-verificacao-de-idade.md`; `src/app/menores/idade.py`) — data de nascimento e faixas etárias, adaptadores de verificação (autodeclaração como primeiro passo, confirmação pelo responsável e provedor externo simulado) e reverificação quando a idade é contestada. |
+| SPEC-31 | PMN-01..14 | **Política de menores** (`SPEC/2026-11-15-politica-de-menores.md`; `src/app/menores/politica.py`) — módulo central consultado por perfil, feed, rankings, clubes, ofertas e e-mail: menor nasce com perfil privado, fica fora dos rankings globais e não recebe ofertas nem recomendações com fim comercial. |
+| SPEC-32 | RSP-01..12 | **Responsável e supervisão** (`SPEC/2026-11-15-responsavel-supervisao.md`; `src/app/menores/responsavel.py`) — vínculo responsável ↔ menor de 16 anos com consentimento registrado e painel parental (ver atividade, aprovar seguidores, desligar comentários e clubes). |
+| SPEC-33 | CLS-01..10 | **Classificação indicativa** (`SPEC/2026-11-15-classificacao-indicativa.md`; `src/app/menores/classificacao.py`) — idade mínima da Steam (`required_age`) e ESRB da RAWG mapeados para a ClassInd, aviso e filtro no catálogo e na busca para menores. |
+| SPEC-34 | DEN-01..12 | **Denúncia de risco a menores** (`SPEC/2026-11-15-denuncias-menores.md`) — evolução do `Report` com categoria de risco a menores, fila prioritária, prazo de resposta e trilha de auditoria da comunicação às autoridades. |
 
-**Ordem de dependências:** Épico 3 (SPEC-04 primeiro) → Épico 4 (NTF → GAM → PRG → RNK → Clubes). O Épico 5 começa pelos tokens e pela API v2 em paralelo ao Épico 4; o MCP e o backup vêm depois da API v2. O Épico 6 vem antes do 7 (preços rodam como job e avisam por NTF e e-mail); no Épico 8, MAP e PRV vêm primeiro e DIR depende da API v2 (exportação) e RET dos jobs; o 9 depende do RNK e dos clubes. **MAP (SPEC-20) e PMN (SPEC-31) são transversais** e entram cedo: toda spec escrita depois deles inclui um critério de respeito ao mapa de dados e à política de menores.
+**Ordem de dependências:** Épico 3 (SPEC-04 primeiro) → Épico 4 (NTF → GAM → PRG → RNK → Clubes). O Épico 5 começa pelos tokens e pela API v2 em paralelo ao Épico 4; o MCP e o backup vêm depois da API v2. O Épico 6 vem antes do 7 (preços rodam como job e avisam por NTF e e-mail); no Épico 8, MAP e PRV vêm primeiro e DIR depende da API v2 (exportação) e RTN dos jobs; o 9 depende do RNK e dos clubes. **MAP (SPEC-20) e PMN (SPEC-31) são transversais** e entram cedo: toda spec escrita depois deles inclui um critério de respeito ao mapa de dados e à política de menores.
 
 > Os itens cortados da AP1 (REC-07, LIS-07, ADM-09, CAD-04, SOC-09) já estão implementados e testados (`test_rec07_*`, `test_lis07_*`, `test_adm09_*`, `test_cad04_*`, `test_soc09_*`) e não entram em nenhum épico.
 
