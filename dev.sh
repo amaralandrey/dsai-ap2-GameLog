@@ -3,6 +3,7 @@
 # ./dev.sh test  → só roda os testes.  ./dev.sh reset → apaga o banco local e recria o seed.
 set -e
 cd "$(dirname "$0")"
+git config core.hooksPath .githooks 2>/dev/null || true  # ativa o hook commit-msg (trailers Agent:/Spec:)
 [ -d .venv ] || python3 -m venv .venv
 .venv/bin/pip install -q -r requirements.txt
 if [ "$1" = "test" ]; then exec .venv/bin/python -m pytest -q; fi

@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+# Exige os trailers Agent: e Spec: em todo commit (regras 2 e 6 do .claude/plan/plan-ap2.md).
+#   Agent: <ferramenta/modelo>   ou  Agent: none        (trabalho manual)
+#   Spec:  SPEC/AAAA-MM-DD-<nome>.md  ou  Spec: none   (infra/docs, sem funcionalidade)
+# Ativar no clone: git config core.hooksPath .githooks  (o ./dev.sh já faz isso).
+set -euo pipefail
+
+msg=$(git stripspace --strip-comments < "$1")
+case "$(printf '%s\n' "$msg" | head -n1)" in
+  Merge\ * | Revert\ * | fixup!\ * | squash!\ * | amend!\ *) exit 0 ;;
+esac
+
+trailers=$(printf '%s\n' "$msg" | git interpret-trailers --parse)
+agent=$(printf '%s\n' "$trailers" | sed -n 's/^Agent: *//p' | head -n1)
+spec=$(printf '%s\n' "$trailers" | sed -n 's/^Spec: *//p' | head -n1)
+erros=()
+
+[ -n "$agent" ] || erros+=("falta o trailer 'Agent:' (use 'Agent: none' para trabalho manual)")
+
+if [ -z "$spec" ]; then
+  erros+=("falta o trailer 'Spec:' (use 'Spec: none' para infra/docs)")
+elif [ "$spec" != "none" ]; then
+  if ! [[ "$spec" =~ ^SPEC/[0-9]{4}-[0-9]{2}-[0-9]{2}-[a-z0-9_-]+\.md$ ]]; then
+    erros+=("'Spec: $spec' não segue o formato SPEC/AAAA-MM-DD-<nome>.md")
+  elif git cat-file -e "HEAD:$spec" 2>/dev/null; then
+    :  # spec já commitada antes: ok
+  elif git cat-file -e ":$spec" 2>/dev/null; then
+    # spec nova neste commit: só pode vir sozinha, sem código junto (regra 2)
+    if git diff --cached --name-only | grep -qv '^SPEC/'; then
+      erros+=("'$spec' ainda não foi commitada: commite a spec sozinha antes do código")
+    fi
+  else
+    erros+=("'$spec' não existe no repositório")
+  fi
+fi
+
+if [ ${#erros[@]} -gt 0 ]; then
+  {
+    echo "commit-msg: commit recusado"
+    printf '  - %s\n' "${erros[@]}"
+    echo
+    echo "Exemplo de final da mensagem:"
+    echo "  Agent: claude-code/claude-opus-5-5"
+    echo "  Spec: SPEC/2026-11-07-comentarios.md"
+  } >&2
+  exit 1
+fi
