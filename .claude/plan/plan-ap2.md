@@ -27,8 +27,8 @@ Qualquer violação abaixo **anula a AP2** ou **zera o critério** na auditoria 
 | Critério | Meta obrigatória | Estratégia no GameLog AP2 | Pts |
 | :--- | :--- | :--- | :---: |
 | **Produção + CI** | URL pública no ar servindo `HEAD` da `main` + CI verde | Deploy contínuo no Render + GitHub Actions (`pytest` + `cov` + `gitleaks`) | **6** |
-| **Tamanho (`cloc`)** | ≥ 100.000 linhas novas (sem gerados/mortos) | Expansão real de conectores, telemetria/MPC/kills, gamificação, clubes, API v2 e testes por AC | **8** |
-| **Duplicação (`jscpd`)** | ≤ 5% de código duplicado | Camadas de serviço reutilizáveis (`FontesBase`, `GamificacaoEngine`, `TelemetriaService`) | **3** |
+| **Tamanho (`cloc`)** | ≥ 100.000 linhas novas (sem gerados/mortos) | Expansão real de conectores, diário de jogatina, gamificação, clubes, API v2, servidor MCP e testes por AC | **8** |
+| **Duplicação (`jscpd`)** | ≤ 5% de código duplicado | Camadas de serviço reutilizáveis (`FontesBase`, `GamificacaoEngine`, `graficos_svg`, serializadores comuns da API v2) | **3** |
 | **Specs (`SPEC/`)** | 100% das features com spec datada commitada **antes** do código | 1 commit exclusivo de `SPEC/AAAA-MM-DD-*.md` abrindo cada branch | **5** |
 | **Trailers Git** | ≥ 80% dos commits com `Agent:` e `Spec:` | Hook local `commit-msg` validando os trailers antes de aceitar o commit | **3** |
 | **Frequência** | ≥ 2 dias/semana; mediana < 400 linhas/commit | Commits atômicos por camada (`model` → `service` → `route` → `template` → `test`) | **3** |
@@ -72,7 +72,9 @@ O que explicitamente não será implementado nesta spec para evitar aumento arti
 ## 2. Roadmap de expansão (alinhado ao cliente + meta 100k linhas)
 
 Para atingir **100.000 linhas novas** com valor real de produto (duplicação ≤ 5% e cobertura ≥ 70%), o trabalho está
-estruturado em **6 épicos funcionais** (~15 specs principais).
+estruturado em **5 épicos funcionais** (~15 specs principais).
+
+> **Origem das demandas.** Na conversa com a cliente (WhatsApp, 2026-11-10), o pedido explícito foi mais catálogos além da Steam (Épico 2). A frase "seria bom utilizar um mpc e kills" respondeu à pergunta sobre como chegar às 100 mil linhas; a dupla a interpreta como **MCP e skills** (ferramentas de agentes), ainda sem confirmação da cliente. Os épicos 3 e 4 e os clubes são propostas da dupla (FDE), não demandas da cliente.
 
 ### Épico 1: Kickoff, infraestrutura e governança 
 
@@ -96,42 +98,40 @@ Expansão da arquitetura `src/app/fontes/` (citada explicitamente pela cliente F
 | SPEC-03 | MRG-01..15 | **Deduplicação e mesclagem de catálogo** (`SPEC/2026-11-15-deduplicacao-catalogo.md`; `src/app/catalogo_merge.py`) — reconhecimento do mesmo jogo vindo de várias fontes, fila de duplicatas para o admin, mesclagem sem perda de histórico (soft delete e 301) e bloco "Disponível em" na página do jogo. |
 | SPEC-03b | SNP-01..09 | **Snapshot multi-loja do seed** (`SPEC/2026-11-15-snapshot-multiloja.md`; `src/app/snapshot.py`) — `flask enriquecer-snapshot` grava no `src/app/dados/jogos.json` os links de GOG e Epic e o id da RAWG de cada jogo (correspondência só pelo id da Steam), para a URL pública mostrar o multi-loja sem rede nem chave no servidor, já que o Render recria o banco a cada deploy. |
 
-### Épico 3: Telemetria de partidas, MPC e kills — Demanda #2 da cliente 
+### Épico 3: Diário e acompanhamento pessoal — proposta da dupla
 
-Implementação das métricas de desempenho e engajamento solicitadas na entrevista com a cliente:
-
-| Spec | Critérios | Entrega |
-|---|---|---|
-| SPEC-04 | TEL-01..14 | **Diário de sessões de jogo e telemetria** (`src/app/telemetria.py`) — registro de partidas vinculadas ao jogo com duração, modo, resultado, **kills, mortes, assistências** e cálculo automático de **MPC** (*Média por Partida/Ciclo* configurável por gênero competitivo/casual). |
-| SPEC-05 | TIM-01..12 | **Importação e validação de estatísticas** (`src/app/telemetria_import.py`) — upload em lote via CSV/JSON, validação de consistência anti-fraude e histórico evolutivo por temporada. |
-| SPEC-06 | ANL-01..12 | **Analytics e dashboards de desempenho** (`src/app/analytics_jogador.py`) — gráficos SVG server-side (sem JS de build) de evolução de K/D, MPC, horas jogadas e comparativo de performance entre amigos. |
-
-### Épico 4: Gamificação completa e progressão 
-Preenchimento da lacuna identificada na auditoria da AP1:
+O GameLog guarda só o status atual de cada jogo, não quando nem quanto se jogou. O diário é o recurso central do Letterboxd, referência do produto, e é a base de dados do Épico 4 (XP, conquistas, rankings e clubes).
 
 | Spec | Critérios | Entrega |
 |---|---|---|
-| SPEC-07 | GAM-01..15 | **Motor de conquistas (*badges*) orientado a eventos** (`src/app/gamificacao.py`) — catálogo de +40 conquistas (crítico ativo, caçador de platinas, maratonista, explorador multi-loja, mestre de MPC/kills) avaliadas automaticamente após ações do usuário. |
-| SPEC-08 | PRG-01..12 | **Níveis, XP e sequências (*streaks*)** (`src/app/progressao.py`) — ganho de experiência por avaliações úteis, registros de partidas e metas semanais, com proteção de streak e extrato de XP no perfil. |
-| SPEC-09 | RNK-01..12 | **Rankings e temporadas** (`src/app/rankings.py`) — leaderboards globais e entre seguidores (por XP, MPC, kills e jogos zerados) com filtro por janela temporal e moderação admin. |
+| SPEC-04 | DIA-01..14 | **Diário de jogatina e visibilidade do perfil** (`src/app/diario.py`) — registro de sessões por jogo com data, duração, plataforma, progresso e anotação; registrar sessão de jogo "planejado" muda o status para "jogando"; sessões no feed (`Activity`), horas no perfil e na avaliação ("12h registradas"); perfil público ou privado, que o Épico 4 respeita. |
+| SPEC-05 | IMP-01..12 | **Importação de horas e do diário** (`src/app/diario_import.py`) — horas jogadas da Steam pelo SteamID (`GetOwnedGames`, com `STEAM_API_KEY` e perfil público), reaproveitando o conector do Épico 2; CSV do diário com prévia antes de gravar e idempotência por linha; consistência: duração até 24h, sem sobreposição de horários do mesmo usuário e sem datas futuras. |
+| SPEC-06 | RET-01..12 | **Retrospectiva e gráficos SVG** (`src/app/graficos_svg.py`, `src/app/retrospectiva.py`) — módulo de gráficos SVG server-side (linha, barra, sparkline, sem JS de build), reutilizado no Épico 4; retrospectiva pessoal com horas por mês, gêneros mais jogados e jogos zerados no ano; comparação de horas e gêneros com quem o usuário segue. |
+| SPEC-07 | LSA-01..12 | **Listas inteligentes** (`src/app/listas_inteligentes.py`) — listas por regra ("comecei e larguei há 30 dias", "wishlist disponível na GOG", "zerados este ano"), barra de progresso por status e horas do diário, exportação com os serializadores da API v2 e arrastar e soltar sobre a reordenação que já existe (LIS-07). |
 
-### Épico 5: Comunidade, clubes e itens pendentes da AP1 
+### Épico 4: Engajamento e comunidade — proposta da dupla
 
-Aprofundamento dos módulos `social.py` e `listas.py`, incluindo itens cortados no plano original da AP1
-(REC-07, LIS-07, ADM-09, CAD-04, SOC-09):
-
-| Spec | Critérios | Entrega |
-|---|---|---|
-| SPEC-10 | CLB-01..14 | **Clubes de jogos e desafios coletivos** (`src/app/clubes.py`) — criação de grupos temáticos, metas coletivas de jogo do mês e mural de discussões moderado. |
-| SPEC-11 | LSA-01..12 | **Listas inteligentes e reordenação** (`src/app/listas_avancadas.py`) — implementação do LIS-07 (reordenação manual de jogos na lista), listas públicas colaborativas, barra de progresso e exportação. |
-| SPEC-12 | NTF-01..14 | **Notificações, sugestões sociais e hardening de auth** (`src/app/notificacoes.py`) — notificações de curtidas/conquistas, sugestões de usuários para seguir (SOC-09), dispensar recomendações (REC-07), auditoria paginada no admin (ADM-09) e rate-limit de login (CAD-04). |
-
-### Épico 6: API pública v2 e persistência portável 
+Preenche a lacuna de gamificação apontada na AP1 e evolui as conquistas atuais (CON-01..06). Depende do diário (Épico 3). As specs seguem a ordem da tabela: cada uma usa as anteriores.
 
 | Spec | Critérios | Entrega |
 |---|---|---|
-| SPEC-13 | AP2-01..14 | **API REST v2 documentada** (`src/app/api_v2.py`) — endpoints paginados para multi-catálogo, estatísticas de MPC/kills, conquistas e rankings. |
-| SPEC-14 | BKP-01..12 | **Backup e restore portável do banco** (`src/app/backup.py`) — exportação/importação completa do estado do SQLite em JSON assinado via CLI e painel admin (solucionando a volatilidade do banco no plano gratuito do Render). |
+| SPEC-08 | NTF-01..12 | **Notificações** (`src/app/notificacoes.py`) — avisos de curtida, comentário, novo seguidor, conquista, nível, sequência semanal prestes a quebrar e amigo que zerou um jogo da sua wishlist; preferências por tipo e marcar como lida. |
+| SPEC-09 | GAM-01..15 | **Motor de conquistas orientado a eventos** (`src/app/gamificacao.py`) — catálogo de +40 conquistas (crítica, coleção, explorador multi-loja, social, diário: maratonista, 100h registradas, zerou 10 no ano), progressivas, secretas e idempotentes, avaliadas após as ações do usuário e avisadas pela NTF. |
+| SPEC-10 | PRG-01..12 | **Níveis, XP e sequências semanais** (`src/app/progressao.py`) — XP por avaliações, sessões do diário e jogos zerados, com teto diário anti-farming; sequência **semanal** (registrar algo na semana) com congelamento; extrato de XP no perfil. |
+| SPEC-11 | RNK-01..12 | **Rankings e temporadas** (`src/app/rankings.py`) — jogos zerados, horas registradas, avaliações mais curtidas e XP; escopos "Seguindo" e "Clube" em destaque, global só para perfis públicos; temporadas trimestrais com hall da fama e desclassificação pelo admin. |
+| SPEC-12 | CLB-01..14 | **Clubes de jogos** (`src/app/clubes.py`) — grupos temáticos com jogo do mês e meta coletiva medida pelo diário ("membros somam 100h", "5 membros zeram"), ranking do clube (escopo do RNK), conquistas de clube e mural moderado. |
+
+### Épico 5: API v2, MCP e portabilidade
+
+| Spec | Critérios | Entrega |
+|---|---|---|
+| SPEC-13 | AP2-01..14 | **Tokens pessoais e API REST v2** (`src/app/tokens.py`, `src/app/api_v2.py`) — tokens com escopo (leitura, escrita), guardados só como hash, com expiração, revogação no perfil, rate-limit e auditoria; endpoints paginados de catálogo multi-loja, diário, listas, conquistas e rankings. |
+| SPEC-14 | MCP-01..12 | **Servidor MCP do GameLog** (`src/app/mcp/`) — ferramentas `buscar_jogos`, `detalhes_jogo`, `minhas_listas`, `marcar_status`, `avaliar`, `registrar_sessao`, `recomendacoes`, `comparar_gosto` e `disponivel_em` sobre a API v2 autenticada por token, via `flask mcp` (stdio), mais skills curtas de uso (`skills/`). Clubes e listas inteligentes entram quando existirem. |
+| SPEC-15 | BKP-01..12 | **Backup e restore portável do banco** (`src/app/backup.py`) — exportação/importação completa do estado do SQLite em JSON assinado via CLI e painel admin (solucionando a volatilidade do banco no plano gratuito do Render), com os serializadores da API v2. |
+
+**Ordem de dependências:** Épico 3 (SPEC-04 primeiro) → Épico 4 (NTF → GAM → PRG → RNK → Clubes). O Épico 5 começa pelos tokens e pela API v2 em paralelo ao Épico 4; o MCP e o backup vêm depois da API v2.
+
+> Os itens cortados da AP1 (REC-07, LIS-07, ADM-09, CAD-04, SOC-09) já estão implementados e testados (`test_rec07_*`, `test_lis07_*`, `test_adm09_*`, `test_cad04_*`, `test_soc09_*`) e não entram em nenhum épico.
 
 ---
 
@@ -141,8 +141,8 @@ Para garantir equilíbrio na autoria de commits e revisão cruzada constante de 
 
 | Quem | Épicos | Revisão |
 |---|---|---|
-| **Andrey Amaral** | Épico 1 (CI/CD, Render, hooks) · Épico 2 (base comum e vínculos multi-loja, conectores GOG/RAWG e deduplicação de catálogo) · Épico 4 (motor de conquistas, XP/streaks e rankings) | Aprova todos os PRs do Fabrício |
-| **Fabrício Assunção** | Épico 3 (diário de partidas, MPC, kills, importação CSV/JSON e analytics SVG) · Épico 5 (clubes, listas avançadas/reordenação e notificações/itens pendentes AP1) · Épico 6 (API v2 e backup/restore portável) | Aprova todos os PRs do Andrey |
+| **Andrey Amaral** | Épico 1 (CI/CD, Render, hooks) · Épico 2 (base comum e vínculos multi-loja, conectores GOG/RAWG, deduplicação e snapshot) · Épico 4: conquistas, XP/sequências e rankings (SPEC-09..11) | Aprova todos os PRs do Fabrício |
+| **Fabrício Assunção** | Épico 3 (diário, importação, retrospectiva SVG e listas inteligentes) · Épico 4: notificações e clubes (SPEC-08 e SPEC-12) · Épico 5 (tokens e API v2, servidor MCP, backup/restore) | Aprova todos os PRs do Andrey |
 
 ---
 
@@ -156,7 +156,7 @@ Para atingir **≥ 100.000 linhas novas** no `cloc --diff` sem código duplicado
 |---|---|---|---|
 | **Código de aplicação** | `src/app/` | ~45.000 linhas Python | Separação limpa em modelos de domínio, camadas de serviço (`services/`), validadores de entrada (`validators/`), blueprints Flask e comandos CLI, com *type hints* completos e tratamento explícito de regras de negócio. |
 | **Suíte de testes** | `tests/` | ~40.000 linhas Python | Cada critério de aceitação (`SIGLA-01..NN`) coberto por múltiplos cenários (`pytest.mark.parametrize` para casos válidos, limites de borda, permissões 401/403/404 e testes que falham se a lógica for revertida). |
-| **Templates e estilos** | `src/app/templates/` e `static/` | ~15.000 linhas HTML/CSS | Interfaces completas e responsivas para dashboards de telemetria (MPC/kills), vitrine de conquistas, disponibilidade multi-loja (Steam/GOG/Epic), clubes, rankings e relatórios administrativos. |
+| **Templates e estilos** | `src/app/templates/` e `static/` | ~15.000 linhas HTML/CSS | Interfaces completas e responsivas para diário e retrospectiva, vitrine de conquistas, disponibilidade multi-loja (Steam/GOG/Epic), clubes, rankings e relatórios administrativos. |
 
 ---
 
