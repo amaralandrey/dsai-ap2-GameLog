@@ -1,0 +1,24 @@
+# Notificações (2026-11-15)
+
+## O quê e por quê
+Hoje ninguém fica sabendo quando a própria resenha é curtida ou comentada, nem quando ganha um seguidor: o GameLog não tem nenhum aviso, e as specs de comentários e social deixaram notificações fora do escopo (COM, SOC). O Épico 4 (conquistas, níveis, sequências, clubes) e os alertas de preço do Épico 7 precisam de um canal para avisar o usuário. Esta spec cria um único ponto de entrada, `notificar()`, com preferências por tipo, que as demais specs chamam; o envio por e-mail é feito pela spec de e-mail a partir da preferência gravada aqui.
+
+Depende de: DIA (zerar um jogo, `Status.zerado_em`). Altera: AVA-06 (curtir avisa o autor), COM-01 (comentar avisa o autor da avaliação), SOC-01 (seguir avisa a pessoa seguida).
+Respeita: MAP (`Notificacao` e `PreferenciaNotificacao` anotadas no mapa de dados), BLQ e PMN (pelos filtros de NTF-03).
+
+## Critérios de aceitação
+- NTF-01: `src/app/notificacoes.py` expõe `notificar(user_id, tipo, **ctx)`, único jeito de criar uma `Notificacao` (`user_id`, `tipo`, `ator_id`, `game_id`, `review_id`, `alvo_url`, `lida_em`, `created_at`). Os tipos válidos são `curtida`, `comentario`, `seguidor`, `conquista`, `nivel`, `sequencia`, `amigo_zerou`, `oferta`, `preco_alvo`, `clube`, `torneio`, `responsavel` e `sistema`; tipo desconhecido levanta `ValueError`. `alvo_url` só aceita caminho interno começando com uma única `/`; outro valor é gravado como vazio.
+- NTF-02: `notificar` não cria nada quando o ator é o próprio destinatário (curtir ou comentar a própria avaliação), quando o destinatário desligou aquele tipo no site (NTF-09) ou quando algum filtro registrado recusa.
+- NTF-03: `notificar` consulta uma lista de filtros registráveis (`registrar_filtro(funcao)`), cada um recebendo destinatário, tipo e contexto; a spec de bloqueios registra o filtro de bloqueio (BLQ) e a política de menores registra o seu (PMN), sem que esta spec dependa delas. Um filtro que devolve falso impede a notificação.
+- NTF-04: curtir uma avaliação (AVA-06) notifica o autor com tipo `curtida`; descurtir e curtir de novo em menos de 24 horas não cria segunda notificação. Curtidas não lidas da mesma avaliação aparecem agrupadas numa linha ("Ana e mais 3 pessoas curtiram sua avaliação de Hades"), sem apagar as linhas do banco.
+- NTF-05: comentar uma avaliação (COM-01) notifica o autor com tipo `comentario` e o link para o comentário; seguir alguém (SOC-01) notifica a pessoa seguida com tipo `seguidor`, uma vez por par a cada 24 horas, mesmo que siga, deixe de seguir e siga de novo.
+- NTF-06: marcar um jogo como zerado (DIA-04) notifica com tipo `amigo_zerou` cada pessoa que segue quem zerou e tem esse jogo com status "planejado", até 200 destinatários por evento, apenas se quem zerou tem perfil visível para o destinatário (DIA-12).
+- NTF-07: `/notificacoes` (login) lista as notificações do usuário da mais recente para a mais antiga, 20 por página (GLOBAL-04), com as não lidas destacadas; notificações cuja avaliação foi ocultada pela moderação ou cujo jogo foi removido não aparecem.
+- NTF-08: `POST /notificacoes/<id>/ler` marca como lida e redireciona para `alvo_url` (ou para `/notificacoes` se vazio); notificação de outra pessoa responde 404. `POST /notificacoes/ler-todas` marca todas as do usuário como lidas.
+- NTF-09: `/notificacoes/preferencias` (login) mostra cada tipo com duas opções, "no site" e "por e-mail", gravadas em `PreferenciaNotificacao`; sem registro, "no site" vale ligado e "por e-mail" desligado. O tipo `sistema` não pode ser desligado no site. Tipo desconhecido enviado no formulário é ignorado.
+- NTF-10: o cabeçalho de toda página, para quem está logado, mostra o sino com a contagem de não lidas ("9+" acima de 9), calculada numa única consulta; sem não lidas, não aparece número.
+- NTF-11: `notificar` devolve a notificação criada (ou `None`) e informa, por `deve_enviar_email(notificacao)`, se o destinatário quer aquele tipo por e-mail; a spec de e-mail usa essa função, e esta spec não envia e-mail nenhum.
+- NTF-12: testes sem rede, nomeados pelo ID (`test_ntf_NN_...`), cobrem: tipo inválido e `alvo_url` externo (`//evil.com`, `https://...`), autonotificação, preferência desligada, filtro falso registrado, a janela de 24 horas de curtida e de seguidor, o agrupamento de curtidas, `amigo_zerou` só para quem segue e tem o jogo planejado e com o limite de 200, notificação de avaliação oculta escondida, 404 ao ler a de outra pessoa, `ler-todas`, preferência padrão e o contador "9+" com uma consulta.
+
+## Fora do escopo
+Notificações em tempo real (WebSocket ou push no navegador ou celular), envio de e-mail (spec email), resumo semanal (spec email), menções com `@usuario`, expurgo de notificações antigas (spec retencao-minimizacao), notificações para administradores sobre denúncias.
