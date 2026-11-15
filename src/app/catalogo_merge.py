@@ -136,7 +136,7 @@ def assumir_vinculo(game, fonte, external_id):
     """O vínculo provisório da GOG passa a usar o id numérico, sem criar um segundo vínculo (MRG-14)."""
     for v in game.fontes:
         if provisorio(v, fonte) and v.external_id != str(external_id):
-            v.external_id, v.url_loja = str(external_id)[:80], None  # a URL da GOG entra em vincular_origem
+            v.external_id = str(external_id)[:80]  # a URL da GOG, se vier, substitui a da RAWG em vincular_origem
 
 
 def registrar_pendencia(g1, g2, nota):
