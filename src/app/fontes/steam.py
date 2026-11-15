@@ -8,6 +8,7 @@ from urllib.request import urlopen
 
 from . import base
 
+NOME = "Steam"
 LOJA = "https://store.steampowered.com/api"
 URL_LOJA = "https://store.steampowered.com/app/{}"  # link do vínculo (FNT-05)
 MESES = {  # português e inglês, abreviados sem acento (IMP-10)
