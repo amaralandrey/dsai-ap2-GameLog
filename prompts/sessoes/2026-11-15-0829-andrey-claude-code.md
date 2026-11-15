@@ -2,7 +2,7 @@
 
 **Ferramenta:** Claude Code CLI (Claude Opus 5.5, `claude-opus-5-5`)
 **Quem conduziu:** Andrey Amaral
-**Horário:** 08:29–09:50 (horário de Belém)
+**Horário:** 08:29–09:56 (horário de Belém)
 **Specs:** `SPEC/2026-11-15-fontes-multiloja.md`, `SPEC/2026-11-15-conectores-gog-rawg.md`, `SPEC/2026-11-15-deduplicacao-catalogo.md`
 
 ## Custo
@@ -11,13 +11,13 @@ Medido no log da sessão do Claude Code (`usage` de cada resposta do modelo), co
 
 | Tipo de token | Tokens | Preço (US$/1M) | Custo (US$) |
 |---|---:|---:|---:|
-| Entrada | 212 | 4,00 | 0,00 |
-| Saída | 90.576 | 20,00 | 1,81 |
-| Leitura de cache | 12.284.099 | 0,20 | 2,46 |
-| Escrita de cache (TTL 1h) | 173.070 | 8,00 | 1,38 |
-| **Total** | **12.547.957** | | **≈ 5,65** |
+| Entrada | 244 | 4,00 | 0,00 |
+| Saída | 99.883 | 20,00 | 2,00 |
+| Leitura de cache | 15.471.280 | 0,20 | 3,09 |
+| Escrita de cache (TTL 1h) | 185.505 | 8,00 | 1,48 |
+| **Total** | **15.756.912** | | **≈ 6,58** |
 
-82 requisições ao modelo. O valor é o equivalente em preço de API, calculado até o momento do registro.
+96 requisições ao modelo. O valor é o equivalente em preço de API, recalculado no fim da sessão, depois dos commits, do PR #11 e da verificação do CI; só a resposta que faz esta atualização fica de fora.
 
 ## Prompts (em ordem)
 
@@ -46,6 +46,9 @@ Medido no log da sessão do Claude Code (`usage` de cada resposta do modelo), co
 23. consulte os requisitos do projeto e avalie se deve haver uma branch para cada spec ou se uma branch pode conter um epico inteiro
 24. na verdade, irei colocar os três specs na pasta, encerrar a sessão e iniciar as implementações posteriormente, isso pode ser feito? farei o commit das specs e da doc atualizada, cada spec tera um commit.
 25. escreva o arquivo de sessão de hoje
+26. faça os commits e abra o PR
+27. verifique se o CI passou
+28. atualize o custo da sessão com o /cost
 
 ## O que foi feito
 
@@ -58,6 +61,7 @@ Medido no log da sessão do Claude Code (`usage` de cada resposta do modelo), co
 - **Issue #9** — "Decisão: a Epic Games Store não entra como fonte direta de importação" (opção A: links da Epic via RAWG, decisão da dupla FDE), com comentário de validação da RAWG e comentário de correção da numeração.
 - **Issue #10** — "Refatoração: base comum das fontes (`fontes/base.py`) e adaptação da fonte Steam", justificando a única refatoração de código da AP1 no Épico 2 e fixando que os testes atuais da Steam passam sem alteração.
 - **Plano** (`.claude/plan/plan-ap2.md`): tabela e divisão de trabalho do Épico 2 atualizadas.
+- **PR #11** (`docs/specs-epico-2`): as três specs em commits isolados, o plano e este registro; CI verde (testes, jscpd e gitleaks), aguardando a aprovação do Fabrício.
 
 ## Decisões e pontos de atenção
 
