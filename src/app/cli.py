@@ -24,6 +24,50 @@ def create_admin(email, password, username="admin"):
     return True
 
 
+def _nomes_das_fontes(fonte):
+    """`todas` roda cada fonte registrada, menos o snapshot `arquivo` (GOG-10)."""
+    from .fontes import FONTES
+
+    if fonte == "todas":
+        return [n for n in FONTES if n != "arquivo"]
+    if fonte not in FONTES:
+        raise click.UsageError(f"fonte desconhecida; use uma de {sorted(FONTES)} ou todas")
+    return [fonte]
+
+
+def _rodar_uma(nome, executar, campos):
+    """Linha de resumo de uma fonte e se ela falhou; a chave da RAWG nunca chega aqui (GOG-05)."""
+    from .fontes import FONTES, Interrompido, indisponivel
+
+    if motivo := indisponivel(FONTES[nome]):
+        return f"erro={motivo}", True
+    extra = ""
+    try:
+        contagens = executar(nome)
+    except Interrompido as exc:  # 429 persistente: fica o que já foi gravado (GOG-11)
+        contagens, extra = exc.parcial, f" interrompido={exc.motivo}"
+    except Exception as exc:  # fonte fora do ar ou resposta inesperada: sem traceback
+        return f"erro=fonte indisponivel: {str(exc).strip() or exc.__class__.__name__}", True
+    return " ".join(f"{c}={n}" for c, n in zip(campos, contagens)) + extra, False
+
+
+def rodar(fonte, executar, campos):
+    """Roda uma fonte ou todas, em sequência; a falha de uma não impede as seguintes (GOG-04, GOG-10).
+
+    Com uma fonte só, falha ou falta de chave termina com código 1; em `todas`, a fonte sem chave fica
+    desligada sem erro (GOG-07) e só uma falha de verdade muda o código de saída.
+    """
+    from .fontes import FONTES, indisponivel
+
+    nomes, todas, falhou = _nomes_das_fontes(fonte), fonte == "todas", False
+    for nome in nomes:
+        linha, erro = _rodar_uma(nome, executar, campos)
+        click.echo(f"{nome}: {linha}" if todas else linha)
+        falhou = falhou or (erro and not (todas and indisponivel(FONTES[nome])))
+    if falhou:
+        raise click.exceptions.Exit(1)
+
+
 def register(app):
     @app.cli.command("seed")
     @click.option("--seed", default=42)
@@ -45,35 +89,24 @@ def register(app):
         click.echo("admin criado" if create_admin(email, pw) else "admin já existe")
 
     @app.cli.command("import-games")
-    @click.option("--fonte", default="steam")
+    @click.option("--fonte", default="steam", help="uma fonte de FONTES ou `todas`")
     @click.option("--limite", default=40)
     @click.option("--termo", default=None)
     def import_games_cmd(fonte, limite, termo):
         """Importa jogos reais de uma fonte externa (padrão: Steam, sem chave)."""
-        from .fontes import FONTES, importar
+        from .fontes import importar
 
-        if fonte not in FONTES:
-            raise click.UsageError(f"fonte desconhecida; use uma de {sorted(FONTES)}")
-        ok, ign, erro = importar(fonte, limite, termo)
-        click.echo(f"importados={ok} ignorados={ign} falhas={erro}")
+        rodar(fonte, lambda nome: importar(nome, limite, termo), ("importados", "ignorados", "falhas"))
 
     @app.cli.command("sync-games")
-    @click.option("--fonte", default="steam")
+    @click.option("--fonte", default="steam", help="uma fonte de FONTES ou `todas`")
     @click.option("--limite", default=40)
     @click.option("--termo", default=None)
     def sync_games_cmd(fonte, limite, termo):
         """Sincroniza o catálogo com uma fonte externa (idempotente; pensado para cron)."""
-        from .fontes import FONTES
-        from .sync import FonteIndisponivel, sincronizar
+        from .sync import sincronizar
 
-        if fonte not in FONTES:
-            raise click.UsageError(f"fonte desconhecida; use uma de {sorted(FONTES)}")
-        try:
-            novos, atualizados, ignorados, falhas = sincronizar(fonte, limite, termo)
-        except FonteIndisponivel as exc:
-            click.echo(f"erro=fonte indisponivel: {exc}")
-            raise click.exceptions.Exit(1) from exc
-        click.echo(f"novos={novos} atualizados={atualizados} ignorados={ignorados} falhas={falhas}")
+        rodar(fonte, lambda nome: sincronizar(nome, limite, termo), ("novos", "atualizados", "ignorados", "falhas"))
 
     @app.cli.command("export-games")
     @click.option("--termos", required=True, help="nomes separados por ;, um jogo por nome")
