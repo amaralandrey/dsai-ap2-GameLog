@@ -2,7 +2,7 @@
 
 **Ferramenta:** Claude Code CLI (Claude Opus 5.5, `claude-opus-5-5`)
 **Quem conduziu:** Andrey Amaral
-**Horário:** 10:01–10:33 (horário de Belém)
+**Horário:** 10:01–10:36 (horário de Belém)
 **Spec:** `SPEC/2026-11-15-fontes-multiloja.md` (FNT-01..12); refatoração da Steam justificada na issue #10
 
 ## Custo
@@ -11,19 +11,22 @@ Medido no log da sessão do Claude Code (`usage` de cada resposta do modelo, sem
 
 | Tipo de token | Tokens | Preço (US$/1M) | Custo (US$) |
 |---|---:|---:|---:|
-| Entrada | 88 | 4,00 | 0,00 |
-| Saída | 57.994 | 20,00 | 1,16 |
-| Leitura de cache | 5.127.529 | 0,20 | 1,03 |
-| Escrita de cache (TTL 1h) | 135.403 | 8,00 | 1,08 |
-| **Total** | **5.321.014** | | **≈ 3,27** |
+| Entrada | 108 | 4,00 | 0,00 |
+| Saída | 62.983 | 20,00 | 1,26 |
+| Leitura de cache | 6.429.877 | 0,20 | 1,29 |
+| Escrita de cache (TTL 1h) | 141.823 | 8,00 | 1,13 |
+| **Total** | **6.634.791** | | **≈ 3,68** |
 
-42 requisições ao modelo. O valor é o equivalente em preço de API, recalculado depois do merge do PR #11, da abertura do PR #12 e da verificação do CI; só a resposta que faz esta atualização fica de fora.
+50 requisições ao modelo. O valor é o equivalente em preço de API, recalculado depois do merge do PR #11, da abertura do PR #12, da verificação do CI e da atualização das issues #9 e #10; só a resposta que faz esta atualização fica de fora.
 
 ## Prompts (em ordem)
 
 1. implemente a spec fontes multilojas, atente aos requisitos de documentação de sessão etc
 2. aprove o pr 11 e abra um pr com a funcionalidade depois
 3. opção 1, mescle com o comentário
+4. documentação e artefatos ok?
+5. sim, marque os itens das issues 9 e 10
+6. sim, atualize o arquivo de sessão no PR 12
 
 ## O que foi feito
 
@@ -49,4 +52,6 @@ Validações locais: **270 testes passando** (eram 216); cobertura total 97%; **
 - **Fonte inválida em `/admin/importar`** responde 400; o lote com 0 ou mais de 10 jogos não processa nada e volta com mensagem.
 - **PR #11 mesclado sem aprovação:** o GitHub não deixa o autor aprovar o próprio PR e o Fabrício não estava disponível. Por decisão do Andrey, o PR foi mesclado com CI verde e um comentário explicando, como nos PRs #4–#7. Isso conta contra o critério de Revisão (100% dos merges aprovados pelo parceiro).
 - **PR #12** (`feat/fontes-multiloja` → `main`): CI verde (testes, jscpd e gitleaks), aguardando a aprovação do Fabrício. O pedido de revisão não pôde ser feito pelo `gh` porque o Fabrício ainda não é colaborador do repositório.
-- **Pendências:** marcar os itens da issue #10 depois do merge e o item "Atualizar as duas specs" da issue #9.
+- **Conferência final:** trailers dos 8 commits do PR #12, README (270 testes, tabela de specs), `.env.example`, este registro e os arquivos do PR conferidos; o plano não precisa de mudança.
+- **Issues:** na #9, marcado "Atualizar as duas specs" (feito pelo PR #11); na #10, marcados 4 dos 5 itens, com comentário de evidência em cada issue.
+- **Pendências:** aprovação do PR #12 pelo Fabrício (antes, adicioná-lo como colaborador do repositório) e, depois dela, o último item da #10; ciência da cliente (@fenalk) na #9.
