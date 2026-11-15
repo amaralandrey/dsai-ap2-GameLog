@@ -4,8 +4,12 @@ from urllib.parse import urlencode
 
 from flask import Blueprint, abort, flash, redirect, render_template, request
 
+from sqlalchemy import func
+from sqlalchemy.orm import joinedload, selectinload
+
+from .catalogo_merge import MesclagemRecusada, ignorar, mesclar
 from .fontes import FONTES, importar_item, indisponivel, jogo_por_fonte
-from .models import AuditLog, Developer, Game, Genre, JogoFonte, Platform, Report, Review, db, now
+from .models import AuditLog, Developer, Game, Genre, JogoFonte, PendenciaMerge, Platform, Report, Review, db, now
 from .util import admin_required, current_user, paginate, slugify
 
 bp = Blueprint("admin", __name__, url_prefix="/admin")
@@ -25,7 +29,8 @@ def audit(action, detail=""):
 @bp.route("/")
 def index():
     return render_template(
-        "admin/index.html", pending=Report.query.filter_by(status="pendente").count(), games=Game.query.count()
+        "admin/index.html", pending=Report.query.filter_by(status="pendente").count(), games=Game.query.count(),
+        duplicatas=PendenciaMerge.query.filter_by(status="pendente").count(),
     )
 
 
@@ -57,7 +62,7 @@ def _url_busca(fonte, q):
 def _criar_importado(fonte, j):
     """Cria o jogo e audita com a fonte (IAD-07); devolve (status, jogo) como importar_item."""
     status, game = importar_item(fonte, j) if j else ("invalido", None)
-    if status == "ok":
+    if status in ("ok", "vinculado"):
         audit("jogo.importar", f"{game.title} ({fonte}:{j['external_id']})")
         db.session.commit()
     else:
@@ -84,6 +89,9 @@ def importar_jogos():
         if status == "ok":
             flash(f"“{game.title}” importado.", "ok")
             return redirect(f"/jogos/{game.slug}")
+        if status == "vinculado":  # o mesmo jogo já estava no catálogo: ganhou a loja nova (MRG-02)
+            flash(f"“{game.title}” já estava no catálogo e agora também aparece nesta fonte.", "ok")
+            return redirect(f"/jogos/{game.slug}")
         flash(f"“{game.title}” já estava no catálogo." if status == "duplicado" else
               "Esse item não é um jogo com título e data de lançamento válidos.", "err")
         return redirect(f"/jogos/{game.slug}" if game else _url_busca(nome, q))
@@ -107,7 +115,7 @@ def _importar_um(nome, eid):
     except Exception:  # rede, JSON ou banco: o item falha e o lote continua
         db.session.rollback()
         return "falhas"
-    return {"ok": "importados", "duplicado": "existentes"}.get(status, "falhas")
+    return {"ok": "importados", "vinculado": "importados", "duplicado": "existentes"}.get(status, "falhas")
 
 
 @bp.route("/importar/lote", methods=["POST"])
@@ -221,10 +229,74 @@ def game_remove(gid):
 @bp.route("/jogos/<int:gid>/restaurar", methods=["POST"])
 def game_restore(gid):
     g = db.get_or_404(Game, gid)
+    if g.mesclado_em_id:  # ADM-02, MRG-08: desfazer mesclagem está fora do escopo
+        flash(f"“{g.title}” foi mesclado em “{g.mesclado_em.title}” e não pode ser restaurado.", "erro")
+        return redirect("/admin/jogos")
     g.removed_at = None
     audit("jogo.restaurar", f"{g.title} (#{g.id})")
     db.session.commit()
     return redirect("/admin/jogos")
+
+
+# ---------- duplicatas do catálogo (MRG-05, MRG-06, MRG-10, MRG-11) ----------
+DUPLICATAS = "/admin/catalogo/duplicatas"
+
+
+def _avaliacoes_por_jogo(pendencias):
+    ids = {i for p in pendencias for i in (p.jogo_a_id, p.jogo_b_id)}
+    return dict(
+        db.session.query(Review.game_id, func.count())
+        .filter(Review.game_id.in_(ids), Review.hidden.is_(False)).group_by(Review.game_id).all()
+    ) if ids else {}
+
+
+@bp.route("/catalogo/duplicatas")
+def duplicatas():
+    lado = (selectinload(Game.fontes), joinedload(Game.developer))
+    q = (PendenciaMerge.query.filter_by(status="pendente")
+         .options(joinedload(PendenciaMerge.jogo_a).options(*lado), joinedload(PendenciaMerge.jogo_b).options(*lado))
+         .order_by(PendenciaMerge.created_at, PendenciaMerge.id))
+    page = paginate(q, request.args.get("page"))
+    return render_template("admin/duplicatas.html", page=page, avaliacoes=_avaliacoes_por_jogo(page.items))
+
+
+def _pendencia():
+    pid = request.form.get("pendencia_id", "")
+    return db.get_or_404(PendenciaMerge, int(pid)) if pid.isdigit() else abort(404)
+
+
+def _par(a, b):
+    return f"#{a.id} {a.slug} e #{b.id} {b.slug}"
+
+
+@bp.route("/catalogo/mesclar", methods=["POST"])
+def mesclar_duplicata():
+    p = _pendencia()
+    principal_id = request.form.get("principal_id", "")
+    try:
+        principal, secundario = mesclar(p, int(principal_id) if principal_id.isdigit() else None, current_user().id)
+    except MesclagemRecusada as exc:  # nada muda (MRG-09)
+        db.session.rollback()
+        flash(str(exc), "erro")
+        return redirect(DUPLICATAS)
+    audit("catalogo.mesclar", f"principal {_par(principal, secundario)} (secundário)")
+    db.session.commit()
+    flash(f"“{secundario.title}” foi mesclado em “{principal.title}”.", "ok")
+    return redirect(DUPLICATAS)
+
+
+@bp.route("/catalogo/ignorar-merge", methods=["POST"])
+def ignorar_duplicata():
+    p = _pendencia()
+    try:
+        ignorar(p, current_user().id)
+    except MesclagemRecusada as exc:
+        flash(str(exc), "erro")
+        return redirect(DUPLICATAS)
+    audit("catalogo.ignorar", _par(p.jogo_a, p.jogo_b))
+    db.session.commit()
+    flash("Os dois jogos continuam separados e o par não será sugerido de novo.", "ok")
+    return redirect(DUPLICATAS)
 
 
 # ---------- gêneros, plataformas, desenvolvedoras ----------
