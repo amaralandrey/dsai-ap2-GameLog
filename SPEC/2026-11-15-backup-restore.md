@@ -1,0 +1,41 @@
+# Backup e restore portável do banco (2026-11-15)
+
+## O quê e por quê
+O Render recria o banco a cada deploy e a cada reinício, porque o `startCommand` do `render.yaml` roda o `seed` antes do gunicorn. Na issue *Primeiras impressões*, isso aparece como evidência de que nenhum dado de usuário real sobrevive em produção. Com diário, conquistas, clubes e tokens, perder o banco passa a custar mais. Esta spec cria um backup completo do estado do SQLite em JSON, portável entre versões do esquema, assinado com HMAC para que um arquivo adulterado não seja restaurado. Ele funciona pela linha de comando e pelo painel admin, usando os serializadores da API v2 para as entidades que eles já cobrem.
+
+Depende de: AP2-07 (serializadores), JOB (backup agendado), ADM-09 (auditoria). Respeita: MAP (o backup carrega dados pessoais; o mapa de dados registra a finalidade "continuidade do serviço" e a retenção dos arquivos) e INC (um backup vazado é incidente).
+
+## Critérios de aceitação
+- BKP-01: `flask --app app backup exportar --saida <arquivo.json>` grava um JSON com:
+  - `formato: "gamelog-backup"`, `versao_formato: 1`;
+  - `gerado_em` (ISO-8601, UTC);
+  - `versao_app` (commit, se houver);
+  - `tabelas` (um objeto por tabela do modelo, com a lista de linhas);
+  - `contagens` (linhas por tabela);
+  - `assinatura`.
+
+  A ordem das tabelas respeita as chaves estrangeiras (pais antes de filhos). O comando imprime `tabelas=N linhas=M arquivo=<caminho>`.
+- BKP-02: a assinatura é o HMAC-SHA256, em hexadecimal, do JSON canônico do conteúdo (`sort_keys`, separadores compactos, UTF-8, sem o campo `assinatura`). A chave vem de `BACKUP_KEY`. Sem `BACKUP_KEY`, exportar e importar terminam com `erro=BACKUP_KEY não configurada` e código 1, sem traceback e sem criar o arquivo. O `render.yaml` declara `BACKUP_KEY` com `sync: false`. A chave nunca aparece no arquivo, na saída nem nos logs.
+- BKP-03: entram no backup todas as tabelas do `db.metadata`, exceto as voláteis: `LoginAttempt`, os jobs já concluídos e a contagem de limite de taxa da API v2. Os hashes de senha e de token entram como estão (nunca em texto puro, GLOBAL-06). A lista de exclusões é uma constante única, e um teste confere que toda tabela do modelo foi incluída ou excluída de propósito.
+- BKP-04: as entidades com serializador de AP2-07 (jogos, avaliações, sessões, listas) são exportadas por ele mais as colunas internas necessárias para restaurar (ids e chaves estrangeiras). As demais tabelas usam um serializador genérico de colunas: datas em ISO-8601, `Date`, `Time` e `DateTime` distinguidos pelo tipo da coluna e booleanos como JSON.
+- BKP-05: `flask --app app backup importar --arquivo <arquivo.json> [--confirmar]` primeiro confere o formato, a `versao_formato` suportada e a assinatura. Arquivo malformado, de versão desconhecida ou com assinatura que não confere termina com código 1 e `erro=assinatura inválida` (ou o motivo), sem tocar no banco. Sem `--confirmar`, o comando só imprime o que faria (`tabelas=N linhas=M`) e sai com 0.
+- BKP-06: com `--confirmar`, a restauração apaga e regrava as tabelas incluídas numa única transação, preservando os ids. Em qualquer erro (chave estrangeira, linha inválida), tudo é desfeito com rollback, e o banco fica exatamente como antes. Ao final, `contagens` do arquivo e do banco conferem, ou o comando falha. Restaurar e exportar de novo produz o mesmo conteúdo (sem contar `gerado_em` e `assinatura`).
+- BKP-07: colunas que existem no banco mas não no arquivo (backup de versão anterior do esquema) recebem o valor padrão do modelo. Colunas do arquivo que o modelo não tem mais são ignoradas, e cada uma é avisada uma vez no stderr. Uma tabela do arquivo que não existe mais é ignorada com aviso. Uma coluna obrigatória sem padrão e ausente no arquivo aborta a restauração (BKP-06).
+- BKP-08: `/admin/backup` (só admin; jogador recebe 403, GLOBAL-05) mostra as contagens atuais e oferece "Baixar backup", que gera o mesmo arquivo de BKP-01 como download `gamelog-backup-AAAAMMDD-HHMM.json`. Também oferece "Restaurar", que recebe o arquivo por upload (até 20 MB), mostra a prévia de BKP-05 e só restaura depois de um segundo POST com a confirmação marcada.
+- BKP-09: baixar, pré-visualizar e restaurar gravam no `AuditLog` (`backup.exportar`, `backup.previa` e `backup.restaurar`), com as contagens e o resultado. A restauração preserva o próprio registro de auditoria dela, gravado depois da troca das tabelas. O admin que restaura continua logado se o seu usuário existir no backup, e senão vai ao login.
+- BKP-10: o job `backup` (JOB) roda conforme o agendamento configurado e grava o arquivo em `BACKUP_DIR` (padrão `instance/backups/`, fora do Git e coberto pelo `.gitignore`), mantendo os 7 mais recentes (retenção conferida pelo mapa de dados). Uma falha do job fica no histórico de `/admin/jobs` sem apagar backups antigos.
+- BKP-11: `flask --app app seed --se-vazio` só roda o seed se o banco não tiver usuários. Assim o `startCommand` pode restaurar um backup antes de subir, em vez de sobrescrever os dados. `BACKUP_RESTAURAR_DE` aceita um caminho local ou uma URL `https` (o disco do plano gratuito do Render some a cada deploy); o arquivo baixado passa pela mesma conferência de assinatura de BKP-05, e uma falha deixa o `seed` rodar como hoje. Sem a variável, o comportamento de produção não muda. O README explica o fluxo e os limites do plano gratuito.
+- BKP-12: os testes rodam sem rede, num banco temporário, e cobrem:
+  - ida e volta (exportar, apagar, importar e exportar de novo dá o mesmo conteúdo);
+  - assinatura adulterada em um byte (recusada, banco intacto);
+  - falta de `BACKUP_KEY`;
+  - prévia sem `--confirmar`;
+  - rollback em linha inválida;
+  - coluna nova e coluna removida (BKP-07);
+  - tabelas excluídas de propósito e a constante cobrindo todo o modelo;
+  - rotas admin (403 e auditoria);
+  - retenção de 7 arquivos;
+  - `seed --se-vazio`.
+
+## Fora do escopo
+Backup incremental ou contínuo, envio automático para nuvem (S3, Google Drive), criptografia do conteúdo (a assinatura garante integridade, não sigilo), restauração parcial por usuário ou por tabela, migração para PostgreSQL e troca do plano do Render.
