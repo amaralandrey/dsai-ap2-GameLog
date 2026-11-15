@@ -105,6 +105,7 @@ class Game(db.Model):
 
 
 LOJAS = ("steam", "gog", "epic")
+NOMES_DAS_LOJAS = {"steam": "Steam", "gog": "GOG", "epic": "Epic Games Store"}
 SO_VINCULADAS = ("epic",)  # lojas sem fonte de importação: entram só como vínculo (issue #9)
 
 

@@ -165,6 +165,13 @@ def sugerir_duplicatas():
     return novas
 
 
+def principal_do_mesclado(slug):
+    """Jogo visível que responde pelo slug de um jogo mesclado, ou None; as URLs antigas viram 301 (MRG-08)."""
+    game = Game.query.filter(Game.slug == slug, Game.mesclado_em_id.isnot(None)).first()
+    principal = game.principal if game else None
+    return principal if principal is not None and principal.removed_at is None else None
+
+
 # ---------- mesclagem (MRG-06..09) ----------
 class MesclagemRecusada(ValueError):
     """A pendência não pode ser mesclada; a mensagem vai para o admin."""

@@ -1,9 +1,10 @@
-from flask import Blueprint, render_template, request
+from flask import Blueprint, abort, redirect, render_template, request
 from sqlalchemy import func
 from sqlalchemy.orm import selectinload
 
+from .catalogo_merge import principal_do_mesclado
 from .models import (
-    REPORT_REASONS, STATUSES, Comment, Game, GameList, Like, Review, Status, avg_subquery, db, game_genres, game_stats,
+    NOMES_DAS_LOJAS, REPORT_REASONS, STATUSES, Comment, Game, GameList, Like, Review, Status, avg_subquery, db, game_genres, game_stats,
     visible_games,
 )
 from .util import current_user, paginate
@@ -28,9 +29,20 @@ def related_games(game, limit=6):
     )
 
 
+def redirecionar_mesclado(slug, para):
+    """301 para o principal, mantendo a query string, ou 404 (PAG-09, MRG-08); `para` monta a URL nova."""
+    principal = principal_do_mesclado(slug)
+    if principal is None:
+        abort(404)
+    qs = request.query_string.decode()
+    return redirect(para(principal.slug) + (f"?{qs}" if qs else ""), 301)
+
+
 @bp.route("/jogos/<slug>")
 def game_page(slug):
-    game = visible_games().filter_by(slug=slug).first_or_404()
+    game = visible_games().filter_by(slug=slug).first()
+    if game is None:
+        return redirecionar_mesclado(slug, lambda s: f"/jogos/{s}")
     me = current_user()
     likes = func.count(Like.id)
     q = (
@@ -55,5 +67,5 @@ def game_page(slug):
     return render_template(
         "jogo/pagina.html", game=game, stats=stats, page=page, sort=sort, mine=mine, status=status, liked=liked,
         my_lists=my_lists, statuses=STATUSES, reasons=REPORT_REASONS, related=related_games(game),
-        hist_max=max(stats["hist"].values()) or 1,
+        hist_max=max(stats["hist"].values()) or 1, nomes_lojas=NOMES_DAS_LOJAS,
     )
