@@ -82,3 +82,4 @@ button.danger-link{color:var(--err);font-size:.85rem}
 .momento h3{margin-top:0}
 footer a{color:var(--mut);text-decoration:underline}
 .momento img.cover{width:100%;max-width:160px;border-radius:10px}
+.dup-jogo{display:flex;gap:12px}.dup-jogo img{width:90px;aspect-ratio:3/4;object-fit:cover;border-radius:8px;flex:0 0 90px}

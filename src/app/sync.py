@@ -1,5 +1,6 @@
 """Sincronização idempotente do catálogo com fontes externas (executada por cron, fora do processo web)."""
-from .fontes import Interrompido, base, jogo_por_fonte, lancamento, registrada, vincular_lojas, vincular_origem
+from .catalogo_merge import assumir_vinculo, reconhecer, registrar_pendencia
+from .fontes import FONTES, Interrompido, base, jogo_por_fonte, lancamento, registrada, vincular_lojas, vincular_origem
 from .fontes.normalizar import generos, plataformas
 from .models import Developer, Game, Genre, Platform, db, now
 from .util import slugify
@@ -97,6 +98,26 @@ def _atualizar(game, j, titulo, data):
     return mudou
 
 
+def dona_dos_dados(game, fonte):
+    """Só a fonte de origem do jogo (ou a loja que ela copia) atualiza os metadados; as fontes ligadas
+    depois por MRG-02 só tocam no próprio vínculo, para duas fontes não se sobrescreverem a cada execução."""
+    return fonte in (game.source, getattr(FONTES.get(game.source), "LOJA_DE_ORIGEM", None))
+
+
+def _novo_ou_vinculado(fonte, j, titulo, data, external_id):
+    """Item sem vínculo: liga a um jogo existente (conta como atualizado) ou cria, com pendência (MRG-02, MRG-03)."""
+    decisao = reconhecer(fonte, {**j, "external_id": external_id}, titulo, data[0])
+    if decisao.acao == "repetido":
+        return decisao.jogo, "ignorado"
+    if decisao.acao == "vincular":
+        assumir_vinculo(decisao.jogo, fonte, external_id)
+        return decisao.jogo, "atualizado"
+    game = _criar(fonte, j, titulo, data, external_id)
+    if decisao.acao == "pendencia":
+        registrar_pendencia(game, decisao.jogo, decisao.semelhanca)
+    return game, "novo"
+
+
 def _sincronizar_item(fonte, j):
     if "erro" in j:
         return "falha"
@@ -109,9 +130,13 @@ def _sincronizar_item(fonte, j):
 
     game = jogo_por_fonte(fonte, external_id)
     status = "ignorado"
+    if game is not None and game.mesclado_em_id:
+        return "ignorado"  # o vínculo ficou no jogo mesclado: nada muda (MRG-08)
     if game is None:
-        game, status = _criar(fonte, j, titulo, data, external_id), "novo"
-    elif _atualizar(game, j, titulo, data):
+        game, status = _novo_ou_vinculado(fonte, j, titulo, data, external_id)
+        if status == "ignorado":
+            return status
+    elif dona_dos_dados(game, fonte) and _atualizar(game, j, titulo, data):
         status = "atualizado"
     vinculos = vincular_origem(game, fonte, {**j, "external_id": external_id}) + vincular_lojas(game, j.get("lojas"))
     for v in vinculos:

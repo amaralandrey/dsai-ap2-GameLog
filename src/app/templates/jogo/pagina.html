@@ -33,6 +33,9 @@
     <p>{% for g in game.genres %}<a class="tag" href="/generos/{{ g.slug }}">{{ g.name }}</a>{% endfor %}
        {% for p in game.platforms %}<a class="tag" href="/plataformas/{{ p.slug }}">{{ p.name }}</a>{% endfor %}</p>
     <p style="white-space:pre-line">{{ game.synopsis }}</p>
+    {% if game.lojas %}<p class="lojas">Disponível em:
+      {% for v in game.lojas %}{% if v.url_loja and v.url_loja.startswith(('http://', 'https://')) %}<a class="tag" href="{{ v.url_loja }}" target="_blank" rel="noopener">{{ nomes_lojas[v.fonte] }}</a>
+      {%- else %}<span class="tag">{{ nomes_lojas[v.fonte] }}</span>{% endif %}{% endfor %}</p>{% endif %}
     {% if game.fontes | selectattr("fonte", "equalto", "rawg") | first %}<p class="mut">Dados fornecidos por <a href="https://rawg.io" target="_blank" rel="noopener">RAWG</a></p>{% endif %}
     <p style="font-size:1.4rem">
       {% if stats.avg is not none %}{{ stars(stats.avg, media=True) }} <span class="mut">({{ stats.total }} avaliaç{{ 'ões' if stats.total != 1 else 'ão' }})</span>

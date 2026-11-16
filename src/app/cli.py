@@ -108,6 +108,13 @@ def register(app):
 
         rodar(fonte, lambda nome: sincronizar(nome, limite, termo), ("novos", "atualizados", "ignorados", "falhas"))
 
+    @app.cli.command("sugerir-duplicatas")
+    def sugerir_duplicatas_cmd():
+        """Registra pendências de mesclagem entre jogos parecidos do catálogo, sem mesclar nada (MRG-04)."""
+        from .catalogo_merge import sugerir_duplicatas
+
+        click.echo(f"pendencias={sugerir_duplicatas()}")
+
     @app.cli.command("export-games")
     @click.option("--termos", required=True, help="nomes separados por ;, um jogo por nome")
     @click.option("--saida", required=True)
