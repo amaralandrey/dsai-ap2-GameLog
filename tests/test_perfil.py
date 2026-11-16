@@ -161,6 +161,10 @@ def test_prf09_consultas_nao_crescem_com_avaliacoes(app):
 
 
 def conquistas(client):
+    """Os testes gravam direto no banco, então recalculam antes de olhar o perfil (GAM-13 altera CON-03)."""
+    cli = client.application.test_cli_runner()
+    cli.invoke(args=["conquistas", "sincronizar"])
+    cli.invoke(args=["conquistas", "recalcular"])
     return secao(perfil(client), "<h2>Conquistas</h2>", "</section>")
 
 
@@ -228,8 +232,9 @@ def test_con01_pioneiro_primeira_avaliacao_do_jogo(app, client):
     assert "Pioneiro" in conquistas(client)
 
 
-def test_con06_no_maximo_3_consultas_para_conquistas(app):
-    from app.perfil import conquistas as calcula
+def test_con06_perfil_le_as_conquistas_gravadas_com_uma_consulta(app):
+    from app.conquistas import vitrine
+
     uid = make_user(app, "ana")
     with app.app_context():
         consultas = []
@@ -237,6 +242,6 @@ def test_con06_no_maximo_3_consultas_para_conquistas(app):
         def conta(*a, _l=consultas):
             _l.append(1)
         event.listen(db.engine, "before_cursor_execute", conta)
-        calcula(uid, 0)
+        vitrine(uid)
         event.remove(db.engine, "before_cursor_execute", conta)
-    assert len(consultas) <= 3
+    assert len(consultas) == 1
