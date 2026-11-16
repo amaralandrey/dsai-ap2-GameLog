@@ -115,6 +115,16 @@ def register(app):
 
         click.echo(f"pendencias={sugerir_duplicatas()}")
 
+    @app.cli.command("enriquecer-snapshot")
+    @click.option("--arquivo", default=None, help="padrão: o snapshot do seed (src/app/dados/jogos.json)")
+    def enriquecer_snapshot_cmd(arquivo):
+        """Grava no snapshot os links de GOG e Epic e o id da RAWG de cada jogo (SNP-01; exige RAWG_API_KEY)."""
+        from .fontes import arquivo as snapshot_padrao
+        from .snapshot import enriquecer
+
+        caminho = arquivo or snapshot_padrao.CAMINHO
+        rodar("rawg", lambda _: enriquecer(caminho), ("jogos", "vinculados", "sem_correspondencia", "falhas"))
+
     @app.cli.command("export-games")
     @click.option("--termos", required=True, help="nomes separados por ;, um jogo por nome")
     @click.option("--saida", required=True)

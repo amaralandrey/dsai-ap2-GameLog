@@ -94,6 +94,18 @@ def vincular_origem(game, fonte, j, modulo=None):
     loja = getattr(modulo, "LOJA_DE_ORIGEM", None)
     if loja:
         vinculos.append(vincular(game, loja, eid, _link(FONTES.get(loja), eid)))
+    return vinculos + _vincular_origens(game, j.get("origens"))
+
+
+def _vincular_origens(game, origens):
+    """Outras fontes em que o item está (snapshot ← RAWG); id que já é de outro jogo não vira vínculo (SNP-06, SNP-07)."""
+    vinculos = []
+    for fonte, eid in origens or []:
+        atual = next((v for v in game.fontes if v.fonte == fonte), None)
+        if atual is None and fonte in FONTES and not JogoFonte.query.filter_by(fonte=fonte, external_id=str(eid)).first():
+            atual = vincular(game, fonte, eid)
+        if atual is not None:
+            vinculos.append(atual)
     return vinculos
 
 
