@@ -315,6 +315,33 @@ class PreviaImportacao(db.Model):
     created_at = db.Column(db.DateTime, default=now, nullable=False)
 
 
+class Notificacao(db.Model):
+    """Aviso para um usuário; criado só por `notificacoes.notificar` (NTF-01)."""
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.ForeignKey("user.id"), nullable=False, index=True)
+    tipo = db.Column(db.String(20), nullable=False)
+    ator_id = db.Column(db.ForeignKey("user.id"), nullable=True)
+    game_id = db.Column(db.ForeignKey("game.id"), nullable=True)
+    review_id = db.Column(db.ForeignKey("review.id", ondelete="CASCADE"), nullable=True)
+    texto = db.Column(db.String(200), default="", nullable=False)
+    alvo_url = db.Column(db.String(300), default="", nullable=False)
+    lida_em = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, default=now, nullable=False, index=True)
+    ator = db.relationship(User, foreign_keys=[ator_id])
+    game = db.relationship(Game)
+    review = db.relationship(Review)
+
+
+class PreferenciaNotificacao(db.Model):
+    """Interruptores "no site" e "por e-mail" de um tipo de notificação (NTF-09)."""
+    __table_args__ = (db.UniqueConstraint("user_id", "tipo"),)
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.ForeignKey("user.id"), nullable=False)
+    tipo = db.Column(db.String(20), nullable=False)
+    site = db.Column(db.Boolean, default=True, nullable=False)
+    email = db.Column(db.Boolean, default=False, nullable=False)
+
+
 class Dismissed(db.Model):
     __table_args__ = (db.UniqueConstraint("user_id", "game_id"),)
     id = db.Column(db.Integer, primary_key=True)
