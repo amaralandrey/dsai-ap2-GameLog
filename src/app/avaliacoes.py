@@ -1,6 +1,7 @@
 from flask import Blueprint, abort, flash, redirect, request
 
-from .models import REPORT_REASONS, Activity, Like, Report, Review, Status, db, visible_games
+from .models import REPORT_REASONS, Activity, Like, Notificacao, Report, Review, Status, db, visible_games
+from .notificacoes import avisar_curtida
 from .util import current_user, login_required
 
 bp = Blueprint("avaliacoes", __name__)
@@ -20,6 +21,7 @@ def delete_review(review):
     Like.query.filter_by(review_id=review.id).delete()
     Report.query.filter_by(review_id=review.id).delete()
     Activity.query.filter_by(review_id=review.id).delete()
+    Notificacao.query.filter_by(review_id=review.id).delete()
     db.session.delete(review)
 
 
@@ -78,6 +80,7 @@ def like(rid):
         abort(404)
     elif not Like.query.filter_by(user_id=me.id, review_id=rid).first():
         db.session.add(Like(user_id=me.id, review_id=rid))
+        avisar_curtida(review, me.id)  # NTF-04
         db.session.commit()
     return back(review.game, review)
 

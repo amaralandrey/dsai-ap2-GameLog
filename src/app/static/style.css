@@ -99,3 +99,7 @@ polyline.serie-0,polyline.serie-1,polyline.serie-2,polyline.serie-3{fill:none;st
 .barra .st-jogado{background:var(--ok)}.barra .st-jogando{background:var(--acc)}
 .barra .st-abandonado{background:var(--err)}.barra .st-planejado{background:#ffc247}
 .ordenavel .item-lista[draggable=true]{cursor:grab}.item-lista.arrastando{opacity:.5}
+/* notificações (NTF-07, NTF-10) */
+.sino{position:relative}.sino .contador{margin-left:4px;padding:0 6px;border-radius:99px;background:var(--err);color:#fff;font-size:.75rem}
+.notificacao{display:flex;gap:10px;align-items:center}.notificacao.nao-lida{border-color:var(--acc);background:var(--panel-strong)}
+.notificacao form{margin-left:auto}

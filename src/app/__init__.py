@@ -58,7 +58,13 @@ def create_app(config=None):
             session.setdefault("csrf", secrets.token_hex(16))
             return session["csrf"]
 
-        return {"me": current_user(), "csrf_token": csrf_token}
+        me = current_user()
+        cabecalho = None
+        if me is not None and not request.path.startswith("/static"):
+            from .notificacoes import cabecalho_do_usuario
+
+            cabecalho = cabecalho_do_usuario(me.id)  # NTF-10: uma consulta para o cabeçalho
+        return {"me": me, "csrf_token": csrf_token, "cabecalho": cabecalho}
 
     def erro(code, msg):
         def handler(e):

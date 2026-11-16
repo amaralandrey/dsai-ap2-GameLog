@@ -4,6 +4,7 @@ from sqlalchemy.orm import selectinload
 
 from .models import Activity, Comment, Follow, Game, GameList, Review, User, db
 from .diario import ocultos_para, perfil_ou_404
+from .notificacoes import avisar_seguidor
 from .util import current_user, login_required, paginate
 
 bp = Blueprint("social", __name__)
@@ -21,6 +22,7 @@ def follow(username):
         flash("Você não pode seguir a si mesmo.", "erro")
     elif not Follow.query.filter_by(follower_id=me.id, followed_id=target.id).first():  # SOC-02
         db.session.add(Follow(follower_id=me.id, followed_id=target.id))
+        avisar_seguidor(target.id, me)  # NTF-05
         db.session.commit()
     return redirect(f"/u/{target.username}")
 

@@ -222,6 +222,7 @@ def aplicar_status(sessao):
         db.session.add(st)
     elif st.value == "planejado":
         st.value = "jogando"
+    sessao.zerou_agora = sessao.zerou and st.zerado_em is None  # NTF-06: a primeira vez que zera
     if sessao.zerou:
         if st.value != "jogado":
             st.value = "jogado"
@@ -282,7 +283,11 @@ def registrar(slug):
     dados, erros = validar_campos(game, request.form, me.id)
     if erros:
         return tela_jogo_com_erros(game, erros, request.form)
-    gravar_sessao(me, game, dados)
+    sessao = gravar_sessao(me, game, dados)
+    if sessao.zerou_agora:
+        from .notificacoes import avisar_amigo_zerou
+
+        avisar_amigo_zerou(me, game)
     db.session.commit()
     flash("Sessão registrada no diário.", "ok")
     return redirect(f"/jogos/{game.slug}")

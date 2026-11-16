@@ -24,6 +24,7 @@
       <a class="nav-link{% if request.path == '/listas' %} is-active{% endif %}" href="/listas"{% if request.path == '/listas' %} aria-current="page"{% endif %}>Listas</a>
       <a class="nav-link{% if request.path == '/recomendacoes' %} is-active{% endif %}" href="/recomendacoes"{% if request.path == '/recomendacoes' %} aria-current="page"{% endif %}>Para você</a>
       <a class="nav-link{% if request.path == '/comparar' %} is-active{% endif %}" href="/comparar"{% if request.path == '/comparar' %} aria-current="page"{% endif %}>Comparar</a>
+      <a class="nav-link sino{% if request.path.startswith('/notificacoes') %} is-active{% endif %}" href="/notificacoes" aria-label="Notificações{% if cabecalho and cabecalho.sino %}: {{ cabecalho.sino }} não lidas{% endif %}">🔔{% if cabecalho and cabecalho.sino %}<span class="contador">{{ cabecalho.sino }}</span>{% endif %}</a>
       {% if me.is_admin %}<a class="nav-link{% if request.path.startswith('/admin') %} is-active{% endif %}" href="/admin"{% if request.path.startswith('/admin') %} aria-current="page"{% endif %}>Admin</a>{% endif %}
       <a class="nav-link{% if request.path == '/u/' ~ me.username %} is-active{% endif %}" href="/u/{{ me.username }}"{% if request.path == '/u/' ~ me.username %} aria-current="page"{% endif %}>@{{ me.username }}</a>
       <form method="post" action="/sair" class="inline nav-logout"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="ghost">Sair</button></form>
