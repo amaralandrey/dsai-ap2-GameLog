@@ -1,6 +1,7 @@
 import os
 
 import click
+from flask.cli import AppGroup
 from werkzeug.security import generate_password_hash
 
 from .models import User, db
@@ -76,6 +77,11 @@ def register(app):
         from .seed import run
 
         run(seed, real=True)
+        from .conquistas_catalogo import sincronizar
+        from .gamificacao import recalcular
+
+        sincronizar()  # GAM-02 e GAM-13: catálogo e conquistas da AP1 a cada subida, sem duplicar
+        recalcular()
         click.echo("seed ok")
         email, pw = os.environ.get("ADMIN_EMAIL"), os.environ.get("ADMIN_PASSWORD")
         if email and pw and create_admin(email, pw):
@@ -124,6 +130,27 @@ def register(app):
 
         caminho = arquivo or snapshot_padrao.CAMINHO
         rodar("rawg", lambda _: enriquecer(caminho), ("jogos", "vinculados", "sem_correspondencia", "falhas"))
+
+    conquistas_cli = AppGroup("conquistas", help="Catálogo e recálculo das conquistas (GAM-02, GAM-13).")
+
+    @conquistas_cli.command("sincronizar")
+    def conquistas_sincronizar():
+        """Grava o catálogo inicial; rodar de novo atualiza pelo código, sem duplicar."""
+        from .conquistas_catalogo import sincronizar
+
+        criadas, atualizadas = sincronizar()
+        click.echo(f"criadas={criadas} atualizadas={atualizadas}")
+
+    @conquistas_cli.command("recalcular")
+    @click.option("--usuario", default=None, help="nome de usuário; sem ele, todos")
+    def conquistas_recalcular(usuario):
+        """Reavalia o histórico e desbloqueia o que faltar, sem duplicar."""
+        from .gamificacao import recalcular
+
+        usuarios, desbloqueadas = recalcular(usuario)
+        click.echo(f"usuarios={usuarios} desbloqueadas={desbloqueadas}")
+
+    app.cli.add_command(conquistas_cli)
 
     @app.cli.command("export-games")
     @click.option("--termos", required=True, help="nomes separados por ;, um jogo por nome")
