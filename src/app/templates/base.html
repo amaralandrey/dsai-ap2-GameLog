@@ -20,6 +20,7 @@
     {% if me %}
       <a class="nav-link{% if request.path == '/feed' %} is-active{% endif %}" href="/feed"{% if request.path == '/feed' %} aria-current="page"{% endif %}>Feed</a>
       <a class="nav-link{% if request.path == '/meus-jogos' %} is-active{% endif %}" href="/meus-jogos"{% if request.path == '/meus-jogos' %} aria-current="page"{% endif %}>Meus jogos</a>
+      <a class="nav-link{% if request.path == '/diario' %} is-active{% endif %}" href="/diario"{% if request.path == '/diario' %} aria-current="page"{% endif %}>Diário</a>
       <a class="nav-link{% if request.path == '/listas' %} is-active{% endif %}" href="/listas"{% if request.path == '/listas' %} aria-current="page"{% endif %}>Listas</a>
       <a class="nav-link{% if request.path == '/recomendacoes' %} is-active{% endif %}" href="/recomendacoes"{% if request.path == '/recomendacoes' %} aria-current="page"{% endif %}>Para você</a>
       <a class="nav-link{% if request.path == '/comparar' %} is-active{% endif %}" href="/comparar"{% if request.path == '/comparar' %} aria-current="page"{% endif %}>Comparar</a>

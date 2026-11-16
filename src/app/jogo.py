@@ -1,8 +1,9 @@
 from flask import Blueprint, abort, redirect, render_template, request
 from sqlalchemy import func
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import joinedload, selectinload
 
 from .catalogo_merge import principal_do_mesclado
+from .diario import minutos_por_usuario, ocultos_para
 from .models import (
     NOMES_DAS_LOJAS, REPORT_REASONS, STATUSES, Comment, Game, GameList, Like, Review, Status, avg_subquery, db, game_genres, game_stats,
     visible_games,
@@ -48,9 +49,10 @@ def game_page(slug):
     q = (
         db.session.query(Review, likes.label("likes"))
         .outerjoin(Like, Like.review_id == Review.id)
-        .filter(Review.game_id == game.id, Review.hidden.is_(False), Review.text != "")
+        .filter(Review.game_id == game.id, Review.hidden.is_(False), Review.text != "",
+                Review.user_id.not_in(ocultos_para(me)))  # DIA-13: a nota segue na média
         .group_by(Review.id)
-        .options(selectinload(Review.comments).joinedload(Comment.user))  # COM-02 sem N+1
+        .options(selectinload(Review.comments).joinedload(Comment.user), joinedload(Review.user))  # COM-02 sem N+1
     )
     sort = "recentes" if request.args.get("ordem") == "recentes" else "curtidas"
     q = q.order_by(likes.desc(), Review.created_at.desc()) if sort == "curtidas" else q.order_by(Review.created_at.desc())
@@ -64,8 +66,9 @@ def game_page(slug):
         liked = {x.review_id for x in Like.query.filter_by(user_id=me.id)}
         my_lists = GameList.query.filter_by(user_id=me.id).order_by(GameList.name).all()
     stats = game_stats(game.id)
+    horas = minutos_por_usuario(game.id, [r.user_id for r, _ in page.items] + ([mine.user_id] if mine else []))
     return render_template(
         "jogo/pagina.html", game=game, stats=stats, page=page, sort=sort, mine=mine, status=status, liked=liked,
         my_lists=my_lists, statuses=STATUSES, reasons=REPORT_REASONS, related=related_games(game),
-        hist_max=max(stats["hist"].values()) or 1, nomes_lojas=NOMES_DAS_LOJAS,
+        hist_max=max(stats["hist"].values()) or 1, nomes_lojas=NOMES_DAS_LOJAS, horas=horas,
     )

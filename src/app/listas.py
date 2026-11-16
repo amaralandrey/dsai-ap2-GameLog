@@ -73,9 +73,11 @@ def my_lists():
 
 def get_list(lid, owner_only=False):
     """LIS-08: privada responde 404 a quem não é dono. Escrita de não-dono em pública: 403."""
+    from .diario import pode_ver_perfil
+
     gl, me = db.get_or_404(GameList, lid), current_user()
     own = me is not None and me.id == gl.user_id
-    if not own and not gl.public:
+    if not own and (not gl.public or not pode_ver_perfil(me, gl.user)):  # DIA-12
         abort(404)
     if owner_only and not own:
         abort(403 if me else 404)

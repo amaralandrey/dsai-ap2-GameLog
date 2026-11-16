@@ -46,6 +46,10 @@ def create_app(config=None):
 
     app.jinja_env.globals["page_url"] = page_url
     app.jinja_env.filters["dictupdate"] = lambda d, u: {**d, **u}
+    from .diario import formatar_minutos, selo_horas
+
+    app.jinja_env.filters["horas"] = formatar_minutos  # "12h 30min" (DIA-06, DIA-09)
+    app.jinja_env.filters["selo_horas"] = selo_horas
 
     @app.context_processor
     def inject():

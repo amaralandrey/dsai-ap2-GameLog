@@ -56,7 +56,9 @@ def indice():
 @bp.route("/u/<username>/comparar")
 @login_required
 def comparar(username):
-    outro = User.query.filter_by(username_lower=username.lower()).first_or_404()
+    from .diario import perfil_ou_404
+
+    outro = perfil_ou_404(username)  # DIA-12
     me = current_user()
     if outro.id == me.id:
         return redirect(f"/u/{me.username}")  # AFI-07

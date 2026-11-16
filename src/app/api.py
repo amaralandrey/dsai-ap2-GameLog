@@ -111,7 +111,10 @@ def avaliacoes(slug):
     g = jogo_ou_404(slug)
     if not g:
         return mesclado_ou_404(slug, "/avaliacoes")
-    q = (Review.query.filter_by(game_id=g.id, hidden=False).options(joinedload(Review.user))
+    from .diario import ocultos_para
+
+    q = (Review.query.filter_by(game_id=g.id, hidden=False).filter(Review.user_id.not_in(ocultos_para(None)))
+         .options(joinedload(Review.user))
          .order_by(Review.created_at.desc(), Review.id.desc()))
     page = paginate(q, request.args.get("page"), per_page())
     ids = [r.id for r in page.items]
