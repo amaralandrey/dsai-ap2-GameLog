@@ -35,6 +35,7 @@ class User(db.Model):
     session_version = db.Column(db.Integer, default=0, nullable=False)
     created_at = db.Column(db.DateTime, default=now, nullable=False)
     perfil_privado = db.Column(db.Boolean, default=False, nullable=False)  # DIA-11
+    steam_id = db.Column(db.String(17), unique=True, nullable=True)  # SteamID64 vinculado (HRS-01)
 
     @property
     def is_admin(self):
@@ -293,6 +294,14 @@ class SessaoJogo(db.Model):
     created_at = db.Column(db.DateTime, default=now, nullable=False)
     game = db.relationship(Game)
     plataforma = db.relationship(Platform)
+
+
+class PreviaImportacao(db.Model):
+    """Linhas de um CSV do diário já classificadas, à espera da confirmação do dono (HRS-07)."""
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.ForeignKey("user.id"), nullable=False, index=True)
+    linhas = db.Column(db.Text, nullable=False)  # JSON com cada linha e sua classificação
+    created_at = db.Column(db.DateTime, default=now, nullable=False)
 
 
 class Dismissed(db.Model):

@@ -4,7 +4,7 @@
 regra em SQL, para as listagens filtrarem no banco sem uma consulta por linha.
 """
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from flask import Blueprint, abort, flash, redirect, render_template, request
 from sqlalchemy import func, select
@@ -127,7 +127,44 @@ def ler_hora(texto):
         return None
 
 
-def validar_campos(game, form):
+# ---------- consistência de toda sessão manual ou de CSV (HRS-09) ----------
+def _intervalo(jogada_em, inicio, duracao_min):
+    comeco = datetime.combine(jogada_em, inicio)
+    return comeco, comeco + timedelta(minutes=duracao_min)
+
+
+def consistencia(user_id, jogada_em, duracao_min, inicio=None, ignorar_id=None, pendentes=()):
+    """Mensagem do problema, ou None: duração, data, total do dia e sobreposição de horários.
+
+    `pendentes` são sessões ainda não gravadas (linhas anteriores do mesmo CSV), como dicionários com
+    `jogada_em`, `duracao_min` e `inicio`. A sessão de saldo da Steam não entra em nenhuma das somas.
+    """
+    if not 1 <= duracao_min <= MAX_MIN:
+        return "duração fora do intervalo de 1 minuto a 24 horas"
+    if jogada_em > hoje():
+        return "A data não pode estar no futuro"
+    vizinhas = (
+        SessaoJogo.query.filter(SessaoJogo.user_id == user_id, SessaoJogo.origem.in_(("manual", "csv")),
+                                SessaoJogo.jogada_em.between(jogada_em - timedelta(days=1), jogada_em))
+        .filter(SessaoJogo.id != (ignorar_id or 0))
+        .all()
+    )
+    outras = [(s.jogada_em, s.duracao_min, s.inicio) for s in vizinhas]
+    outras += [(p["jogada_em"], p["duracao_min"], p["inicio"]) for p in pendentes]
+    if sum(d for dia, d, _ in outras if dia == jogada_em) + duracao_min > MAX_MIN:
+        return "a soma das sessões do dia passaria de 24 horas"
+    if inicio is not None:
+        a, b = _intervalo(jogada_em, inicio, duracao_min)
+        for dia, dur, ini in outras:
+            if ini is None:
+                continue
+            c, d = _intervalo(dia, ini, dur)
+            if a < d and c < b:
+                return f"sobrepõe a sessão de {dia.strftime('%d/%m')} às {ini.strftime('%H:%M')}"
+    return None
+
+
+def validar_campos(game, form, user_id=None, ignorar_id=None):
     """Campos do formulário de sessão: devolve (dados, erros por campo)."""
     erros, dados = {}, {}
     dados["jogada_em"] = ler_data(form.get("jogada_em"))
@@ -157,6 +194,10 @@ def validar_campos(game, form):
     if len(anotacao) > MAX_ANOTACAO:
         erros["anotacao"] = f"A anotação deve ter até {MAX_ANOTACAO} caracteres."
     dados.update(anotacao=anotacao, zerou=bool(form.get("zerou")), spoiler=bool(form.get("spoiler")))
+    if not erros and user_id is not None:
+        problema = consistencia(user_id, dados["jogada_em"], dur, dados["inicio"], ignorar_id)
+        if problema:
+            erros["inicio" if problema.startswith("sobrepõe") else "duracao"] = problema[0].upper() + problema[1:] + "."
     return dados, erros
 
 
@@ -214,7 +255,8 @@ def gravar_sessao(user, game, dados, origem="manual"):
     sessao = SessaoJogo(user_id=user.id, game_id=game.id, origem=origem, **dados)
     db.session.add(sessao)
     db.session.flush()
-    aplicar_status(sessao)
+    if origem != "steam":  # HRS-04: o saldo da Steam não muda status
+        aplicar_status(sessao)
     if origem == "manual":
         atualizar_atividade(user.id, game.id, sessao.jogada_em)
     return sessao
@@ -237,7 +279,7 @@ def tela_jogo_com_erros(game, erros, form):
 def registrar(slug):
     game = visible_games().filter_by(slug=slug).first_or_404()  # DIA-03: removido não recebe sessão
     me = current_user()
-    dados, erros = validar_campos(game, request.form)
+    dados, erros = validar_campos(game, request.form, me.id)
     if erros:
         return tela_jogo_com_erros(game, erros, request.form)
     gravar_sessao(me, game, dados)
@@ -257,7 +299,7 @@ def editar(sid):
                 "plataforma_id": sessao.plataforma_id or "", "anotacao": sessao.anotacao,
                 "zerou": sessao.zerou, "spoiler": sessao.spoiler}
         return render_template("diario/sessao.html", game=game, sessao=sessao, erros={}, form=form)
-    dados, erros = validar_campos(game, request.form)
+    dados, erros = validar_campos(game, request.form, sessao.user_id, sessao.id)
     if erros:
         return render_template("diario/sessao.html", game=game, sessao=sessao, erros=erros, form=request.form), 400
     dia_antigo = sessao.jogada_em
