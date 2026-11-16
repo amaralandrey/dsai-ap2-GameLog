@@ -1,7 +1,9 @@
+import json
+
 from flask import Blueprint, abort, flash, redirect, render_template, request
 from sqlalchemy import case
 
-from .models import STATUSES, Activity, Game, GameList, ListItem, Status, db, now, visible_games
+from .models import STATUSES, Activity, Game, GameList, ListaInteligente, ListItem, Status, db, now, visible_games
 from .util import current_user, login_required, paginate
 
 bp = Blueprint("listas", __name__)
@@ -67,8 +69,13 @@ def my_lists():
                 db.session.add(Activity(user_id=me.id, kind="lista", list_id=gl.id))
             db.session.commit()
             return redirect(f"/listas/{gl.id}")
+    from .listas_inteligentes import descricao
+
     lists = GameList.query.filter_by(user_id=me.id).order_by(GameList.created_at.desc()).all()
-    return render_template("listas/minhas.html", lists=lists, errors=errors, form=request.form), (400 if errors else 200)
+    inteligentes = [(li, descricao(json.loads(li.regra)))  # LSA-06
+                    for li in ListaInteligente.query.filter_by(user_id=me.id).order_by(ListaInteligente.created_at.desc())]
+    return render_template("listas/minhas.html", lists=lists, inteligentes=inteligentes, errors=errors,
+                           form=request.form), (400 if errors else 200)
 
 
 def get_list(lid, owner_only=False):
@@ -86,9 +93,12 @@ def get_list(lid, owner_only=False):
 
 @bp.route("/listas/<int:lid>")
 def view_list(lid):
+    from .listas_inteligentes import progresso_comum
+
     gl, own = get_list(lid)
     items = [i for i in gl.items if own or i.game.removed_at is None]  # LIS-09
-    return render_template("listas/lista.html", gl=gl, own=own, items=items)
+    return render_template("listas/lista.html", gl=gl, own=own, items=items, prog=progresso_comum(gl, own),
+                           statuses=STATUSES)
 
 
 @bp.route("/listas/<int:lid>/editar", methods=["POST"])
