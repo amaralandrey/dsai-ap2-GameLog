@@ -34,6 +34,7 @@ class User(db.Model):
     role = db.Column(db.String(10), default="jogador", nullable=False)
     session_version = db.Column(db.Integer, default=0, nullable=False)
     created_at = db.Column(db.DateTime, default=now, nullable=False)
+    perfil_privado = db.Column(db.Boolean, default=False, nullable=False)  # DIA-11
 
     @property
     def is_admin(self):
@@ -154,6 +155,7 @@ class Status(db.Model):
     game_id = db.Column(db.ForeignKey("game.id"), nullable=False)
     value = db.Column(db.String(12), nullable=False)
     updated_at = db.Column(db.DateTime, default=now, nullable=False)
+    zerado_em = db.Column(db.Date, nullable=True, index=True)  # dia da sessão mais antiga com "zerei" (DIA-04)
     game = db.relationship(Game)
 
 
@@ -258,15 +260,39 @@ class Follow(db.Model):
 class Activity(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.ForeignKey("user.id"), nullable=False, index=True)
-    kind = db.Column(db.String(20), nullable=False)  # avaliou|jogado|lista|lista_jogo
+    kind = db.Column(db.String(20), nullable=False)  # avaliou|jogado|lista|lista_jogo|sessao|importacao|conquista|clube
     game_id = db.Column(db.ForeignKey("game.id"), nullable=True)
     review_id = db.Column(db.ForeignKey("review.id"), nullable=True)
     list_id = db.Column(db.ForeignKey("game_list.id"), nullable=True)
+    dia = db.Column(db.Date, nullable=True)  # sessao: o dia jogado, uma atividade por jogo e dia (DIA-10)
+    valor = db.Column(db.Integer, nullable=True)  # sessao: minutos do dia; importacao: sessões criadas (HRS-10)
+    texto = db.Column(db.String(200), nullable=True)  # conquista ou clube: o que aconteceu, para o feed
     created_at = db.Column(db.DateTime, default=now, nullable=False, index=True)
     user = db.relationship(User)
     game = db.relationship(Game)
     review = db.relationship(Review)
     list = db.relationship(GameList)
+
+
+ORIGENS_SESSAO = ("manual", "csv", "steam")
+
+
+class SessaoJogo(db.Model):
+    """Uma sessão do diário (DIA-01); `origem` steam é um saldo acumulado da biblioteca (HRS-04)."""
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.ForeignKey("user.id"), nullable=False, index=True)
+    game_id = db.Column(db.ForeignKey("game.id"), nullable=False, index=True)
+    jogada_em = db.Column(db.Date, nullable=False, index=True)
+    duracao_min = db.Column(db.Integer, nullable=False)
+    inicio = db.Column(db.Time, nullable=True)
+    plataforma_id = db.Column(db.ForeignKey("platform.id"), nullable=True)
+    zerou = db.Column(db.Boolean, default=False, nullable=False)
+    anotacao = db.Column(db.String(1000), default="", nullable=False)
+    spoiler = db.Column(db.Boolean, default=False, nullable=False)
+    origem = db.Column(db.String(10), default="manual", nullable=False)
+    created_at = db.Column(db.DateTime, default=now, nullable=False)
+    game = db.relationship(Game)
+    plataforma = db.relationship(Platform)
 
 
 class Dismissed(db.Model):
