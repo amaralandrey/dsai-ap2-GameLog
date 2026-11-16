@@ -1,9 +1,11 @@
+import time
 from datetime import date
+from urllib.parse import urlencode
 
 from flask import Blueprint, abort, flash, redirect, render_template, request
 
-from .fontes import FONTES, importar_item
-from .models import AuditLog, Developer, Game, Genre, Platform, Report, Review, db, now
+from .fontes import FONTES, importar_item, jogo_por_fonte
+from .models import AuditLog, Developer, Game, Genre, JogoFonte, Platform, Report, Review, db, now
 from .util import admin_required, current_user, paginate, slugify
 
 bp = Blueprint("admin", __name__, url_prefix="/admin")
@@ -27,38 +29,103 @@ def index():
     )
 
 
-# ---------- importar jogos reais (IAD-01..09) ----------
-FONTE_ADMIN = "steam"  # ponytail: uma fonte fixa; escolher na tela quando houver mais de uma com buscar/detalhe
+# ---------- importar jogos reais (IAD-01..09, FNT-08..11) ----------
+FONTE_PADRAO = "steam"
+LOTE_MAX = 10
+LOTE_LIMITE_S = 20  # depois disso o lote não inicia itens novos; com 5 s por chamada, fica abaixo dos 60 s do gunicorn
+relogio = time.monotonic  # os testes trocam por um relógio falso (FNT-12)
+SEM_RESPOSTA = "A fonte não respondeu. Tente de novo em instantes."
+
+
+def fontes_admin():
+    """Fontes que a tela consegue usar: as que oferecem buscar e detalhe (FNT-08)."""
+    return [n for n, m in FONTES.items() if callable(getattr(m, "buscar", None)) and callable(getattr(m, "detalhe", None))]
+
+
+def _fonte_escolhida():
+    nome = request.values.get("fonte") or FONTE_PADRAO
+    if nome not in fontes_admin():
+        abort(400)
+    return nome
+
+
+def _url_busca(fonte, q):
+    return "/admin/importar?" + urlencode({**({"fonte": fonte} if fonte != FONTE_PADRAO else {}), "q": q})
+
+
+def _criar_importado(fonte, j):
+    """Cria o jogo e audita com a fonte (IAD-07); devolve (status, jogo) como importar_item."""
+    status, game = importar_item(fonte, j) if j else ("invalido", None)
+    if status == "ok":
+        audit("jogo.importar", f"{game.title} ({fonte}:{j['external_id']})")
+        db.session.commit()
+    else:
+        db.session.rollback()
+    return status, game
+
+
+def _tela(fonte, q, **ctx):
+    return render_template("admin/importar.html", q=q, fonte=fonte, fontes=fontes_admin(), modulos=FONTES, **ctx)
 
 
 @bp.route("/importar", methods=["GET", "POST"])
 def importar_jogos():
-    fonte = FONTES[FONTE_ADMIN]
+    nome = _fonte_escolhida()
+    fonte = FONTES[nome]
     q = (request.values.get("q") or "").strip()
     if request.method == "POST":
         try:
             j = fonte.detalhe(request.form.get("external_id", ""))
         except Exception:  # rede, JSON, id inválido: nada é criado
-            flash("A fonte não respondeu. Tente de novo em instantes.", "err")
-            return redirect(f"/admin/importar?q={q}")
-        status, game = importar_item(FONTE_ADMIN, j) if j else ("invalido", None)
+            flash(SEM_RESPOSTA, "err")
+            return redirect(_url_busca(nome, q))
+        status, game = _criar_importado(nome, j)
         if status == "ok":
-            audit("jogo.importar", f"{game.title} ({FONTE_ADMIN}:{game.external_id})")
-            db.session.commit()
             flash(f"“{game.title}” importado.", "ok")
             return redirect(f"/jogos/{game.slug}")
-        db.session.rollback()
         flash(f"“{game.title}” já estava no catálogo." if status == "duplicado" else
               "Esse item não é um jogo com título e data de lançamento válidos.", "err")
-        return redirect(f"/jogos/{game.slug}" if game else f"/admin/importar?q={q}")
+        return redirect(f"/jogos/{game.slug}" if game else _url_busca(nome, q))
     resultados, erro = [], None
     if len(q) >= 2:
         try:
-            resultados = fonte.buscar(q, 10)
+            resultados = fonte.buscar(q, LOTE_MAX)
         except Exception:
-            erro = "A fonte não respondeu. Tente de novo em instantes."
-    ja = {g.external_id for g in Game.query.filter_by(source=FONTE_ADMIN)}
-    return render_template("admin/importar.html", q=q, resultados=resultados, erro=erro, ja=ja)
+            erro = SEM_RESPOSTA
+    ids = [r["external_id"] for r in resultados]
+    ja = {v.external_id for v in JogoFonte.query.filter(JogoFonte.fonte == nome, JogoFonte.external_id.in_(ids))}
+    return _tela(nome, q, resultados=resultados, erro=erro, ja=ja)
+
+
+def _importar_um(nome, eid):
+    """Um item do lote; devolve a chave do resumo em que ele entra (FNT-09)."""
+    if jogo_por_fonte(nome, eid):
+        return "existentes"
+    try:
+        status, _ = _criar_importado(nome, FONTES[nome].detalhe(eid))
+    except Exception:  # rede, JSON ou banco: o item falha e o lote continua
+        db.session.rollback()
+        return "falhas"
+    return {"ok": "importados", "duplicado": "existentes"}.get(status, "falhas")
+
+
+@bp.route("/importar/lote", methods=["POST"])
+def importar_lote():
+    nome = _fonte_escolhida()
+    q = (request.form.get("q") or "").strip()
+    ids = list(dict.fromkeys(i.strip() for i in request.form.getlist("ids") if i.strip()))
+    if not 1 <= len(ids) <= LOTE_MAX:
+        flash(f"Marque de 1 a {LOTE_MAX} jogos por envio.", "err")
+        return redirect(_url_busca(nome, q))
+    titulo = {i: (request.form.get(f"titulo-{i}") or i)[:150] for i in ids}
+    lote = {"importados": [], "existentes": [], "falhas": [], "sem_processar": []}
+    inicio = relogio()
+    for n, eid in enumerate(ids):
+        if relogio() - inicio >= LOTE_LIMITE_S:  # FNT-10: o resto fica listado, sem processar
+            lote["sem_processar"] = [titulo[i] for i in ids[n:]]
+            break
+        lote[_importar_um(nome, eid)].append(titulo[eid])
+    return _tela(nome, q, resultados=[], erro=None, ja=set(), lote=lote, voltar=_url_busca(nome, q))
 
 
 # ---------- jogos ----------

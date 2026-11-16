@@ -19,13 +19,15 @@ cd src
 export ADMIN_EMAIL=admin@example.com ADMIN_PASSWORD=<senha>   # ver .env.example
 flask --app app seed        # 153 jogos reais (snapshot da Steam), 30 usuários fictícios com avaliações em ~30 jogos (senha: senha1234)
 flask --app app run
-cd .. && pytest             # 216 testes, um ou mais por critério de aceitação
+cd .. && pytest             # 270 testes, um ou mais por critério de aceitação
 ```
 
-O catálogo vem de `src/app/dados/jogos.json` (gerado com `flask --app app export-games --termos "Nome 1;Nome 2" --saida src/app/dados/jogos.json`). API pública somente leitura em `/api` (jogos, detalhe e avaliações, em JSON). Pelo painel, o admin busca e importa jogos em `/admin/importar`. Pela linha de comando: `flask --app app import-games [--fonte steam] [--limite 40] [--termo nome]` (API pública da Steam, sem chave). Para manter o catálogo atualizado, `flask --app app sync-games [--fonte steam] [--limite 40] [--termo nome]` cria jogos novos e corrige os metadados dos existentes sem duplicar (saída `novos=N atualizados=M ignorados=I falhas=F`); o agendamento é externo ao processo web (cron do host ou cron job do Render, uma vez por dia), nunca em thread/processo dentro do Flask. Para somar outra fonte (RAWG, IGDB), crie `src/app/fontes/<nome>.py` com `listar(limite, termo)` e registre em `FONTES`. Em banco local antigo, rode `./dev.sh reset` (o Game ganhou colunas).
+O catálogo vem de `src/app/dados/jogos.json` (gerado com `flask --app app export-games --termos "Nome 1;Nome 2" --saida src/app/dados/jogos.json`). API pública somente leitura em `/api` (jogos, detalhe e avaliações, em JSON). Pelo painel, o admin escolhe a fonte, busca e importa jogos em `/admin/importar`, um a um ou em lote (até 10 por envio). Pela linha de comando: `flask --app app import-games [--fonte steam] [--limite 40] [--termo nome]` (API pública da Steam, sem chave). Para manter o catálogo atualizado, `flask --app app sync-games [--fonte steam] [--limite 40] [--termo nome]` cria jogos novos e corrige os metadados dos existentes sem duplicar (saída `novos=N atualizados=M ignorados=I falhas=F`); o agendamento é externo ao processo web (cron do host ou cron job do Render, uma vez por dia), nunca em thread/processo dentro do Flask. Para somar outra fonte (RAWG, IGDB), crie `src/app/fontes/<nome>.py` com `listar(limite, termo)` (e `buscar`/`detalhe` para aparecer no painel), faça o HTTP por `fontes/base.py` (novas tentativas, User-Agent do GameLog, timeout em `FONTES_TIMEOUT`, padrão 15 s) e registre em `FONTES`. Cada jogo guarda em quais fontes e lojas está na tabela `JogoFonte` (Steam, GOG e Epic; a Epic entra só como loja vinculada, issue #9).
+
+**Banco local e mudanças de esquema:** o projeto não tem ferramenta de migração (`db.create_all()` cria tabelas novas, mas não altera as existentes). Quando uma spec do Épico 2 mudar colunas, recrie o banco local com `./dev.sh reset`. No Render o disco é efêmero e o banco é recriado a cada deploy.
 
 Deploy: `render.yaml` em <https://gamelog-92zh.onrender.com/> (Render, plano gratuito; o seed reproduzível recria o banco a cada start).
-Variáveis: `SECRET_KEY` (gerada), `ADMIN_EMAIL`, `ADMIN_PASSWORD`.
+Variáveis: `SECRET_KEY` (gerada), `ADMIN_EMAIL`, `ADMIN_PASSWORD`; opcional `FONTES_TIMEOUT` (segundos por tentativa nas fontes, padrão 15).
 
 ## Commits
 
@@ -65,3 +67,4 @@ O `./dev.sh` ativa o hook; sem ele, rode `git config core.hooksPath .githooks` u
 | perfil-rico (PRF-01..09) | `perfil.py`, `auth.py`, `templates/auth/perfil.html` | `tests/test_perfil.py` |
 | importar-pelo-admin (IAD-01..09) | `admin.py`, `fontes/steam.py`, `templates/admin/importar.html` | `tests/test_importar_admin.py` |
 | catalogo-real (CRE-01..09) | `seed.py`, `fontes/arquivo.py`, `dados/jogos.json` | `tests/test_catalogo_real.py` |
+| fontes-multiloja (FNT-01..12) | `fontes/base.py`, `fontes/__init__.py`, `models.py` (`JogoFonte`), `admin.py`, `templates/admin/importar.html` | `tests/test_fontes_base.py`, `tests/test_fontes_multiloja.py`, `tests/test_fontes_admin.py` |

@@ -1,8 +1,8 @@
 """Sincronização idempotente do catálogo com fontes externas (executada por cron, fora do processo web)."""
 from datetime import date, datetime
 
-from .fontes import FONTES
-from .models import Developer, Game, Genre, Platform, db
+from .fontes import jogo_por_fonte, registrada, vincular_origem
+from .models import Developer, Game, Genre, Platform, db, now
 from .util import slugify
 
 SEM_SINOPSE = "Sem descrição."
@@ -130,16 +130,16 @@ def _sincronizar_item(fonte, j):
     if not external_id or not titulo or lancamento is None:
         return "ignorado"
 
-    game = Game.query.filter_by(source=fonte, external_id=external_id).first()
+    game = jogo_por_fonte(fonte, external_id)
+    status = "ignorado"
     if game is None:
-        _criar(fonte, j, titulo, lancamento, external_id)
-        db.session.commit()
-        return "novo"
-
-    if _atualizar(game, j, titulo, lancamento):
-        db.session.commit()
-        return "atualizado"
-    return "ignorado"
+        game, status = _criar(fonte, j, titulo, lancamento, external_id), "novo"
+    elif _atualizar(game, j, titulo, lancamento):
+        status = "atualizado"
+    for v in vincular_origem(game, fonte, {**j, "external_id": external_id}):
+        v.ultima_sincronizacao = now()  # vínculos tocados (FNT-06)
+    db.session.commit()
+    return status
 
 
 def _motivo(exc):
@@ -152,8 +152,11 @@ def sincronizar(fonte, limite=40, termo=None, modulo=None):
     Falha da fonte (listar/iteração) levanta FonteIndisponivel; falha de um item é isolada com
     rollback, conta como falha e a sincronização continua.
     """
-    modulo = modulo or FONTES[fonte]
+    with registrada(fonte, modulo) as modulo:
+        return _sincronizar(fonte, modulo, limite, termo)
 
+
+def _sincronizar(fonte, modulo, limite, termo):
     try:
         itens = iter(modulo.listar(limite, termo))
     except Exception as exc:

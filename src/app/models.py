@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import func
+from sqlalchemy.orm import validates
 
 db = SQLAlchemy()
 
@@ -78,10 +79,40 @@ class Game(db.Model):
     developer = db.relationship(Developer, backref="games")
     genres = db.relationship(Genre, secondary=game_genres, backref="games")
     platforms = db.relationship(Platform, secondary=game_platforms, backref="games")
+    fontes = db.relationship("JogoFonte", back_populates="game", cascade="all, delete-orphan")
 
     @property
     def cover(self):
         return self.cover_url or f"/capa/{self.slug}.svg"
+
+    @property
+    def lojas(self):
+        """Vínculos que são lojas, na ordem de LOJAS; rawg e arquivo só registram origem (FNT-04)."""
+        return sorted((v for v in self.fontes if v.fonte in LOJAS), key=lambda v: LOJAS.index(v.fonte))
+
+
+LOJAS = ("steam", "gog", "epic")
+SO_VINCULADAS = ("epic",)  # lojas sem fonte de importação: entram só como vínculo (issue #9)
+
+
+class JogoFonte(db.Model):
+    """Em quais fontes e lojas o jogo está; identidade fonte + id externo (FNT-04, IMP-04)."""
+    __table_args__ = (db.UniqueConstraint("fonte", "external_id"), db.UniqueConstraint("game_id", "fonte"))
+    id = db.Column(db.Integer, primary_key=True)
+    game_id = db.Column(db.ForeignKey("game.id"), nullable=False, index=True)
+    fonte = db.Column(db.String(20), nullable=False)
+    external_id = db.Column(db.String(80), nullable=False)
+    url_loja = db.Column(db.String(500), nullable=True)
+    ultima_sincronizacao = db.Column(db.DateTime, nullable=True)
+    game = db.relationship(Game, back_populates="fontes")
+
+    @validates("fonte")
+    def _fonte_aceita(self, _, fonte):
+        from .fontes import FONTES  # import tardio: fontes importa models
+
+        if fonte not in FONTES and fonte not in SO_VINCULADAS:
+            raise ValueError(f"fonte desconhecida: {fonte}")
+        return fonte
 
 
 class Status(db.Model):

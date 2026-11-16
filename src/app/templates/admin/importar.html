@@ -1,19 +1,47 @@
 {% extends "base.html" %}
+{% set nome_fonte = modulos[fonte].NOME or fonte %}
 {% block title %}Importar jogos — Admin{% endblock %}
 {% block content %}
-<h1>Importar jogos da Steam</h1>
-<form method="get" class="panel"><label for="q">Nome do jogo</label>
-  <input id="q" name="q" value="{{ q }}" minlength="2" placeholder="Ex.: Hades, Celeste…" required>
-  <button>Buscar</button></form>
+<h1>Importar jogos da {{ nome_fonte }}</h1>
+<form method="get" class="panel row">
+  <div style="flex:1;min-width:160px"><label for="fonte">Fonte</label>
+    <select id="fonte" name="fonte">{% for n in fontes %}
+      <option value="{{ n }}" {{ 'selected' if n == fonte }}>{{ modulos[n].NOME or n }}</option>{% endfor %}
+    </select></div>
+  <div style="flex:3"><label for="q">Nome do jogo</label>
+    <input id="q" name="q" value="{{ q }}" minlength="2" placeholder="Ex.: Hades, Celeste…" required></div>
+  <div style="flex:0 0 auto;min-width:0;align-self:flex-end"><button>Buscar</button></div>
+</form>
 {% if erro %}<p class="err">{{ erro }}</p>{% endif %}
-{% for r in resultados %}
-<div class="panel row">
-  {% if r.cover_url %}<img src="{{ r.cover_url }}" alt="Capa de {{ r.title }}" style="flex:0 0 120px;max-width:120px">{% endif %}
-  <div style="flex:3"><strong>{{ r.title }}</strong>
-    {% if r.external_id in ja %}<p class="mut">No catálogo</p>
-    {% else %}<form method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <input type="hidden" name="q" value="{{ q }}"><input type="hidden" name="external_id" value="{{ r.external_id }}">
-      <button>Importar</button></form>{% endif %}</div>
-</div>
-{% else %}{% if q and not erro %}<p class="mut">Nenhum resultado para “{{ q }}”.</p>{% endif %}{% endfor %}
+
+{% if lote %}
+<section class="panel" aria-live="polite">
+  <h2>Resultado do lote</h2>
+  {% for chave, rotulo in [("importados", "Importados"), ("existentes", "Já existiam"), ("falhas", "Falharam"), ("sem_processar", "Sem processar")] %}
+  <p><strong>{{ rotulo }}: {{ lote[chave] | length }}</strong>{% if lote[chave] %} — {{ lote[chave] | join(", ") }}{% endif %}</p>
+  {% endfor %}
+  {% if lote.sem_processar %}<p class="mut">O tempo do envio acabou. Marque os jogos sem processar e envie de novo.</p>{% endif %}
+  <p><a href="{{ voltar }}">Voltar aos resultados</a></p>
+</section>
+{% endif %}
+
+{% if resultados %}
+<form method="post" action="/admin/importar/lote">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <input type="hidden" name="fonte" value="{{ fonte }}"><input type="hidden" name="q" value="{{ q }}">
+  {% for r in resultados %}
+  <div class="panel row">
+    {% if r.cover_url %}<img src="{{ r.cover_url }}" alt="Capa de {{ r.title }}" style="flex:0 0 120px;max-width:120px">{% endif %}
+    <div style="flex:3"><strong>{{ r.title }}</strong>
+      {% if r.external_id in ja %}<p class="mut">No catálogo</p>
+      {% else %}
+      <label style="font-weight:400"><input type="checkbox" style="width:auto" name="ids" value="{{ r.external_id }}"> Marcar para o lote</label>
+      <input type="hidden" name="titulo-{{ r.external_id }}" value="{{ r.title }}">
+      <button formaction="/admin/importar" name="external_id" value="{{ r.external_id }}">Importar</button>{% endif %}</div>
+  </div>
+  {% endfor %}
+  {% if resultados | rejectattr("external_id", "in", ja) | list %}
+  <p><button>Importar marcados</button> <span class="mut">até 10 por envio</span></p>{% endif %}
+</form>
+{% elif q and not erro and not lote %}<p class="mut">Nenhum resultado para “{{ q }}”.</p>{% endif %}
 {% endblock %}

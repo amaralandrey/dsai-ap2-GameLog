@@ -1,13 +1,16 @@
 """Fonte Steam: API pública da loja, sem chave. Uma fonte nova copia este contrato: listar(limite, termo)."""
 import html
-import json
 import re
 import unicodedata
 from datetime import date
 from urllib.parse import quote
-from urllib.request import Request, urlopen
+from urllib.request import urlopen
 
+from . import base
+
+NOME = "Steam"
 LOJA = "https://store.steampowered.com/api"
+URL_LOJA = "https://store.steampowered.com/app/{}"  # link do vínculo (FNT-05)
 MESES = {  # português e inglês, abreviados sem acento (IMP-10)
     "jan": 1, "fev": 2, "feb": 2, "mar": 3, "abr": 4, "apr": 4, "mai": 5, "may": 5, "jun": 6,
     "jul": 7, "ago": 8, "aug": 8, "set": 9, "sep": 9, "out": 10, "oct": 10, "nov": 11, "dez": 12, "dec": 12,
@@ -21,7 +24,7 @@ VERTICAL = "https://cdn.cloudflare.steamstatic.com/steam/apps/{}/library_600x900
 def _existe(url):
     """HEAD 200 com content-type de imagem; qualquer falha conta como inexistente (CAP-02)."""
     try:
-        with urlopen(Request(url, method="HEAD"), timeout=10) as r:
+        with urlopen(base.requisicao(url, method="HEAD"), timeout=base.timeout()) as r:  # sem novas tentativas
             return r.status == 200 and r.headers.get("content-type", "").startswith("image")
     except Exception:
         return False
@@ -34,8 +37,7 @@ def capa(appid, horizontal):
 
 
 def _get(path):
-    with urlopen(f"{LOJA}/{path}", timeout=15) as r:
-        return json.load(r)
+    return base.get_json(f"{LOJA}/{path}")  # novas tentativas e User-Agent da base (FNT-03, issue #10)
 
 
 def parse_data(texto):
