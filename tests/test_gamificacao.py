@@ -365,3 +365,8 @@ def test_gam_15_zerou_10_no_ano(base):
         db.session.commit()
         gamificacao.emitir_evento(a, "sessao")
     assert desbloqueou(base, "zerou-10-ano") and desbloqueou(base, "horas-10")
+
+
+def test_gam_14_acao_fora_da_politica_nunca_libera(app):
+    with pytest.raises(ValueError):
+        politica.pode(None, "acao_inventada")
