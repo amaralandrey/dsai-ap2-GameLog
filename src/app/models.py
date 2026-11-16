@@ -342,6 +342,35 @@ class PreferenciaNotificacao(db.Model):
     email = db.Column(db.Boolean, default=False, nullable=False)
 
 
+class Conquista(db.Model):
+    """Item do catálogo de conquistas; a regra é a dupla (`metrica`, `meta`) (GAM-01, GAM-03)."""
+    id = db.Column(db.Integer, primary_key=True)
+    codigo = db.Column(db.String(40), unique=True, nullable=False)
+    nome = db.Column(db.String(60), nullable=False)
+    descricao = db.Column(db.String(200), nullable=False)
+    categoria = db.Column(db.String(12), nullable=False)
+    raridade = db.Column(db.String(10), nullable=False)
+    icone = db.Column(db.String(8), nullable=False)
+    metrica = db.Column(db.String(40), nullable=False, index=True)
+    meta = db.Column(db.Integer, nullable=False)
+    secreta = db.Column(db.Boolean, default=False, nullable=False)
+    por_tempo = db.Column(db.Boolean, default=False, nullable=False)
+    ativa = db.Column(db.Boolean, default=True, nullable=False)
+    do_admin = db.Column(db.Boolean, default=False, nullable=False)  # criada pelo admin: o sincronizar não mexe
+
+
+class UsuarioConquista(db.Model):
+    """Progresso de um usuário numa conquista; `desbloqueada_em` nula enquanto bloqueada (GAM-01)."""
+    __table_args__ = (db.UniqueConstraint("user_id", "conquista_id"),)
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.ForeignKey("user.id"), nullable=False, index=True)
+    conquista_id = db.Column(db.ForeignKey("conquista.id"), nullable=False)
+    progresso = db.Column(db.Integer, default=0, nullable=False)
+    desbloqueada_em = db.Column(db.DateTime, nullable=True)
+    fixada = db.Column(db.Boolean, default=False, nullable=False)  # na estante do perfil (GAM-10)
+    conquista = db.relationship(Conquista)
+
+
 class Dismissed(db.Model):
     __table_args__ = (db.UniqueConstraint("user_id", "game_id"),)
     id = db.Column(db.Integer, primary_key=True)
