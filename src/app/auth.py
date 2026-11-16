@@ -7,6 +7,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from .models import Activity, Follow, GameList, LoginAttempt, Review, User, db, now
 from .afinidade import resumo_com
 from .diario import minutos_registrados, pode_ver_perfil, zerados
+from .diario_import import ler_steam_id
 from .perfil import dados as dados_perfil
 from .util import current_user, login_required, safe_next
 
@@ -132,12 +133,19 @@ def edit_profile(username):
             errors["display_name"] = "Nome de exibição deve ter de 1 a 60 caracteres."
         if len(bio) > 280:
             errors["bio"] = "A bio deve ter até 280 caracteres."
+        steam_id = ler_steam_id(request.form.get("steam_id"))  # HRS-01
+        if steam_id is None:
+            errors["steam_id"] = "Informe o SteamID64 (17 dígitos) ou a URL steamcommunity.com/profiles/<id>."
+        elif steam_id and User.query.filter(User.steam_id == steam_id, User.id != user.id).first():
+            errors["steam_id"] = "Esta conta da Steam já está vinculada a outro usuário"
         if not errors:
             user.display_name, user.bio = name, bio
             user.perfil_privado = bool(request.form.get("perfil_privado"))  # DIA-11
+            user.steam_id = steam_id or None
             db.session.commit()
             flash("Perfil atualizado.", "ok")
             return redirect(f"/u/{user.username}")
         return render_template("auth/editar.html", u=user, errors=errors, form=request.form), 400
     return render_template("auth/editar.html", u=user, errors={}, form={"display_name": user.display_name, "bio": user.bio,
-                                                                   "perfil_privado": user.perfil_privado})
+                                                                   "perfil_privado": user.perfil_privado,
+                                                                   "steam_id": user.steam_id or ""})

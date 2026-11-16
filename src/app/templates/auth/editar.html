@@ -11,6 +11,9 @@
   <label for="bio">Bio (até 280)</label>
   <textarea id="bio" name="bio">{{ form.get('bio', '') }}</textarea>
   {% if errors.bio %}<div class="err">{{ errors.bio }}</div>{% endif %}
+  <label for="steam_id">Conta da Steam (opcional)</label>
+  <input id="steam_id" name="steam_id" value="{{ form.get('steam_id', '') }}" placeholder="SteamID64 ou https://steamcommunity.com/profiles/…">
+  {% if errors.steam_id %}<div class="err">{{ errors.steam_id }}</div>{% endif %}
   <label style="font-weight:400"><input type="checkbox" name="perfil_privado" style="width:auto" {{ 'checked' if form.get('perfil_privado') }}>
     Perfil privado (só quem você segue vê seu diário, avaliações e listas)</label>
   <p><button>Salvar</button> <a href="/u/{{ u.username }}">Cancelar</a></p>

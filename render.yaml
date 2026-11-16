@@ -16,3 +16,5 @@ services:
         sync: false
       - key: RAWG_API_KEY  # só no painel do Render; sem ela a RAWG fica desligada (GOG-03, GOG-07)
         sync: false
+      - key: STEAM_API_KEY  # só no painel do Render; sem ela a importação de horas da Steam fica desligada (HRS-05)
+        sync: false
