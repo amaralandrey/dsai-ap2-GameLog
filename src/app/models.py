@@ -215,9 +215,12 @@ REPORT_REASONS = {
 
 
 class Report(db.Model):
-    __table_args__ = (db.UniqueConstraint("review_id", "reporter_id"),)
+    __table_args__ = (db.UniqueConstraint("review_id", "reporter_id"),
+                      db.UniqueConstraint("alvo_tipo", "alvo_id", "reporter_id"))
     id = db.Column(db.Integer, primary_key=True)
-    review_id = db.Column(db.ForeignKey("review.id"), nullable=False)
+    review_id = db.Column(db.ForeignKey("review.id"), nullable=True)  # só nas denúncias de avaliação
+    alvo_tipo = db.Column(db.String(12), default="avaliacao", nullable=False)  # avaliacao|post_clube (DEN-01)
+    alvo_id = db.Column(db.Integer, nullable=True)
     reporter_id = db.Column(db.ForeignKey("user.id"), nullable=False)
     reason = db.Column(db.String(12), nullable=False)
     comment = db.Column(db.String(500), default="", nullable=False)
@@ -427,6 +430,78 @@ class Desclassificacao(db.Model):
     admin_id = db.Column(db.ForeignKey("user.id"), nullable=False)
     created_at = db.Column(db.DateTime, default=now, nullable=False)
     revertida_em = db.Column(db.DateTime, nullable=True)
+
+
+class Clube(db.Model):
+    """Clube temático (CLB-01); removido pelo admin é escondido, sem apagar nada (CLB-13)."""
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(60), nullable=False)
+    nome_lower = db.Column(db.String(60), unique=True, nullable=False)
+    slug = db.Column(db.String(70), unique=True, nullable=False)
+    descricao = db.Column(db.String(500), default="", nullable=False)
+    genero_id = db.Column(db.ForeignKey("genre.id"), nullable=True)
+    publico = db.Column(db.Boolean, default=True, nullable=False)
+    removido_em = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, default=now, nullable=False)
+    genero = db.relationship(Genre)
+
+
+class MembroClube(db.Model):
+    """Papel de um usuário no clube; `situacao` pendente é um pedido de entrada em clube privado (CLB-03)."""
+    __table_args__ = (db.UniqueConstraint("clube_id", "user_id"),)
+    id = db.Column(db.Integer, primary_key=True)
+    clube_id = db.Column(db.ForeignKey("clube.id"), nullable=False, index=True)
+    user_id = db.Column(db.ForeignKey("user.id"), nullable=False, index=True)
+    papel = db.Column(db.String(10), default="membro", nullable=False)  # dono|moderador|membro
+    situacao = db.Column(db.String(10), default="ativo", nullable=False)  # ativo|pendente|removido
+    entrou_em = db.Column(db.Date, nullable=True)
+    created_at = db.Column(db.DateTime, default=now, nullable=False)
+    user = db.relationship(User)
+
+
+class JogoDoMes(db.Model):
+    __table_args__ = (db.UniqueConstraint("clube_id", "mes"),)
+    id = db.Column(db.Integer, primary_key=True)
+    clube_id = db.Column(db.ForeignKey("clube.id"), nullable=False)
+    mes = db.Column(db.String(7), nullable=False)  # AAAA-MM
+    game_id = db.Column(db.ForeignKey("game.id"), nullable=False)
+    game = db.relationship(Game)
+
+
+class MetaClube(db.Model):
+    """Meta coletiva medida pelo diário (CLB-06); `atingida_em` é gravada uma única vez (CLB-08)."""
+    id = db.Column(db.Integer, primary_key=True)
+    clube_id = db.Column(db.ForeignKey("clube.id"), nullable=False, index=True)
+    tipo = db.Column(db.String(14), nullable=False)  # horas_jogo|horas_total|zerados_jogo
+    alvo = db.Column(db.Integer, nullable=False)
+    inicio = db.Column(db.Date, nullable=False)
+    fim = db.Column(db.Date, nullable=False)
+    game_id = db.Column(db.ForeignKey("game.id"), nullable=True)
+    atingida_em = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, default=now, nullable=False)
+    game = db.relationship(Game)
+
+
+class ContribuinteMeta(db.Model):
+    """Quem tinha contribuído quando a meta foi atingida; conta para as conquistas de clube."""
+    __table_args__ = (db.UniqueConstraint("meta_id", "user_id"),)
+    id = db.Column(db.Integer, primary_key=True)
+    meta_id = db.Column(db.ForeignKey("meta_clube.id"), nullable=False)
+    user_id = db.Column(db.ForeignKey("user.id"), nullable=False, index=True)
+
+
+class PostClube(db.Model):
+    """Post do mural (CLB-10); moderadores ocultam com motivo, e 3 denúncias pendentes ocultam sozinhas (CLB-11)."""
+    id = db.Column(db.Integer, primary_key=True)
+    clube_id = db.Column(db.ForeignKey("clube.id"), nullable=False, index=True)
+    user_id = db.Column(db.ForeignKey("user.id"), nullable=False)
+    texto = db.Column(db.String(1000), nullable=False)
+    spoiler = db.Column(db.Boolean, default=False, nullable=False)
+    oculto = db.Column(db.Boolean, default=False, nullable=False)
+    motivo_ocultacao = db.Column(db.String(200), default="", nullable=False)
+    oculto_por = db.Column(db.ForeignKey("user.id"), nullable=True)
+    created_at = db.Column(db.DateTime, default=now, nullable=False)
+    user = db.relationship(User, foreign_keys=[user_id])
 
 
 class Dismissed(db.Model):

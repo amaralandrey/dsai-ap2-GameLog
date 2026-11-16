@@ -29,7 +29,8 @@ def audit(action, detail=""):
 @bp.route("/")
 def index():
     return render_template(
-        "admin/index.html", pending=Report.query.filter_by(status="pendente").count(), games=Game.query.count(),
+        "admin/index.html", pending=Report.query.filter_by(status="pendente", alvo_tipo="avaliacao").count(),
+        games=Game.query.count(),
         duplicatas=PendenciaMerge.query.filter_by(status="pendente").count(),
     )
 
@@ -354,7 +355,7 @@ def tax_delete(kind, iid):
 @bp.route("/denuncias")
 def reports():
     status = request.args.get("status", "pendente")
-    q = Report.query.filter_by(status=status)
+    q = Report.query.filter_by(status=status, alvo_tipo="avaliacao")  # posts de clube vão para a fila do clube (CLB-11)
     q = q.order_by(Report.created_at, Report.id) if status == "pendente" else q.order_by(Report.decided_at.desc())
     return render_template("admin/denuncias.html", page=paginate(q, request.args.get("page")), status=status)
 
