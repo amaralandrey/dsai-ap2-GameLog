@@ -371,6 +371,30 @@ class UsuarioConquista(db.Model):
     conquista = db.relationship(Conquista)
 
 
+class PerfilProgressao(db.Model):
+    """XP, nível e sequência semanal de um usuário, criado no primeiro XP (PRG-01)."""
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.ForeignKey("user.id"), unique=True, nullable=False)
+    xp_total = db.Column(db.Integer, default=0, nullable=False)
+    nivel = db.Column(db.Integer, default=1, nullable=False)
+    sequencia_semanas = db.Column(db.Integer, default=0, nullable=False)
+    maior_sequencia = db.Column(db.Integer, default=0, nullable=False)
+    ultima_semana_ativa = db.Column(db.String(8), nullable=True)  # AAAA-Www
+    congelamentos = db.Column(db.Integer, default=0, nullable=False)
+
+
+class ExtratoXP(db.Model):
+    """Cada lançamento de XP, único por (usuário, origem); estorno e ajuste também entram aqui (PRG-01, PRG-03)."""
+    __table_args__ = (db.UniqueConstraint("user_id", "origem_tipo", "origem_id"),)
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.ForeignKey("user.id"), nullable=False, index=True)
+    origem_tipo = db.Column(db.String(24), nullable=False)
+    origem_id = db.Column(db.String(40), nullable=False)
+    xp = db.Column(db.Integer, nullable=False)
+    motivo = db.Column(db.String(200), nullable=False)
+    created_at = db.Column(db.DateTime, default=now, nullable=False, index=True)
+
+
 class Dismissed(db.Model):
     __table_args__ = (db.UniqueConstraint("user_id", "game_id"),)
     id = db.Column(db.Integer, primary_key=True)
