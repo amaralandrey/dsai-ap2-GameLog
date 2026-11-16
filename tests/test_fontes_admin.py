@@ -24,12 +24,11 @@ def detalhe(eid):
 
 
 @pytest.fixture
-def gog():
-    FONTES["gog"] = SimpleNamespace(
+def gog(monkeypatch):
+    monkeypatch.setitem(FONTES, "gog", SimpleNamespace(  # a GOG real volta ao registro no fim do teste
         NOME="GOG", listar=lambda limite, termo=None: [], detalhe=detalhe,
-        buscar=lambda q, n=10: [{"external_id": i, "title": t, "cover_url": None} for i, t in JOGOS.items()][:n])
-    yield FONTES["gog"]
-    FONTES.pop("gog", None)
+        buscar=lambda q, n=10: [{"external_id": i, "title": t, "cover_url": None} for i, t in JOGOS.items()][:n]))
+    return FONTES["gog"]
 
 
 @pytest.fixture

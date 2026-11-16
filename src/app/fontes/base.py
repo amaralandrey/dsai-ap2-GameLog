@@ -39,6 +39,11 @@ def requisicao(url, method="GET", headers=None):
     return Request(url, method=method, headers={**extras, "User-Agent": USER_AGENT})
 
 
+def limitado(exc):
+    """HTTP 429 que sobrou depois das tentativas: a fonte pede para parar (GOG-11)."""
+    return isinstance(exc, HTTPError) and exc.code == 429
+
+
 def _repetir(exc):
     """Erro de rede, 429 e 5xx valem nova tentativa; outro 4xx é resposta definitiva."""
     if isinstance(exc, HTTPError):
@@ -59,3 +64,29 @@ def get_json(url, params=None, headers=None):
             if n == tentativas - 1 or not _repetir(exc):
                 raise
         esperar(2 ** n)  # 1 s, 2 s, ...
+
+
+def paginar(pagina, limite):
+    """Ids de páginas sucessivas: `pagina(n)` devolve (ids, há_mais); para no limite ou quando a fonte acaba."""
+    ids, n = [], 1
+    while len(ids) < limite:
+        novos, mais = pagina(n)
+        ids += [i for i in novos if i not in ids]
+        if not (novos and mais):
+            break
+        n += 1
+    return ids[:limite]
+
+
+def percorrer(ids, detalhe):
+    """Detalhe de cada id; falha de um item vira {'erro': ...} (IMP-05), mas 429 persistente para tudo (GOG-11)."""
+    for eid in ids:
+        try:
+            j = detalhe(eid)
+        except Exception as exc:
+            if limitado(exc):
+                raise
+            yield {"erro": f"{eid}: {exc}"}
+            continue
+        if j:
+            yield j

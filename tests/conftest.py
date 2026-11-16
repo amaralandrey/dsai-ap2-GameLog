@@ -1,5 +1,9 @@
+import io
+import json
 import sys
 from pathlib import Path
+from types import SimpleNamespace
+from urllib.error import HTTPError
 
 import pytest
 
@@ -7,6 +11,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 from app import create_app  # noqa: E402
 from app.models import db  # noqa: E402
+
+
+@pytest.fixture(autouse=True)
+def sem_chave_rawg(monkeypatch):
+    """Os testes nunca usam a chave real da RAWG, mesmo que ela esteja no ambiente de quem roda (GOG-07)."""
+    monkeypatch.delenv("RAWG_API_KEY", raising=False)
 
 
 @pytest.fixture
@@ -61,3 +71,43 @@ def make_game(app, title="Jogo Teste", genre="Ação", platform="PC", dev="Dev U
         db.session.add(game)
         db.session.commit()
         return game.slug
+
+
+class Resp(io.BytesIO):
+    """Resposta falsa de urlopen: corpo JSON (ou bytes crus) usável com `with`."""
+
+    def __init__(self, corpo):
+        super().__init__(corpo if isinstance(corpo, bytes) else json.dumps(corpo).encode())
+
+    def __exit__(self, *a):
+        self.close()
+
+
+def http(code):
+    return HTTPError("https://x", code, "erro", {}, None)
+
+
+@pytest.fixture
+def api(monkeypatch):
+    """Rede falsa das fontes por trecho de URL (o trecho mais longo que casar vale).
+
+    Cada rota é um corpo, uma exceção ou uma tupla deles, consumida em ordem (o último item se repete).
+    """
+    from app.fontes import base
+
+    rotas, pedidos = {}, []
+
+    def urlopen(req, timeout):
+        pedidos.append(req)
+        trecho = max((t for t in rotas if t in req.full_url), key=len)
+        r = rotas[trecho]
+        if isinstance(r, tuple):
+            r, rotas[trecho] = r[0], r[1:] or r
+        if isinstance(r, Exception):
+            raise r
+        return Resp(r)
+
+    monkeypatch.setattr(base, "urlopen", urlopen)
+    monkeypatch.setattr(base, "esperar", lambda s: None)
+    monkeypatch.delenv("FONTES_TIMEOUT", raising=False)
+    return SimpleNamespace(rotas=rotas, pedidos=pedidos, urls=lambda: [p.full_url for p in pedidos])
