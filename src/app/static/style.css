@@ -87,3 +87,10 @@ footer a{color:var(--mut);text-decoration:underline}
 .sessao{padding:8px 0;border-bottom:1px solid var(--line)}.sessao:last-child{border-bottom:0}
 .sessao p{margin:4px 0;overflow-wrap:anywhere}
 .registrar-sessao{margin:10px 0}.registrar-sessao summary{list-style:none;cursor:pointer}
+/* gráficos SVG do servidor (RET-01..04) */
+.grafico-box{margin:0}.grafico-box svg{width:100%;height:auto;color:var(--mut);font-size:12px}
+.grafico .eixo{stroke-width:1}
+.serie-0{fill:var(--acc);stroke:var(--acc)}.serie-1{fill:#ffc247;stroke:#ffc247}
+.serie-2{fill:var(--ok);stroke:var(--ok)}.serie-3{fill:var(--err);stroke:var(--err)}
+polyline.serie-0,polyline.serie-1,polyline.serie-2,polyline.serie-3{fill:none;stroke-width:2}
+.sparkline{width:160px;height:36px;vertical-align:middle;color:var(--mut)}
