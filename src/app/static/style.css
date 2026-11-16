@@ -103,3 +103,9 @@ polyline.serie-0,polyline.serie-1,polyline.serie-2,polyline.serie-3{fill:none;st
 .sino{position:relative}.sino .contador{margin-left:4px;padding:0 6px;border-radius:99px;background:var(--err);color:#fff;font-size:.75rem}
 .notificacao{display:flex;gap:10px;align-items:center}.notificacao.nao-lida{border-color:var(--acc);background:var(--panel-strong)}
 .notificacao form{margin-left:auto}
+/* conquistas (GAM-08..11) */
+.conquista.r-rara{border-color:#4aa3ff}.conquista.r-epica{border-color:var(--acc)}.conquista.r-lendaria{border-color:#ffc247}
+.conquista.secreta{opacity:.7}.conquista-linha{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:6px 0}
+.progresso{display:inline-block;width:120px;height:8px;border-radius:99px;background:var(--line);overflow:hidden}
+.progresso span{display:block;height:100%;background:var(--acc)}
+.estante .tag{font-size:1rem;padding:4px 12px}

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import avatar, pager, stars %}
+{% from "_macros.html" import avatar, pager, stars, conquista_tag %}
 {% block title %}{{ u.display_name }} (@{{ u.username }}) — GameLog{% endblock %}
 {% block content %}
 <section class="panel">
@@ -49,8 +49,10 @@
   </section>
 </div>
 <section class="panel"><h2>Conquistas</h2>
-  {% for icone, nome, desc in conquistas %}<span class="tag" title="{{ desc }}"><span aria-hidden="true">{{ icone }}</span> <strong>{{ nome }}</strong></span>
+  {% if vitrine.estante %}<p class="estante">{% for uc, c in vitrine.estante %}{{ conquista_tag(c, aposentada=not c.ativa) }}{% endfor %}</p>{% endif %}
+  {% for uc, c in vitrine.recentes %}{{ conquista_tag(c, aposentada=not c.ativa) }}
   {% else %}<p class="mut">Nenhuma medalha ainda. Avalie 5 jogos para ganhar sua primeira medalha!</p>{% endfor %}
+  {% if vitrine.total %}<p><a href="/u/{{ u.username }}/conquistas">Ver as {{ vitrine.total }} conquistas</a></p>{% endif %}
 </section>
 {% if favoritos %}<h2>Jogos favoritos</h2>
 <div class="grid">{% for r in favoritos %}<a class="card" href="/jogos/{{ r.game.slug }}">

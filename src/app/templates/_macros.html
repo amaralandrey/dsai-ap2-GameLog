@@ -90,3 +90,12 @@
   </div>
 </div>
 {% endmacro %}
+
+{# Uma conquista; a secreta só aparece depois de desbloqueada por quem vê (GAM-08). #}
+{% macro conquista_tag(c, revelada=True, aposentada=False) %}
+{%- if c.secreta and not revelada -%}
+<span class="tag conquista secreta" title="Conquista secreta"><span aria-hidden="true">❔</span> <strong>Conquista secreta</strong></span>
+{%- else -%}
+<span class="tag conquista r-{{ c.raridade }}" title="{{ c.descricao }}"><span aria-hidden="true">{{ c.icone }}</span> <strong>{{ c.nome }}</strong>{% if aposentada %} <small>aposentada</small>{% endif %}</span>
+{%- endif -%}
+{% endmacro %}
