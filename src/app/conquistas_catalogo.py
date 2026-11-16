@@ -52,6 +52,8 @@ CATALOGO = [
     ("nivel-5", "Veterano", "Chegou ao nível 5", "comunidade", "rara", "🎖️", "nivel", 5, False, False),
     ("nivel-10", "Lenda do GameLog", "Chegou ao nível 10", "comunidade", "lendaria", "🐉", "nivel", 10, False, False),
     ("colecao-conquistas", "Caçador de conquistas", "Desbloqueou 15 conquistas", "comunidade", "epica", "🎯", "conquistas_desbloqueadas", 15, False, False),
+    ("meta-clube-1", "Espírito de equipe", "Ajudou um clube a atingir uma meta", "comunidade", "rara", "🤝", "metas_clube", 1, False, False),
+    ("meta-clube-5", "Pilar do clube", "Ajudou clubes a atingir 5 metas", "comunidade", "epica", "🏟️", "metas_clube", 5, False, False),
     ("podio-zerados", "Pódio de zerados", "Ficou entre os 3 que mais zeraram numa temporada", "comunidade", "lendaria", "🥇", "concedida", 1, False, False),
     ("podio-horas", "Pódio de horas", "Ficou entre os 3 com mais horas numa temporada", "comunidade", "lendaria", "🥈", "concedida", 1, False, True),
     ("podio-curtidas", "Pódio de curtidas", "Ficou entre os 3 mais curtidos numa temporada", "comunidade", "lendaria", "🥉", "concedida", 1, False, False),
