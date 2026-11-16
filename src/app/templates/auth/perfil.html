@@ -31,6 +31,9 @@
     <strong>{{ stats.zerados }}</strong> {{ 'jogo zerado' if stats.zerados == 1 else 'jogos zerados' }} ·
     <a href="/u/{{ u.username }}/diario">Ver diário</a> ·
     <a href="/u/{{ u.username }}/retrospectiva">Retrospectiva</a></p>
+  <p>Nível <strong>{{ progressao.nivel }}</strong> · {{ progressao.xp }} XP ·
+    sequência de <strong>{{ progressao.sequencia }}</strong> {{ 'semana' if progressao.sequencia == 1 else 'semanas' }}
+    {% if own %}· <a href="/u/{{ u.username }}/xp">Extrato de XP</a>{% endif %}</p>
   <p class="mut sparkline-box">Últimas 12 semanas {{ sparkline | safe }}</p>
 </section>
 <section class="panel"><h2>Jogos por status</h2>

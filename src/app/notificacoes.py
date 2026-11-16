@@ -158,9 +158,15 @@ def rotulo_sino(contagem):
 
 
 def cabecalho_do_usuario(user_id):
-    """Dados do cabeçalho de quem está logado, numa única consulta (NTF-10)."""
-    contagem = db.session.query(nao_lidas_subconsulta(user_id)).scalar()
-    return {"sino": rotulo_sino(contagem or 0)}
+    """Sino (NTF-10) e nível com a barra de XP (PRG-10), numa única consulta."""
+    from .models import PerfilProgressao
+    from .progressao import porcentagem
+
+    xp = db.session.query(PerfilProgressao.xp_total).filter_by(user_id=user_id).scalar_subquery()
+    nivel = db.session.query(PerfilProgressao.nivel).filter_by(user_id=user_id).scalar_subquery()
+    contagem, xp_total, nivel_atual = db.session.query(nao_lidas_subconsulta(user_id), xp, nivel).one()
+    perfil = PerfilProgressao(xp_total=xp_total or 0, nivel=nivel_atual or 1)
+    return {"sino": rotulo_sino(contagem or 0), "nivel": perfil.nivel, "pct": porcentagem(perfil)}
 
 
 def nao_lidas_subconsulta(user_id):

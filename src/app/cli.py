@@ -152,6 +152,17 @@ def register(app):
 
     app.cli.add_command(conquistas_cli)
 
+    progressao_cli = AppGroup("progressao", help="XP e sequências semanais (PRG).")
+
+    @progressao_cli.command("avisar-sequencias")
+    def progressao_avisar():
+        """Aviso semanal de sequência prestes a quebrar (PRG-10); o job de domingo chama o mesmo."""
+        from .progressao import avisar_sequencias
+
+        click.echo(f"avisados={avisar_sequencias()}")
+
+    app.cli.add_command(progressao_cli)
+
     @app.cli.command("export-games")
     @click.option("--termos", required=True, help="nomes separados por ;, um jogo por nome")
     @click.option("--saida", required=True)

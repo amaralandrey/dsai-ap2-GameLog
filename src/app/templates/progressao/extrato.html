@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% from "_macros.html" import pager %}
+{% block title %}Meu XP — GameLog{% endblock %}
+{% block content %}
+<h1>Nível {{ r.nivel }}</h1>
+<section class="panel">
+  <p><strong>{{ r.xp }} XP</strong> · próximo nível com {{ r.proximo }} XP</p>
+  <div class="progresso" style="width:100%" role="img" aria-label="{{ r.pct }}% para o próximo nível"><span style="width:{{ r.pct }}%"></span></div>
+  <p>Sequência: <strong>{{ r.sequencia }}</strong> {{ 'semana' if r.sequencia == 1 else 'semanas' }} · congelamentos: <strong>{{ r.congelamentos }}</strong> de 2</p>
+  <p class="mut">A sequência conta semanas com pelo menos uma sessão no diário ou uma avaliação. A cada 4 semanas seguidas você ganha um congelamento, que cobre uma semana sem registro.</p>
+</section>
+<h2>Extrato</h2>
+<table><thead><tr><th>Data</th><th>Motivo</th><th>XP</th></tr></thead><tbody>
+{% for e in page.items %}<tr><td>{{ e.created_at.strftime('%d/%m/%Y %H:%M') }}</td><td>{{ e.motivo }}</td><td>{{ '%+d' % e.xp }}</td></tr>
+{% else %}<tr><td colspan="3" class="mut">Nenhum lançamento ainda.</td></tr>{% endfor %}
+</tbody></table>
+{{ pager(page) }}
+{% endblock %}
