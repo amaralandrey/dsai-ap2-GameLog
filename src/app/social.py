@@ -4,6 +4,7 @@ from sqlalchemy.orm import selectinload
 
 from .models import Activity, Comment, Follow, Game, GameList, Review, User, db
 from .diario import ocultos_para, perfil_ou_404
+from .gamificacao import emitir_evento
 from .notificacoes import avisar_seguidor
 from .util import current_user, login_required, paginate
 
@@ -24,6 +25,8 @@ def follow(username):
         db.session.add(Follow(follower_id=me.id, followed_id=target.id))
         avisar_seguidor(target.id, me)  # NTF-05
         db.session.commit()
+        emitir_evento(me.id, "seguir")  # GAM-03
+        emitir_evento(target.id, "seguidor")
     return redirect(f"/u/{target.username}")
 
 

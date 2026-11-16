@@ -15,6 +15,7 @@ from sqlalchemy import func
 
 from . import diario
 from .fontes import base
+from .gamificacao import emitir_evento
 from .models import Activity, Game, JogoFonte, PreviaImportacao, SessaoJogo, db, now
 from .tempo import hoje
 from .util import current_user, fold, login_required
@@ -118,6 +119,8 @@ def importar_steam(user):
         contagem["sessoes"] += 1
     registrar_importacao(user.id, contagem["sessoes"])
     db.session.commit()
+    if contagem["sessoes"]:
+        emitir_evento(user.id, "importacao", origem="steam")  # GAM-03
     return contagem
 
 
@@ -260,6 +263,8 @@ def confirmar(previa, user):
     registrar_importacao(user.id, criadas)
     db.session.delete(previa)
     db.session.commit()
+    if criadas:
+        emitir_evento(user.id, "importacao", origem="csv")
     return criadas
 
 

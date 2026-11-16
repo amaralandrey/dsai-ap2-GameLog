@@ -1,6 +1,7 @@
 from flask import Blueprint, abort, flash, redirect, request
 
 from .models import REPORT_REASONS, Activity, Like, Notificacao, Report, Review, Status, db, visible_games
+from .gamificacao import emitir_evento
 from .notificacoes import avisar_curtida
 from .util import current_user, login_required
 
@@ -53,6 +54,8 @@ def rate(slug):
     if not Status.query.filter_by(user_id=me.id, game_id=game.id).first():  # AVA-11
         db.session.add(Status(user_id=me.id, game_id=game.id, value="jogado"))
     db.session.commit()
+    emitir_evento(me.id, "avaliacao", review_id=review.id, game_id=game.id)  # GAM-03
+    emitir_evento(me.id, "status", game_id=game.id)
     flash("Avaliação salva.", "ok")
     return back(game, review)
 
@@ -62,9 +65,10 @@ def rate(slug):
 def delete(rid):
     review = db.get_or_404(Review, rid)
     own_or_403(review)
-    game = review.game
+    game, autor = review.game, review.user_id
     delete_review(review)
     db.session.commit()
+    emitir_evento(autor, "avaliacao_apagada", review_id=rid, game_id=game.id)
     flash("Avaliação apagada.", "ok")
     return back(game)
 
@@ -82,6 +86,8 @@ def like(rid):
         db.session.add(Like(user_id=me.id, review_id=rid))
         avisar_curtida(review, me.id)  # NTF-04
         db.session.commit()
+        emitir_evento(me.id, "curtir", review_id=rid)
+        emitir_evento(review.user_id, "curtida", review_id=rid)
     return back(review.game, review)
 
 

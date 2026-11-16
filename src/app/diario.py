@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 from flask import Blueprint, abort, flash, redirect, render_template, request
 from sqlalchemy import func, select
 
+from .gamificacao import emitir_evento
 from .models import Activity, Follow, Game, SessaoJogo, Status, User, db, visible_games
 from .tempo import hoje
 from .util import current_user, login_required, paginate
@@ -289,6 +290,7 @@ def registrar(slug):
 
         avisar_amigo_zerou(me, game)
     db.session.commit()
+    emitir_evento(me.id, "sessao", sessao_id=sessao.id, game_id=game.id, origem="manual")  # GAM-03
     flash("Sessão registrada no diário.", "ok")
     return redirect(f"/jogos/{game.slug}")
 
@@ -317,6 +319,7 @@ def editar(sid):
         atualizar_atividade(sessao.user_id, sessao.game_id, dia_antigo)
         atualizar_atividade(sessao.user_id, sessao.game_id, sessao.jogada_em)
     db.session.commit()
+    emitir_evento(sessao.user_id, "sessao", sessao_id=sessao.id, game_id=game.id, origem=sessao.origem)
     flash("Sessão atualizada.", "ok")
     return redirect("/diario")
 
@@ -332,6 +335,7 @@ def apagar(sid):
     if origem == "manual":
         atualizar_atividade(user_id, game_id, dia)
     db.session.commit()
+    emitir_evento(user_id, "sessao_apagada", sessao_id=sid, game_id=game_id, origem=origem)
     flash("Sessão apagada.", "ok")
     return redirect(request.form.get("next") if (request.form.get("next") or "").startswith("/diario") else "/diario")
 

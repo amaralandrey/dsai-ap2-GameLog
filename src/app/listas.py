@@ -4,6 +4,7 @@ from flask import Blueprint, abort, flash, redirect, render_template, request
 from sqlalchemy import case
 
 from .models import STATUSES, Activity, Game, GameList, ListaInteligente, ListItem, Status, db, now, visible_games
+from .gamificacao import emitir_evento
 from .util import current_user, login_required, paginate
 
 bp = Blueprint("listas", __name__)
@@ -35,6 +36,7 @@ def set_status(slug):
         flash("Status inválido.", "erro")
         return back(f"/jogos/{slug}")
     db.session.commit()
+    emitir_evento(me.id, "status", game_id=game.id)  # GAM-03
     return back(f"/jogos/{slug}")
 
 
@@ -68,6 +70,7 @@ def my_lists():
             if gl.public:
                 db.session.add(Activity(user_id=me.id, kind="lista", list_id=gl.id))
             db.session.commit()
+            emitir_evento(me.id, "lista", list_id=gl.id)  # GAM-03
             return redirect(f"/listas/{gl.id}")
     from .listas_inteligentes import descricao
 
@@ -149,6 +152,7 @@ def add_to_list(slug):
         if gl.public:
             db.session.add(Activity(user_id=gl.user_id, kind="lista_jogo", game_id=game.id, list_id=gl.id))
         db.session.commit()
+        emitir_evento(gl.user_id, "lista", list_id=gl.id)
         flash(f"Adicionado a “{gl.name}”.", "ok")
     return back(f"/jogos/{slug}")
 
