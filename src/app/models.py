@@ -249,6 +249,17 @@ class ListItem(db.Model):
     game = db.relationship(Game)
 
 
+class ListaInteligente(db.Model):
+    """Lista calculada por uma regra do catálogo de `listas_inteligentes.py` (LSA-01, LSA-03)."""
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.ForeignKey("user.id"), nullable=False, index=True)
+    nome = db.Column(db.String(80), nullable=False)
+    publica = db.Column(db.Boolean, default=True, nullable=False)
+    regra = db.Column(db.Text, nullable=False)  # {"tipo": ..., "parametros": {...}}
+    created_at = db.Column(db.DateTime, default=now, nullable=False)
+    user = db.relationship(User)
+
+
 class Follow(db.Model):
     __table_args__ = (db.UniqueConstraint("follower_id", "followed_id"),)
     id = db.Column(db.Integer, primary_key=True)
