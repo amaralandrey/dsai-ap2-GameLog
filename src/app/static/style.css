@@ -113,3 +113,4 @@ polyline.serie-0,polyline.serie-1,polyline.serie-2,polyline.serie-3{fill:none;st
 .nivel-topo{gap:6px}.barra-xp{display:inline-block;width:44px;height:6px;border-radius:99px;background:var(--line);overflow:hidden}
 .barra-xp span{display:block;height:100%;background:var(--ok)}
 .cartao-ranking{border-color:var(--acc)}tr.eu td{background:var(--acc-soft)}
+.meta-clube{padding:8px 0;border-bottom:1px solid var(--line)}.post-clube{padding:8px 0;border-bottom:1px solid var(--line)}.post-clube p{overflow-wrap:anywhere}
