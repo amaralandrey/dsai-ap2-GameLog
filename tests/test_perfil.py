@@ -157,7 +157,7 @@ def test_prf09_consultas_nao_crescem_com_avaliacoes(app):
             assert c.get("/u/ana").status_code == 200
             event.remove(db.engine, "before_cursor_execute", conta)
         contagens.append(len(consultas))
-    assert contagens[1] <= 15 and contagens[1] <= contagens[0] + 1
+    assert contagens[1] <= 20 and contagens[1] <= contagens[0] + 1  # PRF-09 como alterado por DIA
 
 
 def conquistas(client):
