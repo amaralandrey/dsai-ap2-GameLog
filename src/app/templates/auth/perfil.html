@@ -29,7 +29,9 @@
   </p>
   <p>Horas registradas: <strong>{{ stats.minutos | horas if stats.minutos else '0h' }}</strong> ·
     <strong>{{ stats.zerados }}</strong> {{ 'jogo zerado' if stats.zerados == 1 else 'jogos zerados' }} ·
-    <a href="/u/{{ u.username }}/diario">Ver diário</a></p>
+    <a href="/u/{{ u.username }}/diario">Ver diário</a> ·
+    <a href="/u/{{ u.username }}/retrospectiva">Retrospectiva</a></p>
+  <p class="mut sparkline-box">Últimas 12 semanas {{ sparkline | safe }}</p>
 </section>
 <section class="panel"><h2>Jogos por status</h2>
   <p>{% for k, (nome, n) in status.items() %}<span class="tag">{{ nome }}: <strong>{{ n }}</strong></span>{% endfor %}</p>

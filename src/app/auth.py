@@ -8,6 +8,7 @@ from .models import Activity, Follow, GameList, LoginAttempt, Review, User, db, 
 from .afinidade import resumo_com
 from .diario import minutos_registrados, pode_ver_perfil, zerados
 from .diario_import import ler_steam_id
+from .retrospectiva import sparkline_do_perfil
 from .perfil import dados as dados_perfil
 from .util import current_user, login_required, safe_next
 
@@ -114,6 +115,7 @@ def profile(username):
         "zerados": zerados(user.id),
     }
     afin = resumo_com(me.id, user.id) if me and not own else None  # AFI-08
+    extra["sparkline"], _ = sparkline_do_perfil(user.id)  # RET-11
     return render_template(
         "auth/perfil.html", u=user, own=own, stats=stats, following=following, lists=lists.limit(10).all(), afin=afin,
         **extra,

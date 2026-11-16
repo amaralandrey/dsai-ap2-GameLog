@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% from "_macros.html" import grafico %}
+{% block title %}{{ dono.display_name }} em {{ ano }} — GameLog{% endblock %}
+{% block content %}
+<h1>{{ ano }} em jogos · <a href="/u/{{ dono.username }}">{{ dono.display_name }}</a></h1>
+<p class="mut"><a href="/u/{{ dono.username }}/retrospectiva/{{ ano - 1 }}">← {{ ano - 1 }}</a></p>
+{% if vazio %}
+<div class="panel"><p>Nenhuma sessão nem jogo zerado em {{ ano }}.
+  {% if me and me.id == dono.id %}<a href="/diario">Registre suas sessões no diário</a> para ver sua retrospectiva.{% else %}<a href="/u/{{ dono.username }}/diario">Ver o diário</a>.{% endif %}</p></div>
+{% else %}
+<div class="stat-tiles">
+  <div class="panel stat"><span class="mut">Horas jogadas</span><strong>{{ total | horas }}</strong></div>
+  <div class="panel stat"><span class="mut">Sessões</span><strong>{{ sessoes }}</strong></div>
+  <div class="panel stat"><span class="mut">Jogos diferentes</span><strong>{{ jogos }}</strong></div>
+  <div class="panel stat"><span class="mut">Zerados no ano</span><strong>{{ zerados | length }}</strong></div>
+</div>
+{% if steam %}<p class="mut">Inclui {{ steam | horas }} importadas da Steam sem data.</p>{% endif %}
+<div class="row">
+  {% if mais_jogado %}<section class="panel"><h2>Jogo mais jogado</h2>
+    <p><a href="/jogos/{{ mais_jogado[0].slug }}">{{ mais_jogado[0].title }}</a> · {{ mais_jogado[1] | horas }}</p></section>{% endif %}
+  {% if mais_longa %}<section class="panel"><h2>Sessão mais longa</h2>
+    <p>{{ mais_longa.duracao_min | horas }} de <a href="/jogos/{{ mais_longa.game.slug }}">{{ mais_longa.game.title }}</a>
+      <span class="mut">em {{ mais_longa.jogada_em.strftime('%d/%m/%Y') }}</span></p></section>{% endif %}
+</div>
+<section class="panel"><h2>Horas por mês</h2>
+  {{ grafico(grafico_meses, ["Mês", "Horas"], rotulos_meses | zip(meses)) }}
+</section>
+{% if grafico_generos %}<section class="panel"><h2>Gêneros com mais horas</h2>
+  {{ grafico(grafico_generos, ["Gênero", "Horas"], generos) }}
+</section>{% endif %}
+{% if zerados %}<h2>Zerados em {{ ano }}</h2>
+<div class="grid">{% for g, dia in zerados %}<a class="card" href="/jogos/{{ g.slug }}">
+  <img src="{{ g.cover }}" alt="Capa de {{ g.title }}" loading="lazy"><strong>{{ g.title }}</strong>
+  <small>zerado em {{ dia.strftime('%d/%m/%Y') }}</small></a>{% endfor %}</div>{% endif %}
+{% if me and me.id == dono.id %}<section class="panel"><h2>Você e quem você segue</h2>
+  {% if comparar %}{{ grafico(comparar.grafico, ["Mês", "Você", "Média de quem você segue"], rotulos_meses | zip(meses, comparar.media)) }}
+    {% if comparar.generos %}<p>Gêneros mais jogados em comum: {% for g in comparar.generos %}<span class="tag">{{ g }}</span>{% endfor %}</p>{% endif %}
+  {% else %}<p class="mut">Siga pessoas para comparar.</p>{% endif %}
+</section>{% endif %}
+{% endif %}
+{% endblock %}

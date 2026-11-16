@@ -67,3 +67,14 @@
 </section>
 {% endif %}
 {% endmacro %}
+
+{# Gráfico SVG do servidor com a mesma informação em tabela, para leitores de tela (RET-04).
+   `svg` vem de graficos_svg, que já escapa todo texto de dados. #}
+{% macro grafico(svg, cabecalho, linhas) %}
+<figure class="grafico-box">{{ svg | safe }}
+  <details><summary>Ver como tabela</summary>
+    <table><thead><tr>{% for c in cabecalho %}<th>{{ c }}</th>{% endfor %}</tr></thead>
+      <tbody>{% for l in linhas %}<tr>{% for v in l %}<td>{{ v }}</td>{% endfor %}</tr>{% endfor %}</tbody></table>
+  </details>
+</figure>
+{% endmacro %}
