@@ -82,6 +82,9 @@ def register(app):
 
         sincronizar()  # GAM-02 e GAM-13: catálogo e conquistas da AP1 a cada subida, sem duplicar
         recalcular()
+        from .rankings import abrir_temporada
+
+        abrir_temporada()  # RNK-01
         click.echo("seed ok")
         email, pw = os.environ.get("ADMIN_EMAIL"), os.environ.get("ADMIN_PASSWORD")
         if email and pw and create_admin(email, pw):
@@ -162,6 +165,33 @@ def register(app):
         click.echo(f"avisados={avisar_sequencias()}")
 
     app.cli.add_command(progressao_cli)
+
+    rankings_cli = AppGroup("rankings", help="Temporadas dos rankings (RNK-01, RNK-08).")
+
+    @rankings_cli.command("abrir-temporada")
+    def rankings_abrir():
+        """Cria a temporada do trimestre atual, se ainda não existir."""
+        from .rankings import abrir_temporada
+
+        t, criada = abrir_temporada()
+        click.echo(f"temporada={t.slug} criada={int(criada)}")
+
+    @rankings_cli.command("encerrar-temporada")
+    @click.argument("slug")
+    def rankings_encerrar(slug):
+        """Grava o retrato e premia o pódio de uma temporada que já terminou."""
+        from .rankings import TemporadaEmAndamento, encerrar
+
+        try:
+            click.echo("encerrada=1" if encerrar(slug) else "ja_encerrada=1")
+        except TemporadaEmAndamento:
+            click.echo("erro=temporada em andamento")
+            raise click.exceptions.Exit(1)
+        except LookupError:
+            click.echo("erro=temporada inexistente")
+            raise click.exceptions.Exit(1)
+
+    app.cli.add_command(rankings_cli)
 
     @app.cli.command("export-games")
     @click.option("--termos", required=True, help="nomes separados por ;, um jogo por nome")
