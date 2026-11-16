@@ -3,6 +3,7 @@ from flask import Blueprint, abort, flash, redirect, request
 from .models import REPORT_REASONS, Activity, Like, Notificacao, Report, Review, Status, db, visible_games
 from .gamificacao import emitir_evento
 from .notificacoes import avisar_curtida
+from .tempo import agora_utc
 from .util import current_user, login_required
 
 bp = Blueprint("avaliacoes", __name__)
@@ -83,7 +84,7 @@ def like(rid):
     elif review.hidden:
         abort(404)
     elif not Like.query.filter_by(user_id=me.id, review_id=rid).first():
-        db.session.add(Like(user_id=me.id, review_id=rid))
+        db.session.add(Like(user_id=me.id, review_id=rid, created_at=agora_utc()))  # RNK-02
         avisar_curtida(review, me.id)  # NTF-04
         db.session.commit()
         emitir_evento(me.id, "curtir", review_id=rid)

@@ -203,6 +203,7 @@ class Like(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.ForeignKey("user.id"), nullable=False)
     review_id = db.Column(db.ForeignKey("review.id"), nullable=False)
+    created_at = db.Column(db.DateTime, default=now, nullable=True, index=True)  # curtidas antigas: sem data (RNK-02)
 
 
 REPORT_REASONS = {
@@ -393,6 +394,39 @@ class ExtratoXP(db.Model):
     xp = db.Column(db.Integer, nullable=False)
     motivo = db.Column(db.String(200), nullable=False)
     created_at = db.Column(db.DateTime, default=now, nullable=False, index=True)
+
+
+class Temporada(db.Model):
+    """Janela de um ranking: os trimestres civis ou uma criada pelo admin (RNK-01, RNK-10)."""
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(60), nullable=False)
+    slug = db.Column(db.String(70), unique=True, nullable=False)
+    inicio = db.Column(db.Date, nullable=False)
+    fim = db.Column(db.Date, nullable=False)
+    encerrada_em = db.Column(db.DateTime, nullable=True)
+
+
+class SnapshotRanking(db.Model):
+    """Retrato imutável dos 100 primeiros de cada categoria no encerramento (RNK-08, RNK-09)."""
+    __table_args__ = (db.UniqueConstraint("temporada_id", "categoria", "posicao"),)
+    id = db.Column(db.Integer, primary_key=True)
+    temporada_id = db.Column(db.ForeignKey("temporada.id"), nullable=False)
+    categoria = db.Column(db.String(10), nullable=False)
+    posicao = db.Column(db.Integer, nullable=False)
+    user_id = db.Column(db.ForeignKey("user.id"), nullable=False)
+    valor = db.Column(db.Integer, nullable=False)
+
+
+class Desclassificacao(db.Model):
+    """Usuário fora de uma categoria numa temporada, até ser revertido (RNK-10)."""
+    id = db.Column(db.Integer, primary_key=True)
+    temporada_id = db.Column(db.ForeignKey("temporada.id"), nullable=False)
+    categoria = db.Column(db.String(10), nullable=False)
+    user_id = db.Column(db.ForeignKey("user.id"), nullable=False)
+    motivo = db.Column(db.String(200), nullable=False)
+    admin_id = db.Column(db.ForeignKey("user.id"), nullable=False)
+    created_at = db.Column(db.DateTime, default=now, nullable=False)
+    revertida_em = db.Column(db.DateTime, nullable=True)
 
 
 class Dismissed(db.Model):
