@@ -112,3 +112,4 @@ polyline.serie-0,polyline.serie-1,polyline.serie-2,polyline.serie-3{fill:none;st
 /* nível e XP (PRG-09, PRG-10) */
 .nivel-topo{gap:6px}.barra-xp{display:inline-block;width:44px;height:6px;border-radius:99px;background:var(--line);overflow:hidden}
 .barra-xp span{display:block;height:100%;background:var(--ok)}
+.cartao-ranking{border-color:var(--acc)}tr.eu td{background:var(--acc-soft)}
