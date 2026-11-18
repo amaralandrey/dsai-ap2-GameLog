@@ -67,11 +67,14 @@ def jogo_por_fonte(fonte, external_id):
 
 
 def vincular(game, fonte, external_id, url=None):
-    """Cria ou devolve o vínculo; URL fora de FNT-07 não é gravada, mas o vínculo existe."""
+    """Cria ou devolve o vínculo do jogo; None se o id já é de outro jogo (FNT-04). URL fora de FNT-07 não é
+    gravada, mas o vínculo existe."""
     external_id = str(external_id)[:80]
     v = next((x for x in game.fontes if x.fonte == fonte), None)
     if v is None:
         v = JogoFonte.query.filter_by(fonte=fonte, external_id=external_id).first()
+        if v is not None and v.game is not game:
+            return None
     if v is None:
         v = JogoFonte(game=game, fonte=fonte, external_id=external_id)
         db.session.add(v)
@@ -94,7 +97,7 @@ def vincular_origem(game, fonte, j, modulo=None):
     loja = getattr(modulo, "LOJA_DE_ORIGEM", None)
     if loja:
         vinculos.append(vincular(game, loja, eid, _link(FONTES.get(loja), eid)))
-    return vinculos + _vincular_origens(game, j.get("origens"))
+    return [v for v in vinculos if v] + _vincular_origens(game, j.get("origens"))
 
 
 def _vincular_origens(game, origens):

@@ -152,6 +152,16 @@ def test_mrg02_id_da_steam_do_item_do_arquivo_reconhece_o_jogo(hades):
         assert PendenciaMerge.query.count() == 0
 
 
+def test_fnt04_vincular_nao_devolve_o_vinculo_de_outro_jogo(hades):
+    from app.fontes import vincular
+
+    make_game(hades, "Outro Jogo")
+    with hades.app_context():
+        outro = Game.query.filter_by(slug="outro-jogo").one()
+        assert vincular(outro, "steam", "1145360") is None
+        assert [(v.fonte, v.game.title) for v in JogoFonte.query.filter_by(fonte="steam")] == [("steam", "Hades")]
+
+
 def test_mrg02_jogo_com_outro_vinculo_da_mesma_fonte_vira_pendencia(hades):
     """Duas entradas da mesma loja não cabem num jogo (FNT-04): o admin decide."""
     with hades.app_context():
