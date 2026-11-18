@@ -4,7 +4,8 @@ from collections import namedtuple
 from difflib import SequenceMatcher
 from itertools import combinations
 
-from sqlalchemy import text
+from sqlalchemy import or_, text
+from sqlalchemy.orm import joinedload
 
 from .fontes import FONTES, external_id_da_url
 from .models import (
@@ -20,7 +21,7 @@ SUFIXOS_DE_EDICAO = (  # lista fixa, já normalizada; a mais longa primeiro (MRG
 _SUFIXOS = re.compile(r"\b(?:" + "|".join(re.escape(s) for s in SUFIXOS_DE_EDICAO) + r")\b")
 DESENVOLVEDORA_DESCONHECIDA = slugify("Desenvolvedora desconhecida")  # não conta como "mesma desenvolvedora"
 PESO_TITULO, PESO_ANO, PESO_ANO_VIZINHO, PESO_DEV = 70, 20, 10, 10
-MESMO_JOGO, PARECIDO, ANOS_MAX = 90, 70, 2  # MRG-02, MRG-03
+MESMO_JOGO, PARECIDO = 90, 70  # MRG-02, MRG-03
 
 Perfil = namedtuple("Perfil", "titulo ano dev")
 
@@ -97,7 +98,8 @@ def ocupado(game, fonte, external_id):
 
 
 def _links_do_item(fonte, j):
-    """(loja, id) dos links de loja do item: os da RAWG e o da própria fonte, se ela é uma loja (GOG-06)."""
+    """(loja, id) dos links de loja do item: os da RAWG, o da própria fonte, se ela é uma loja (GOG-06),
+    e o da loja que ela copia (arquivo ← Steam, FNT-05)."""
     links = list(j.get("lojas") or [])
     if fonte in LOJAS and j.get("url_loja"):
         links.append((fonte, j["url_loja"]))
@@ -105,6 +107,9 @@ def _links_do_item(fonte, j):
         eid = external_id_da_url(loja, url)
         if eid:
             yield loja, eid
+    loja = getattr(FONTES.get(fonte), "LOJA_DE_ORIGEM", None)
+    if loja and j.get("external_id"):
+        yield loja, str(j["external_id"])
 
 
 def jogo_por_link(fonte, j):
@@ -116,18 +121,21 @@ def jogo_por_link(fonte, j):
     return None
 
 
+def _candidatos():
+    return visible_games().filter(Game.mesclado_em_id.is_(None)).options(joinedload(Game.developer))
+
+
 def reconhecer(fonte, j, titulo, data):
     """O que fazer com um item novo da fonte: ligar a um jogo, criar com pendência ou só criar (MRG-02, MRG-03)."""
     external_id = str(j.get("external_id"))
     game = jogo_por_link(fonte, j)
     if game is not None:
         return Decisao("repetido" if ocupado(game, fonte, external_id) else "vincular", game, None)
-    achado = mais_parecido(perfil_item(j, titulo, data), visible_games().filter(Game.mesclado_em_id.is_(None)))
+    achado = mais_parecido(perfil_item(j, titulo, data), _candidatos())
     if achado is None:
         return Decisao("criar", None, None)
     nota, game = achado
-    perto = abs(game.release_date.year - data.year) <= ANOS_MAX
-    if nota >= MESMO_JOGO and perto and not ocupado(game, fonte, external_id):
+    if nota >= MESMO_JOGO and not ocupado(game, fonte, external_id):  # ≥ 90 já implica até 1 ano de diferença
         return Decisao("vincular", game, nota)
     return Decisao("pendencia", game, nota)
 
@@ -151,7 +159,7 @@ def registrar_pendencia(g1, g2, nota):
 
 def sugerir_duplicatas():
     """Compara os jogos do catálogo dois a dois e registra pendências, sem mesclar nada (MRG-04)."""
-    jogos = visible_games().filter(Game.mesclado_em_id.is_(None)).order_by(Game.id).all()
+    jogos = _candidatos().order_by(Game.id).all()
     perfis = {g.id: perfil_jogo(g) for g in jogos}
     novas = 0
     for g1, g2 in combinations(jogos, 2):
@@ -221,9 +229,29 @@ def _levar_dispensas(principal, secundario):
 
 
 def _levar_atividades(principal, secundario):
-    """Atividade de avaliação acompanha a avaliação, nos dois sentidos; as demais vão para o principal."""
+    """Atividade de avaliação acompanha a avaliação, e a de lista acompanha o item (LIS-06); as demais vão
+    para o principal."""
+    ficaram = {i.list_id for i in ListItem.query.filter_by(game_id=secundario.id)}
     for a in Activity.query.filter(Activity.game_id.in_((principal.id, secundario.id))):
-        a.game_id = a.review.game_id if a.review_id else principal.id
+        if a.review_id:
+            a.game_id = a.review.game_id
+        elif not (a.game_id == secundario.id and a.list_id in ficaram):
+            a.game_id = principal.id
+
+
+def _levar_pendencias(principal, secundario, admin_id):
+    """As outras pendências do secundário são fechadas; o outro jogo vira par do principal, se ainda for
+    parecido (MRG-03)."""
+    abertas = PendenciaMerge.query.filter(
+        PendenciaMerge.status == "pendente",
+        or_(PendenciaMerge.jogo_a_id == secundario.id, PendenciaMerge.jogo_b_id == secundario.id))
+    for p in abertas.all():
+        p.status, p.decidida_em, p.decidida_por = "ignorada", now(), admin_id
+        outro = p.jogo_b if p.jogo_a_id == secundario.id else p.jogo_a
+        if outro.mesclado_em_id is None and outro.removed_at is None:
+            nota = semelhanca(perfil_jogo(principal), perfil_jogo(outro))
+            if nota >= PARECIDO:
+                registrar_pendencia(principal, outro, nota)
 
 
 def _levar_vinculos(principal, secundario):
@@ -245,6 +273,8 @@ def mesclar(pendencia, principal_id, admin_id):
     secundario = par.popitem()[1]
     if principal.mesclado_em_id or secundario.mesclado_em_id:
         raise MesclagemRecusada("Um dos jogos já foi mesclado em outro; ignore esta pendência.")
+    if principal.removed_at:
+        raise MesclagemRecusada("O jogo principal foi removido do catálogo; escolha o outro ou ignore a pendência.")
 
     secundario.removed_at = secundario.removed_at or now()  # soft delete (CAT-07)
     secundario.mesclado_em_id = principal.id
@@ -256,6 +286,7 @@ def mesclar(pendencia, principal_id, admin_id):
     _levar_dispensas(principal, secundario)
     _levar_atividades(principal, secundario)
     pendencia.status, pendencia.decidida_em, pendencia.decidida_por = "mesclada", now(), admin_id
+    _levar_pendencias(principal, secundario, admin_id)
     return principal, secundario
 
 
