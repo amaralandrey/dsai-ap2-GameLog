@@ -10,6 +10,7 @@ from datetime import date, timedelta
 
 from flask import Blueprint, Response, abort, flash, redirect, render_template, request
 from sqlalchemy import func
+from sqlalchemy.orm import joinedload, selectinload
 
 from . import serializadores
 from .diario import pode_ver_perfil
@@ -213,7 +214,16 @@ def _status_e_horas(user_id, games):
     return status, minutos
 
 
+def _carregar_relacoes(games):
+    """Desenvolvedora, gêneros e plataformas de todos os jogos em 3 consultas, para o serializador."""
+    ids = [g.id for g in games]
+    if ids:
+        Game.query.filter(Game.id.in_(ids)).options(
+            joinedload(Game.developer), selectinload(Game.genres), selectinload(Game.platforms)).all()
+
+
 def exportar(nome, url, publica, user_id, games, formato, automatica=False, regra=None):
+    _carregar_relacoes(games)
     status, minutos = _status_e_horas(user_id, games)
     itens = [(i, g, status.get(g.id), minutos.get(g.id, 0)) for i, g in enumerate(games, start=1)]
     dados = serializadores.lista(nome, url, publica, itens, automatica, regra)
@@ -352,7 +362,8 @@ def exportar_comum(lid, formato):
     if formato not in ("json", "csv"):
         abort(404)
     gl, own = get_list(lid)
-    games = [i.game for i in gl.items if own or i.game.removed_at is None]
+    itens = ListItem.query.filter_by(list_id=gl.id).options(joinedload(ListItem.game)).order_by(ListItem.position)
+    games = [i.game for i in itens if own or i.game.removed_at is None]
     return exportar(gl.name, f"/listas/{lid}", gl.public, gl.user_id, games, formato)
 
 

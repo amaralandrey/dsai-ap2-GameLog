@@ -208,6 +208,16 @@ def conta_consultas(app, client, url):
     return resp, len(consultas)
 
 
+def test_dia_06_consultas_do_diario_nao_crescem_com_as_sessoes(app, ana):
+    sessao(ana, jogada_em="2026-11-01", duracao="30")
+    _, com_uma = conta_consultas(app, ana, "/diario")
+    for i in range(2, 8):
+        make_game(app, f"Outro {i}")
+        sessao(ana, slug=f"outro-{i}", jogada_em=f"2026-11-0{i}", duracao="30")
+    resp, com_sete = conta_consultas(app, ana, "/diario")
+    assert resp.status_code == 200 and com_sete == com_uma
+
+
 def test_dia_09_horas_e_zerados_no_perfil(app, ana):
     sessao(ana, duracao="12h", zerou="on")
     sessao(ana, jogada_em="2026-11-11", duracao="30")

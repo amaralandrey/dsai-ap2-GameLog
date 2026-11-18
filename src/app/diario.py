@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 
 from flask import Blueprint, abort, flash, redirect, render_template, request
 from sqlalchemy import func, select
+from sqlalchemy.orm import contains_eager, joinedload
 
 from .models import Activity, Follow, Game, SessaoJogo, Status, User, db, visible_games
 from .tempo import hoje
@@ -334,7 +335,8 @@ def apagar(sid):
 
 
 def pagina_do_diario(dono, own):
-    q = SessaoJogo.query.filter_by(user_id=dono.id).join(Game, Game.id == SessaoJogo.game_id)
+    q = (SessaoJogo.query.filter_by(user_id=dono.id).join(Game, Game.id == SessaoJogo.game_id)
+         .options(contains_eager(SessaoJogo.game), joinedload(SessaoJogo.plataforma)))
     jogo = None
     if request.args.get("jogo"):
         jogo = Game.query.filter_by(slug=request.args["jogo"]).first()

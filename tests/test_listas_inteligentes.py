@@ -310,6 +310,28 @@ def test_lsa_09_lista_comum_privada_nao_exporta(app, ana):
     assert app.test_client().get(f"/listas/{lid}/exportar.json").status_code == 404
 
 
+def test_lsa_09_consultas_da_exportacao_nao_crescem_com_os_itens(app, ana):
+    ana.post("/listas", data={"name": "Exportar"})
+    with app.app_context():
+        lid = GameList.query.one().id
+
+    def consultas():
+        n = []
+
+        def conta(*a):
+            n.append(1)
+        with app.app_context():
+            event.listen(db.engine, "before_cursor_execute", conta)
+            assert ana.get(f"/listas/{lid}/exportar.json").status_code == 200
+            event.remove(db.engine, "before_cursor_execute", conta)
+        return len(n)
+    ana.post("/jogos/alfa/adicionar-a-lista", data={"list_id": lid})
+    com_um = consultas()
+    for slug in ("beta", "gama", "delta"):
+        ana.post(f"/jogos/{slug}/adicionar-a-lista", data={"list_id": lid})
+    assert consultas() == com_um
+
+
 # ---------- LSA-10, LSA-11 ----------
 @pytest.fixture
 def lista3(app, ana):
