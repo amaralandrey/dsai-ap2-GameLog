@@ -292,6 +292,8 @@ def registrar(slug):
 @login_required
 def editar(sid):
     sessao = sessao_do_dono(sid)
+    if sessao.origem == "steam":
+        abort(404)  # HRS-04: o saldo da Steam não é editável, só apagável
     game = sessao.game
     if request.method == "GET":
         form = {"jogada_em": sessao.jogada_em.isoformat(), "duracao": str(sessao.duracao_min),

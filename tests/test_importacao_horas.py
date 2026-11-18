@@ -133,6 +133,20 @@ def test_hrs_04_saldo_da_steam_nao_muda_status_nem_tem_limite(app, ana, steam):
     assert "importado da Steam" in ana.get("/diario").get_data(as_text=True)
 
 
+def test_hrs_04_sessao_da_steam_nao_e_editavel(app, ana):
+    with app.app_context():
+        g = Game.query.filter_by(slug="hades").one()
+        s = SessaoJogo(user_id=uid(app), game_id=g.id, jogada_em=date(2026, 11, 1), duracao_min=3000, origem="steam")
+        db.session.add(s)
+        db.session.commit()
+        sid = s.id
+    assert ana.get(f"/sessoes/{sid}/editar").status_code == 404
+    r = ana.post(f"/sessoes/{sid}/editar", data={"jogada_em": "2026-11-01", "duracao": "60", "zerou": "1"})
+    assert r.status_code == 404
+    with app.app_context():
+        assert db.session.get(SessaoJogo, sid).duracao_min == 3000 and Status.query.count() == 0
+
+
 def test_hrs_05_sem_chave_nao_chama_a_rede(app, ana, api, monkeypatch):
     monkeypatch.delenv("STEAM_API_KEY", raising=False)
     editar(ana, STEAM_ID)
