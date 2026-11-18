@@ -6,6 +6,7 @@ from datetime import timedelta
 
 from flask import Blueprint, abort, redirect, render_template, request
 from sqlalchemy import func
+from sqlalchemy.orm import contains_eager, joinedload
 
 from .models import Follow, Game, Notificacao, PreferenciaNotificacao, Review, Status, User, db, now
 from .util import current_user, login_required, paginate
@@ -178,8 +179,8 @@ def nao_lidas_subconsulta(user_id):
 @login_required
 def lista():
     me = current_user()
-    page = paginate(visiveis(me.id).order_by(Notificacao.created_at.desc(), Notificacao.id.desc()),
-                    request.args.get("page"))
+    q = visiveis(me.id).options(joinedload(Notificacao.ator), contains_eager(Notificacao.game))
+    page = paginate(q.order_by(Notificacao.created_at.desc(), Notificacao.id.desc()), request.args.get("page"))
     return render_template("notificacoes/lista.html", page=page, linhas=agrupar_curtidas(page.items))
 
 

@@ -128,6 +128,28 @@ def test_ntf_05_comentario_com_link(app, gente):
     assert len(notifs(app, "ana")) == 1
 
 
+def test_ntf_07_consultas_da_lista_nao_crescem_com_as_notificacoes(app, gente):
+    with app.app_context():
+        jogo = Game.query.one().id
+
+    def consultas(atores):
+        with app.app_context():
+            for n in atores:
+                db.session.add(Notificacao(user_id=uid(app, "ana"), tipo="comentario", ator_id=uid(app, n),
+                                           game_id=jogo, review_id=gente, alvo_url="/x"))
+            db.session.commit()
+        c, contadas = cliente(app, "ana"), []
+
+        def conta(*a):
+            contadas.append(1)
+        with app.app_context():
+            event.listen(db.engine, "before_cursor_execute", conta)
+            assert c.get("/notificacoes").status_code == 200
+            event.remove(db.engine, "before_cursor_execute", conta)
+        return len(contadas)
+    assert consultas(["bia"]) == consultas(["carla", "duda"])
+
+
 def test_ntf_05_seguidor_uma_vez_por_par_em_24h(app, gente):
     bia = cliente(app, "bia")
     bia.post("/u/ana/seguir")
