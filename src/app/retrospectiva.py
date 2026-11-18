@@ -76,7 +76,7 @@ def sessao_mais_longa(user_id, ano):
     return (
         SessaoJogo.query.join(Game, Game.id == SessaoJogo.game_id)
         .filter(SessaoJogo.user_id == user_id, SessaoJogo.origem.in_(COM_DATA),
-                SessaoJogo.jogada_em.between(date(ano, 1, 1), date(ano, 12, 31)))
+                SessaoJogo.jogada_em.between(date(ano, 1, 1), date(ano, 12, 31)), Game.removed_at.is_(None))
         .order_by(SessaoJogo.duracao_min.desc(), SessaoJogo.jogada_em, SessaoJogo.id)
         .first()
     )

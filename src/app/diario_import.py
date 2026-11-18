@@ -8,7 +8,8 @@ import io
 import json
 import os
 import re
-from datetime import timedelta
+from collections import defaultdict
+from datetime import date, timedelta
 
 from flask import Blueprint, Response, abort, flash, redirect, render_template, request
 from sqlalchemy import func
@@ -161,12 +162,12 @@ def achar_jogo(texto):
     return jogo or Game.query.filter(func.lower(Game.title) == texto.lower(), Game.removed_at.is_(None)).first()
 
 
-def _interpretar(linha):
+def _interpretar(linha, achar=achar_jogo):
     """(dados da sessão, jogo) ou levanta ErroImportacao com o motivo da linha."""
     jogada_em = diario.ler_data(linha.get("data"))
     if jogada_em is None:
         raise ErroImportacao("data inválida")
-    jogo = achar_jogo(linha.get("jogo", ""))
+    jogo = achar(linha.get("jogo", ""))
     if jogo is None:
         raise ErroImportacao("jogo não encontrado")
     duracao = diario.ler_duracao(linha.get("duracao"))
@@ -186,40 +187,82 @@ def _interpretar(linha):
     zerei = fold(linha.get("zerei", ""))
     if zerei not in SIM | NAO:
         raise ErroImportacao("zerei deve ser sim ou não")
-    anotacao = linha.get("anotacao", "")
+    anotacao = com_formula(linha.get("anotacao", ""))
     if len(anotacao) > diario.MAX_ANOTACAO:
         raise ErroImportacao("anotação passa de 1000 caracteres")
     return {"jogada_em": jogada_em, "duracao_min": duracao, "inicio": inicio, "plataforma_id": plataforma_id,
             "zerou": zerei in SIM, "anotacao": anotacao, "spoiler": False}, jogo
 
 
+def sessao_existe(user_id, game_id, dados):
+    return SessaoJogo.query.filter_by(user_id=user_id, game_id=game_id, jogada_em=dados["jogada_em"],
+                                      inicio=dados["inicio"], duracao_min=dados["duracao_min"]).first() is not None
+
+
+def _sessoes_entre(user_id, datas):
+    """Sessões do usuário do dia anterior à primeira data até o dia seguinte à última, numa consulta."""
+    if not datas:
+        return []
+    de, ate = _tres_dias(min(datas))[0], _tres_dias(max(datas))[-1]
+    return SessaoJogo.query.filter(SessaoJogo.user_id == user_id, SessaoJogo.jogada_em.between(de, ate)).all()
+
+
+def _tres_dias(dia):
+    """O dia anterior, o dia e o seguinte, sem passar dos limites de `date`."""
+    o = dia.toordinal()
+    return [date.fromordinal(x) for x in (o - 1, o, o + 1) if 1 <= x <= date.max.toordinal()]
+
+
 def classificar(user_id, linhas):
-    """Cada linha vira `nova`, `duplicada`, `erro` (com motivo) ou `steam` (ignorada, HRS-07, HRS-08)."""
-    resultado, vistas, pendentes = [], set(), []
+    """Cada linha vira `nova`, `duplicada`, `erro` (com motivo) ou `steam` (ignorada, HRS-07, HRS-08).
+
+    Jogos e sessões são carregados uma vez para o arquivo inteiro; a regra de HRS-09 roda em memória.
+    """
+    jogos = {}
+
+    def achar(texto):
+        chave = texto.strip().lower()
+        if chave not in jogos:
+            jogos[chave] = achar_jogo(texto)
+        return jogos[chave]
+
+    lidas = []
     for n, linha in enumerate(linhas, start=2):  # a linha 1 é o cabeçalho
         item = {"linha": n, "jogo": linha.get("jogo", ""), "data": linha.get("data", ""),
                 "duracao": linha.get("duracao", "")}
         if fold(linha.get("origem", "")) == "steam":
-            resultado.append({**item, "classe": "steam", "motivo": "horas da Steam só entram pela importação da Steam"})
+            lidas.append(({**item, "classe": "steam", "motivo": "horas da Steam só entram pela importação da Steam"},))
             continue
         try:
-            dados, jogo = _interpretar(linha)
+            lidas.append((item, *_interpretar(linha, achar)))
         except ErroImportacao as exc:
-            resultado.append({**item, "classe": "erro", "motivo": str(exc)})
+            lidas.append(({**item, "classe": "erro", "motivo": str(exc)},))
+
+    existentes = _sessoes_entre(user_id, [x[1]["jogada_em"] for x in lidas if len(x) == 3])
+    vistas = {(s.game_id, s.jogada_em, s.inicio, s.duracao_min) for s in existentes}
+    por_dia = defaultdict(list)
+    for s in existentes:
+        if s.origem in ("manual", "csv"):
+            por_dia[s.jogada_em].append((s.jogada_em, s.duracao_min, s.inicio))
+
+    resultado = []
+    for lida in lidas:
+        if len(lida) == 1:
+            resultado.append(lida[0])
             continue
-        chave = (jogo.id, dados["jogada_em"], dados["inicio"], dados["duracao_min"])
-        existe = SessaoJogo.query.filter_by(user_id=user_id, game_id=jogo.id, jogada_em=dados["jogada_em"],
-                                            inicio=dados["inicio"], duracao_min=dados["duracao_min"]).first()
-        if chave in vistas or existe:
+        item, dados, jogo = lida
+        dia = dados["jogada_em"]
+        chave = (jogo.id, dia, dados["inicio"], dados["duracao_min"])
+        if chave in vistas:
             resultado.append({**item, "classe": "duplicada", "motivo": ""})
             continue
-        problema = diario.consistencia(user_id, dados["jogada_em"], dados["duracao_min"], dados["inicio"],
-                                       pendentes=pendentes)
+        outras = [s for vizinho in _tres_dias(dia) for s in por_dia[vizinho]]
+        problema = diario.problema_entre(dia, dados["duracao_min"], dados["inicio"], outras)
         if problema:
             resultado.append({**item, "classe": "erro", "motivo": problema})
             continue
         vistas.add(chave)
-        pendentes.append(dados)
+        por_dia[dia].append((dia, dados["duracao_min"], dados["inicio"]))
         resultado.append({**item, "classe": "nova", "motivo": "", "game_id": jogo.id, "dados": _para_json(dados)})
     return resultado
 
@@ -250,28 +293,43 @@ def previa_do_dono(pid):
 
 
 def confirmar(previa, user):
-    """Grava as linhas `nova` numa única transação e devolve quantas sessões criou (HRS-07, HRS-08)."""
-    criadas = 0
+    """Grava as linhas `nova` numa única transação e devolve (criadas, puladas) (HRS-07, HRS-08).
+
+    O diário pode ter mudado depois da prévia (outra prévia confirmada, sessão manual), então a duplicata e
+    HRS-09 são conferidas de novo; o flush de gravar_sessao deixa as linhas anteriores visíveis.
+    """
+    criadas = puladas = 0
     for linha in json.loads(previa.linhas):
         if linha["classe"] != "nova":
             continue
         game = db.session.get(Game, linha["game_id"])
-        if game is None or game.removed_at is not None:
+        dados = _de_json(linha["dados"])
+        if (game is None or game.removed_at is not None or sessao_existe(user.id, game.id, dados)
+                or diario.consistencia(user.id, dados["jogada_em"], dados["duracao_min"], dados["inicio"])):
+            puladas += 1
             continue
-        diario.gravar_sessao(user, game, _de_json(linha["dados"]), origem="csv")
+        diario.gravar_sessao(user, game, dados, origem="csv")
         criadas += 1
     registrar_importacao(user.id, criadas)
     db.session.delete(previa)
     db.session.commit()
     if criadas:
         emitir_evento(user.id, "importacao", origem="csv")
-    return criadas
+    return criadas, puladas
+
+
+INICIO_DE_FORMULA = ("=", "+", "-", "@", "\t", "\r")
 
 
 def sem_formula(texto):
     """Prefixa com aspas simples o texto que viraria fórmula na planilha."""
     texto = str(texto)
-    return "'" + texto if texto[:1] in ("=", "+", "-", "@") else texto
+    return "'" + texto if texto[:1] in INICIO_DE_FORMULA else texto
+
+
+def com_formula(texto):
+    """Desfaz sem_formula, para o arquivo exportado voltar igual (HRS-11)."""
+    return texto[1:] if texto[:1] == "'" and texto[1:2] in INICIO_DE_FORMULA else texto
 
 
 def exportar_csv(user_id):
@@ -321,8 +379,9 @@ def ver_previa(pid):
 @bp.route("/diario/importar/<int:pid>/confirmar", methods=["POST"])
 @login_required
 def confirmar_previa(pid):
-    criadas = confirmar(previa_do_dono(pid), current_user())
-    flash(f"Importação concluída: {criadas} sessões gravadas no diário.", "ok")
+    criadas, puladas = confirmar(previa_do_dono(pid), current_user())
+    aviso = f" Ficaram de fora {puladas}, que viraram duplicadas ou conflitantes desde a prévia." if puladas else ""
+    flash(f"Importação concluída: {criadas} sessões gravadas no diário.{aviso}", "ok")
     return redirect("/diario")
 
 

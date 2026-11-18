@@ -133,6 +133,20 @@ def test_hrs_04_saldo_da_steam_nao_muda_status_nem_tem_limite(app, ana, steam):
     assert "importado da Steam" in ana.get("/diario").get_data(as_text=True)
 
 
+def test_hrs_04_sessao_da_steam_nao_e_editavel(app, ana):
+    with app.app_context():
+        g = Game.query.filter_by(slug="hades").one()
+        s = SessaoJogo(user_id=uid(app), game_id=g.id, jogada_em=date(2026, 11, 1), duracao_min=3000, origem="steam")
+        db.session.add(s)
+        db.session.commit()
+        sid = s.id
+    assert ana.get(f"/sessoes/{sid}/editar").status_code == 404
+    r = ana.post(f"/sessoes/{sid}/editar", data={"jogada_em": "2026-11-01", "duracao": "60", "zerou": "1"})
+    assert r.status_code == 404
+    with app.app_context():
+        assert db.session.get(SessaoJogo, sid).duracao_min == 3000 and Status.query.count() == 0
+
+
 def test_hrs_05_sem_chave_nao_chama_a_rede(app, ana, api, monkeypatch):
     monkeypatch.delenv("STEAM_API_KEY", raising=False)
     editar(ana, STEAM_ID)
@@ -240,6 +254,22 @@ def test_hrs_08_reenvio_e_repeticao_no_arquivo_sao_duplicadas(app, ana):
     assert [x["classe"] for x in linhas] == ["duplicada", "duplicada"]
 
 
+def test_hrs_08_confirmar_duas_previas_do_mesmo_arquivo_grava_uma_vez(app, ana):
+    texto = "data,jogo,duracao,inicio\n2026-11-01,hades,90,20:00\n"
+    p1, _ = previa(app, ana, texto)
+    p2, _ = previa(app, ana, texto)
+    ana.post(f"/diario/importar/{p1}/confirmar")
+    r = ana.post(f"/diario/importar/{p2}/confirmar", follow_redirects=True)
+    assert len(sessoes(app)) == 1 and "Ficaram de fora 1, que viraram duplicadas" in r.get_data(as_text=True)
+
+
+def test_hrs_09_confirmar_confere_sessao_registrada_depois_da_previa(app, ana):
+    pid, _ = previa(app, ana, "data,jogo,duracao,inicio\n2026-11-01,hades,90,20:00\n")
+    ana.post("/jogos/celeste/sessoes", data={"jogada_em": "2026-11-01", "duracao": "60", "inicio": "20:30"})
+    ana.post(f"/diario/importar/{pid}/confirmar")
+    assert [s.origem for s in sessoes(app)] == ["manual"]
+
+
 def test_hrs_08_linha_de_origem_steam_e_ignorada(app, ana):
     _, linhas = previa(app, ana, "data,jogo,duracao,origem\n2026-11-01,hades,90,steam\n2026-11-01,hades,30,csv\n")
     assert [x["classe"] for x in linhas] == ["steam", "nova"]
@@ -251,6 +281,32 @@ def test_hrs_09_sobreposicao_atravessando_a_meia_noite(app, ana):
     assert classes(linhas)[0] == ("nova", "")
     assert classes(linhas)[1] == ("erro", "sobrepõe a sessão de 01/11 às 23:00")
     assert classes(linhas)[2] == ("nova", "")
+
+
+def test_hrs_09_sessao_que_atravessa_a_meia_noite_ve_as_do_dia_seguinte(app, ana):
+    assert ana.post("/jogos/hades/sessoes", data={"jogada_em": "2026-11-02", "duracao": "60", "inicio": "00:30"}).status_code == 302
+    r = ana.post("/jogos/celeste/sessoes", data={"jogada_em": "2026-11-01", "duracao": "120", "inicio": "23:30"})
+    assert r.status_code == 400 and "Sobrepõe a sessão de 02/11 às 00:30" in r.get_data(as_text=True)
+    _, linhas = previa(app, ana, "data,jogo,duracao,inicio\n2026-11-01,celeste,120,23:30\n")
+    assert classes(linhas) == [("erro", "sobrepõe a sessão de 02/11 às 00:30")]
+
+
+def test_hrs_07_consultas_da_previa_nao_crescem_com_as_linhas(app, ana):
+    from sqlalchemy import event
+
+    def consultas(n):
+        texto = "data,jogo,duracao,inicio\n" + "".join(
+            f"2026-10-{d:02d},{('hades', 'Celeste')[d % 2]},30,{h:02d}:00\n" for d in range(1, 11) for h in range(n))
+        contadas = []
+
+        def conta(*a):
+            contadas.append(1)
+        with app.app_context():
+            event.listen(db.engine, "before_cursor_execute", conta)
+            assert enviar(ana, texto).status_code == 302
+            event.remove(db.engine, "before_cursor_execute", conta)
+        return len(contadas)
+    assert consultas(10) == consultas(1)  # 100 linhas custam o mesmo que 10
 
 
 def test_hrs_09_soma_do_dia_acima_de_24h(app, ana):
@@ -300,3 +356,17 @@ def test_hrs_11_exportar_e_reimportar_da_tudo_duplicado(app, ana):
     assert "'=SOMA(A1)" in texto and ",hades," in texto
     _, linhas = previa(app, ana, texto)
     assert sorted(x["classe"] for x in linhas) == ["duplicada", "duplicada", "steam"]
+
+
+def test_hrs_11_anotacao_de_1000_caracteres_com_formula_volta_duplicada(app, ana):
+    ana.post("/jogos/hades/sessoes", data={"jogada_em": "2026-11-02", "duracao": "90", "anotacao": "-" * 1000})
+    _, linhas = previa(app, ana, ana.get("/diario/exportar.csv").get_data(as_text=True))
+    assert classes(linhas) == [("duplicada", "")]
+
+
+@pytest.mark.parametrize("texto,esperado", [("=1", "'=1"), ("+1", "'+1"), ("-1", "'-1"), ("@x", "'@x"),
+                                            ("\tx", "'\tx"), ("\rx", "'\rx"), ("ok", "ok")])
+def test_hrs_11_sem_formula(texto, esperado):
+    from app.diario_import import com_formula, sem_formula
+
+    assert sem_formula(texto) == esperado and com_formula(esperado) == texto

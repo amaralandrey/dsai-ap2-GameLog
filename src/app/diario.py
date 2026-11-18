@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 
 from flask import Blueprint, abort, flash, redirect, render_template, request
 from sqlalchemy import func, select
+from sqlalchemy.orm import contains_eager, joinedload
 
 from .gamificacao import emitir_evento
 from .models import Activity, Follow, Game, SessaoJogo, Status, User, db, visible_games
@@ -140,18 +141,27 @@ def consistencia(user_id, jogada_em, duracao_min, inicio=None, ignorar_id=None, 
     `pendentes` são sessões ainda não gravadas (linhas anteriores do mesmo CSV), como dicionários com
     `jogada_em`, `duracao_min` e `inicio`. A sessão de saldo da Steam não entra em nenhuma das somas.
     """
-    if not 1 <= duracao_min <= MAX_MIN:
-        return "duração fora do intervalo de 1 minuto a 24 horas"
-    if jogada_em > hoje():
-        return "A data não pode estar no futuro"
+    problema = problema_entre(jogada_em, duracao_min, None, ())  # duração e data, antes de consultar
+    if problema:
+        return problema
+    um_dia = timedelta(days=1)
     vizinhas = (
         SessaoJogo.query.filter(SessaoJogo.user_id == user_id, SessaoJogo.origem.in_(("manual", "csv")),
-                                SessaoJogo.jogada_em.between(jogada_em - timedelta(days=1), jogada_em))
+                                SessaoJogo.jogada_em.between(jogada_em - um_dia, jogada_em + um_dia))
         .filter(SessaoJogo.id != (ignorar_id or 0))
         .all()
     )
     outras = [(s.jogada_em, s.duracao_min, s.inicio) for s in vizinhas]
     outras += [(p["jogada_em"], p["duracao_min"], p["inicio"]) for p in pendentes]
+    return problema_entre(jogada_em, duracao_min, inicio, outras)
+
+
+def problema_entre(jogada_em, duracao_min, inicio, outras):
+    """A regra de `consistencia` sobre `outras` (dia, duração, início) já carregadas, sem consultar o banco."""
+    if not 1 <= duracao_min <= MAX_MIN:
+        return "duração fora do intervalo de 1 minuto a 24 horas"
+    if jogada_em > hoje():
+        return "A data não pode estar no futuro"
     if sum(d for dia, d, _ in outras if dia == jogada_em) + duracao_min > MAX_MIN:
         return "a soma das sessões do dia passaria de 24 horas"
     if inicio is not None:
@@ -299,6 +309,8 @@ def registrar(slug):
 @login_required
 def editar(sid):
     sessao = sessao_do_dono(sid)
+    if sessao.origem == "steam":
+        abort(404)  # HRS-04: o saldo da Steam não é editável, só apagável
     game = sessao.game
     if request.method == "GET":
         form = {"jogada_em": sessao.jogada_em.isoformat(), "duracao": str(sessao.duracao_min),
@@ -341,7 +353,8 @@ def apagar(sid):
 
 
 def pagina_do_diario(dono, own):
-    q = SessaoJogo.query.filter_by(user_id=dono.id).join(Game, Game.id == SessaoJogo.game_id)
+    q = (SessaoJogo.query.filter_by(user_id=dono.id).join(Game, Game.id == SessaoJogo.game_id)
+         .options(contains_eager(SessaoJogo.game), joinedload(SessaoJogo.plataforma)))
     jogo = None
     if request.args.get("jogo"):
         jogo = Game.query.filter_by(slug=request.args["jogo"]).first()

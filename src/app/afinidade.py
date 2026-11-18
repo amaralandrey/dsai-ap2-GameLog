@@ -43,7 +43,10 @@ def resumo_com(me_id, outro_id):
 @login_required
 def indice():
     me = current_user()
-    seguidos = User.query.join(Follow, Follow.followed_id == User.id).filter(Follow.follower_id == me.id).all()
+    from .diario import ocultos_para
+
+    seguidos = (User.query.join(Follow, Follow.followed_id == User.id)
+                .filter(Follow.follower_id == me.id, User.id.not_in(ocultos_para(me))).all())  # DIA-12
     n = notas([me.id] + [u.id for u in seguidos])
     linhas = []
     for u in seguidos:

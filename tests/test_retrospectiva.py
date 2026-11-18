@@ -153,6 +153,16 @@ def test_ret_07_steam_fora_do_grafico_mensal_e_da_sessao_mais_longa(base, client
     assert "1h de <a href=\"/jogos/hades\">" in html
 
 
+def test_ret_09_jogo_removido_nao_e_a_sessao_mais_longa(base, client):
+    sessao(base, "ana", "hades", date(2026, 5, 1), 60)
+    sessao(base, "ana", "celeste", date(2026, 5, 2), 600)
+    with base.app_context():
+        Game.query.filter_by(slug="celeste").one().removed_at = datetime(2026, 6, 1)
+        db.session.commit()
+    html = client.get("/u/ana/retrospectiva/2026").get_data(as_text=True)
+    assert "1h de <a href=\"/jogos/hades\">" in html and "/jogos/celeste" not in html
+
+
 def test_ret_08_ano_vazio(base, client):
     html = client.get("/u/ana/retrospectiva/2024").get_data(as_text=True)
     assert "Nenhuma sessão nem jogo zerado em 2024" in html and "<svg" not in html

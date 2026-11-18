@@ -215,6 +215,17 @@ def test_lsa_05_dono_edita_parametros(app, ana):
         assert li.nome == "Largados 60" and json.loads(li.regra)["parametros"] == {"dias": 60}
 
 
+@pytest.mark.parametrize("dados,msg", [({"nome": "X", "dias": "3"}, "7"), ({"nome": "", "dias": "60"}, "O nome é obrigatório")])
+def test_lsa_02_edicao_invalida_volta_com_400(app, ana, dados, msg):
+    criar(ana, "largados", dias="30", nome="Largados")
+    lid = ultima(app)
+    r = ana.post(f"/listas/inteligentes/{lid}/editar", data=dados)
+    assert r.status_code == 400 and msg in r.get_data(as_text=True)
+    with app.app_context():
+        li = db.session.get(ListaInteligente, lid)
+        assert li.nome == "Largados" and json.loads(li.regra)["parametros"] == {"dias": 30}
+
+
 def test_lsa_06_aparece_em_listas_com_selo(app, ana):
     criar(ana, "mais_jogados", nome="Top", n="10")
     html = ana.get("/listas").get_data(as_text=True)
@@ -297,6 +308,28 @@ def test_lsa_09_lista_comum_privada_nao_exporta(app, ana):
     with app.app_context():
         lid = GameList.query.one().id
     assert app.test_client().get(f"/listas/{lid}/exportar.json").status_code == 404
+
+
+def test_lsa_09_consultas_da_exportacao_nao_crescem_com_os_itens(app, ana):
+    ana.post("/listas", data={"name": "Exportar"})
+    with app.app_context():
+        lid = GameList.query.one().id
+
+    def consultas():
+        n = []
+
+        def conta(*a):
+            n.append(1)
+        with app.app_context():
+            event.listen(db.engine, "before_cursor_execute", conta)
+            assert ana.get(f"/listas/{lid}/exportar.json").status_code == 200
+            event.remove(db.engine, "before_cursor_execute", conta)
+        return len(n)
+    ana.post("/jogos/alfa/adicionar-a-lista", data={"list_id": lid})
+    com_um = consultas()
+    for slug in ("beta", "gama", "delta"):
+        ana.post(f"/jogos/{slug}/adicionar-a-lista", data={"list_id": lid})
+    assert consultas() == com_um
 
 
 # ---------- LSA-10, LSA-11 ----------
