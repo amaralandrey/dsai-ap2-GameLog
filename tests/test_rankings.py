@@ -129,6 +129,23 @@ def test_rnk_03_janela_de_temporada_pelo_slug(base):
     assert ordem(cliente(base).get("/rankings?escopo=global&janela=antiga").get_data(as_text=True)) == ["ana"]
 
 
+def test_rnk_02_janela_de_xp_e_curtidas_segue_o_dia_de_belem(base):
+    with base.app_context():
+        db.session.add(Temporada(nome="T1", slug="t1", inicio=date(2026, 1, 1), fim=date(2026, 3, 31)))
+        g = Game.query.first()
+        r = Review(user_id=uid(base, "carla"), game_id=g.id, score=8, text="x")
+        db.session.add(r)
+        db.session.flush()
+        db.session.add_all([Like(user_id=uid(base, "ana"), review_id=r.id, created_at=datetime(2026, 4, 1, 1)),
+                            Like(user_id=uid(base, "bia"), review_id=r.id, created_at=datetime(2026, 1, 1, 2))])
+        db.session.commit()
+    xp(base, "ana", 10, datetime(2026, 4, 1, 1))  # 22:00 de 31/03 em Belém: ainda é a T1
+    xp(base, "bia", 10, datetime(2026, 1, 1, 2))  # 23:00 de 31/12 em Belém: fica fora
+    v = cliente(base)
+    assert ordem(v.get("/rankings?escopo=global&categoria=xp&janela=t1").get_data(as_text=True)) == ["ana"]
+    assert "<td>1</td>" in v.get("/rankings?escopo=global&categoria=curtidas&janela=t1").get_data(as_text=True)
+
+
 # ---------- RNK-04, RNK-05 ----------
 def test_rnk_04_escopos(base, monkeypatch):
     for n, v in zip(NOMES, (40, 30, 20, 10)):

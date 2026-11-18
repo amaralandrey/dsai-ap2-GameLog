@@ -15,7 +15,7 @@ from .models import (
     AuditLog, Desclassificacao, ExtratoXP, Follow, Game, Like, Review, SessaoJogo, SnapshotRanking, Status,
     Temporada, User, db, now,
 )
-from .tempo import hoje
+from .tempo import hoje, inicio_do_dia_utc
 from .util import admin_required, current_user, slugify
 
 bp = Blueprint("rankings", __name__)
@@ -78,7 +78,7 @@ def _entre(coluna, de, ate, data=True):
         return True
     if data:
         return coluna.between(de, ate)
-    return (coluna >= de) & (coluna < ate + timedelta(days=1))
+    return (coluna >= inicio_do_dia_utc(de)) & (coluna < inicio_do_dia_utc(ate + timedelta(days=1)))  # UTC
 
 
 def consulta(categoria, de, ate):
