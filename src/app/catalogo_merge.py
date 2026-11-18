@@ -97,7 +97,8 @@ def ocupado(game, fonte, external_id):
 
 
 def _links_do_item(fonte, j):
-    """(loja, id) dos links de loja do item: os da RAWG e o da própria fonte, se ela é uma loja (GOG-06)."""
+    """(loja, id) dos links de loja do item: os da RAWG, o da própria fonte, se ela é uma loja (GOG-06),
+    e o da loja que ela copia (arquivo ← Steam, FNT-05)."""
     links = list(j.get("lojas") or [])
     if fonte in LOJAS and j.get("url_loja"):
         links.append((fonte, j["url_loja"]))
@@ -105,6 +106,9 @@ def _links_do_item(fonte, j):
         eid = external_id_da_url(loja, url)
         if eid:
             yield loja, eid
+    loja = getattr(FONTES.get(fonte), "LOJA_DE_ORIGEM", None)
+    if loja and j.get("external_id"):
+        yield loja, str(j["external_id"])
 
 
 def jogo_por_link(fonte, j):

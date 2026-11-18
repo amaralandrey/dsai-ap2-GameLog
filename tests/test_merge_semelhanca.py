@@ -143,6 +143,15 @@ def test_mrg02_arquivo_atualiza_pela_loja_que_copia(app):
         assert Game.query.one().synopsis == "nova"
 
 
+def test_mrg02_id_da_steam_do_item_do_arquivo_reconhece_o_jogo(hades):
+    """O item do snapshot traz o id da Steam: com outro título, ainda é o mesmo jogo."""
+    with hades.app_context():
+        assert importar("arquivo", modulo=fonte(item("1145360", "Totally Other Name", 1999, "Outra"))) == (1, 0, 0)
+        (game,) = jogos()
+        assert game.title == "Hades" and sorted(v.fonte for v in game.fontes) == ["arquivo", "steam"]
+        assert PendenciaMerge.query.count() == 0
+
+
 def test_mrg02_jogo_com_outro_vinculo_da_mesma_fonte_vira_pendencia(hades):
     """Duas entradas da mesma loja não cabem num jogo (FNT-04): o admin decide."""
     with hades.app_context():
