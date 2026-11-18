@@ -253,6 +253,14 @@ def test_hrs_09_sobreposicao_atravessando_a_meia_noite(app, ana):
     assert classes(linhas)[2] == ("nova", "")
 
 
+def test_hrs_09_sessao_que_atravessa_a_meia_noite_ve_as_do_dia_seguinte(app, ana):
+    assert ana.post("/jogos/hades/sessoes", data={"jogada_em": "2026-11-02", "duracao": "60", "inicio": "00:30"}).status_code == 302
+    r = ana.post("/jogos/celeste/sessoes", data={"jogada_em": "2026-11-01", "duracao": "120", "inicio": "23:30"})
+    assert r.status_code == 400 and "Sobrepõe a sessão de 02/11 às 00:30" in r.get_data(as_text=True)
+    _, linhas = previa(app, ana, "data,jogo,duracao,inicio\n2026-11-01,celeste,120,23:30\n")
+    assert classes(linhas) == [("erro", "sobrepõe a sessão de 02/11 às 00:30")]
+
+
 def test_hrs_09_soma_do_dia_acima_de_24h(app, ana):
     _, linhas = previa(app, ana, "data,jogo,duracao\n2026-11-01,hades,20h\n2026-11-01,celeste,5h\n")
     assert classes(linhas)[1] == ("erro", "a soma das sessões do dia passaria de 24 horas")

@@ -145,7 +145,7 @@ def consistencia(user_id, jogada_em, duracao_min, inicio=None, ignorar_id=None, 
         return "A data não pode estar no futuro"
     vizinhas = (
         SessaoJogo.query.filter(SessaoJogo.user_id == user_id, SessaoJogo.origem.in_(("manual", "csv")),
-                                SessaoJogo.jogada_em.between(jogada_em - timedelta(days=1), jogada_em))
+                                SessaoJogo.jogada_em.between(jogada_em - timedelta(days=1), jogada_em + timedelta(days=1)))
         .filter(SessaoJogo.id != (ignorar_id or 0))
         .all()
     )
