@@ -215,6 +215,17 @@ def test_lsa_05_dono_edita_parametros(app, ana):
         assert li.nome == "Largados 60" and json.loads(li.regra)["parametros"] == {"dias": 60}
 
 
+@pytest.mark.parametrize("dados,msg", [({"nome": "X", "dias": "3"}, "7"), ({"nome": "", "dias": "60"}, "O nome é obrigatório")])
+def test_lsa_02_edicao_invalida_volta_com_400(app, ana, dados, msg):
+    criar(ana, "largados", dias="30", nome="Largados")
+    lid = ultima(app)
+    r = ana.post(f"/listas/inteligentes/{lid}/editar", data=dados)
+    assert r.status_code == 400 and msg in r.get_data(as_text=True)
+    with app.app_context():
+        li = db.session.get(ListaInteligente, lid)
+        assert li.nome == "Largados" and json.loads(li.regra)["parametros"] == {"dias": 30}
+
+
 def test_lsa_06_aparece_em_listas_com_selo(app, ana):
     criar(ana, "mais_jogados", nome="Top", n="10")
     html = ana.get("/listas").get_data(as_text=True)

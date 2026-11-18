@@ -297,14 +297,14 @@ def editar(lid):
         regra = _form_regra({**request.form, "tipo": json.loads(lista.regra)["tipo"]})
     except ParametroInvalido as exc:
         flash(str(exc), "erro")
-        return redirect(f"/listas/inteligentes/{lid}")
+        return ver(lid), 400  # LSA-02
     if not 1 <= len(nome) <= 80:
         flash("O nome é obrigatório e deve ter até 80 caracteres.", "erro")
-    else:
-        lista.nome, lista.regra = nome, json.dumps(regra)
-        lista.publica = request.form.get("visibilidade") != "privada"
-        db.session.commit()
-        flash("Lista atualizada.", "ok")
+        return ver(lid), 400
+    lista.nome, lista.regra = nome, json.dumps(regra)
+    lista.publica = request.form.get("visibilidade") != "privada"
+    db.session.commit()
+    flash("Lista atualizada.", "ok")
     return redirect(f"/listas/inteligentes/{lid}")
 
 
