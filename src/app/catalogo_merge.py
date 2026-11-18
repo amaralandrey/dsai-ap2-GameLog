@@ -4,7 +4,7 @@ from collections import namedtuple
 from difflib import SequenceMatcher
 from itertools import combinations
 
-from sqlalchemy import text
+from sqlalchemy import or_, text
 
 from .fontes import FONTES, external_id_da_url
 from .models import (
@@ -238,6 +238,29 @@ def _levar_vinculos(principal, secundario):
             v.game = principal
 
 
+def _levar_pendencias(principal, secundario, admin_id):
+    """As outras pendências do secundário são fechadas; o outro jogo vira par do principal, se ainda for
+    parecido (MRG-03)."""
+    abertas = PendenciaMerge.query.filter(
+        PendenciaMerge.status == "pendente",
+        or_(PendenciaMerge.jogo_a_id == secundario.id, PendenciaMerge.jogo_b_id == secundario.id))
+    for p in abertas.all():
+        p.status, p.decidida_em, p.decidida_por = "ignorada", now(), admin_id
+        outro = p.jogo_b if p.jogo_a_id == secundario.id else p.jogo_a
+        if outro.mesclado_em_id is None and outro.removed_at is None:
+            nota = semelhanca(perfil_jogo(principal), perfil_jogo(outro))
+            if nota >= PARECIDO:
+                registrar_pendencia(principal, outro, nota)
+
+
+def _levar_vinculos(principal, secundario):
+    """Vínculo de uma loja que o principal já tem fica no secundário (FNT-04)."""
+    tem = {v.fonte for v in principal.fontes}
+    for v in list(secundario.fontes):
+        if v.fonte not in tem:
+            v.game = principal
+
+
 def mesclar(pendencia, principal_id, admin_id):
     """Mescla a pendência levando o histórico do secundário para o principal; devolve (principal, secundario)."""
     if pendencia.status != "pendente":
@@ -249,6 +272,8 @@ def mesclar(pendencia, principal_id, admin_id):
     secundario = par.popitem()[1]
     if principal.mesclado_em_id or secundario.mesclado_em_id:
         raise MesclagemRecusada("Um dos jogos já foi mesclado em outro; ignore esta pendência.")
+    if principal.removed_at:
+        raise MesclagemRecusada("O jogo principal foi removido do catálogo; escolha o outro ou ignore a pendência.")
 
     secundario.removed_at = secundario.removed_at or now()  # soft delete (CAT-07)
     secundario.mesclado_em_id = principal.id
@@ -260,6 +285,7 @@ def mesclar(pendencia, principal_id, admin_id):
     _levar_dispensas(principal, secundario)
     _levar_atividades(principal, secundario)
     pendencia.status, pendencia.decidida_em, pendencia.decidida_por = "mesclada", now(), admin_id
+    _levar_pendencias(principal, secundario, admin_id)
     return principal, secundario
 
 

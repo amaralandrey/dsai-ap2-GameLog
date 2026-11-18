@@ -168,7 +168,7 @@ def test_mrg06_pendencia_inexistente_404(mundo, rota, pend):
     assert mundo.adm.post(f"/admin/catalogo/{rota}", data={"pendencia_id": pend}).status_code == 404
 
 
-def test_mrg06_jogo_ja_mesclado_em_outra_pendencia_e_recusado(mundo):
+def test_mrg06_outras_pendencias_do_secundario_sao_fechadas_e_passam_ao_principal(mundo):
     make_game(mundo.app, "Hades Deluxe", dev="Supergiant", year=2020)
     with mundo.app.app_context():
         t = Game.query.filter_by(slug="hades-deluxe").one().id
@@ -179,9 +179,20 @@ def test_mrg06_jogo_ja_mesclado_em_outra_pendencia_e_recusado(mundo):
     mesclar(mundo)
     r = mesclar(mundo, principal=t, pend=outra_id)
     with mundo.app.app_context():
-        assert db.session.get(PendenciaMerge, outra_id).status == "pendente"
+        assert db.session.get(PendenciaMerge, outra_id).status == "ignorada"
+        nova = PendenciaMerge.query.filter_by(jogo_a_id=mundo.ids["p"], jogo_b_id=t).one()
+        assert nova.status == "pendente" and nova.semelhanca >= 70
         assert db.session.get(Game, t).removed_at is None
-    assert "já foi mesclado" in mundo.adm.get(r.headers["Location"]).get_data(as_text=True)
+    assert "já foi decidida" in mundo.adm.get(r.headers["Location"]).get_data(as_text=True)
+
+
+def test_mrg06_principal_removido_e_recusado(mundo):
+    mundo.adm.post(f"/admin/jogos/{mundo.ids['p']}/remover")
+    r = mesclar(mundo)
+    with mundo.app.app_context():
+        assert db.session.get(PendenciaMerge, mundo.ids["pend"]).status == "pendente"
+        assert db.session.get(Game, mundo.ids["s"]).mesclado_em_id is None
+    assert "principal foi removido" in mundo.adm.get(r.headers["Location"]).get_data(as_text=True)
 
 
 # ---------- MRG-08 ----------
