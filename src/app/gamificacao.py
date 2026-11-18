@@ -358,6 +358,11 @@ def recalcular(username=None):
     metricas = [m for m in METRICAS if m != "concedida"]
     total = 0
     for user in usuarios:
-        total += len(avaliar(user, metricas, recalculo=True))
+        novas = avaliar(user, metricas, recalculo=True)
+        for c in novas:  # o XP da conquista (PRG-02), sem reavaliar as conquistas nem avisar de novo
+            for ouvinte in list(_ouvintes):
+                ouvinte(user.id, "conquista", {"raridade": c.raridade, "conquista_id": c.id})
+        total += len(novas)
         db.session.commit()
+        despachar_adiados()
     return len(usuarios), total

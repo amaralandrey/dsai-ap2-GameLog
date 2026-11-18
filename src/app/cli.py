@@ -76,12 +76,13 @@ def register(app):
         """Popula o banco com dados fictícios reproduzíveis."""
         from .seed import run
 
-        run(seed, real=True)
+        populou = run(seed, real=True)
         from .conquistas_catalogo import sincronizar
         from .gamificacao import recalcular
 
-        sincronizar()  # GAM-02 e GAM-13: catálogo e conquistas da AP1 a cada subida, sem duplicar
-        recalcular()
+        criadas, _ = sincronizar()  # GAM-02: catálogo a cada subida, sem duplicar
+        if populou or criadas:  # GAM-13: só quando há histórico ou conquista novos
+            recalcular()
         from .rankings import abrir_temporada
 
         abrir_temporada()  # RNK-01

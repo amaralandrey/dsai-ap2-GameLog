@@ -333,6 +333,38 @@ def test_gam_13_recalcular_sem_aviso_para_antigas(base):
     assert r.output.strip() == "usuarios=3 desbloqueadas=0"
 
 
+def test_gam_13_recalcular_da_o_xp_das_conquistas_uma_vez(base):
+    from app.models import ExtratoXP
+
+    with base.app_context():
+        a = uid(base)
+        for g in Game.query.order_by(Game.id).limit(5):
+            db.session.add(Review(user_id=a, game_id=g.id, score=7, created_at=now() - timedelta(days=30)))
+        db.session.commit()
+    base.test_cli_runner().invoke(args=["conquistas", "recalcular"])
+    base.test_cli_runner().invoke(args=["conquistas", "recalcular"])
+    with base.app_context():
+        desbloqueadas = UsuarioConquista.query.filter(UsuarioConquista.user_id == a,
+                                                      UsuarioConquista.desbloqueada_em.isnot(None)).count()
+        lancadas = ExtratoXP.query.filter_by(user_id=a, origem_tipo="conquista").count()
+        assert desbloqueadas >= 2 and lancadas == desbloqueadas
+
+
+def test_gam_13_seed_so_recalcula_com_historico_ou_conquista_novos(base, monkeypatch):
+    from app import conquistas_catalogo, seed
+
+    chamadas = []
+    monkeypatch.setattr(gamificacao, "recalcular", lambda *a: chamadas.append(1))
+    monkeypatch.setattr(seed, "run", lambda *a, **k: False)
+    monkeypatch.setattr(conquistas_catalogo, "sincronizar", lambda: (0, len(CATALOGO)))
+    monkeypatch.setattr("app.rankings.abrir_temporada", lambda: None)
+    base.test_cli_runner().invoke(args=["seed"])
+    assert chamadas == []
+    monkeypatch.setattr(conquistas_catalogo, "sincronizar", lambda: (1, 0))
+    base.test_cli_runner().invoke(args=["seed"])
+    assert chamadas == [1]
+
+
 # ---------- GAM-14, GAM-15 ----------
 def test_gam_14_por_tempo_nao_vale_para_menor_protegido(base, monkeypatch):
     monkeypatch.setitem(politica.ACOES, "conquista_por_tempo", lambda user, alvo=None: user.username != "ana")
