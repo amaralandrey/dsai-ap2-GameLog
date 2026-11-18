@@ -225,17 +225,14 @@ def _levar_dispensas(principal, secundario):
 
 
 def _levar_atividades(principal, secundario):
-    """Atividade de avaliação acompanha a avaliação, nos dois sentidos; as demais vão para o principal."""
+    """Atividade de avaliação acompanha a avaliação, e a de lista acompanha o item (LIS-06); as demais vão
+    para o principal."""
+    ficaram = {i.list_id for i in ListItem.query.filter_by(game_id=secundario.id)}
     for a in Activity.query.filter(Activity.game_id.in_((principal.id, secundario.id))):
-        a.game_id = a.review.game_id if a.review_id else principal.id
-
-
-def _levar_vinculos(principal, secundario):
-    """Vínculo de uma loja que o principal já tem fica no secundário (FNT-04)."""
-    tem = {v.fonte for v in principal.fontes}
-    for v in list(secundario.fontes):
-        if v.fonte not in tem:
-            v.game = principal
+        if a.review_id:
+            a.game_id = a.review.game_id
+        elif not (a.game_id == secundario.id and a.list_id in ficaram):
+            a.game_id = principal.id
 
 
 def _levar_pendencias(principal, secundario, admin_id):

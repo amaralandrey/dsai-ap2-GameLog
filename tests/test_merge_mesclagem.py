@@ -195,6 +195,18 @@ def test_mrg06_principal_removido_e_recusado(mundo):
     assert "principal foi removido" in mundo.adm.get(r.headers["Location"]).get_data(as_text=True)
 
 
+def test_lis06_atividade_de_lista_acompanha_o_item(mundo):
+    i = mundo.ids
+    with mundo.app.app_context():
+        db.session.add_all([Activity(user_id=i["bia"], kind="lista_jogo", game_id=i["s"], list_id=i["l2"]),
+                            Activity(user_id=i["ana"], kind="lista_jogo", game_id=i["s"], list_id=i["l1"])])
+        db.session.commit()
+    mesclar(mundo)
+    with mundo.app.app_context():
+        assert de(Activity, i["s"], list_id=i["l2"]).count() == 1  # o item da Roguelikes ficou no secundário
+        assert de(Activity, i["p"], list_id=i["l1"]).count() == 1
+
+
 # ---------- MRG-08 ----------
 def test_mrg08_secundario_removido_aponta_para_o_principal_e_responde_301(mundo):
     mesclar(mundo)
