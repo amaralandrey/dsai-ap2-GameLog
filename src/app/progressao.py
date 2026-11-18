@@ -100,7 +100,7 @@ def _somar(user_id, xp):
         user = db.session.get(User, user_id)
         notificar(user_id, "nivel", texto=f"nível {novo}", alvo_url=f"/u/{user.username}/xp")
         db.session.flush()
-        gamificacao.emitir_evento(user_id, "nivel", nivel=novo)
+        gamificacao.adiar_evento(user_id, "nivel", nivel=novo)
 
 
 def estornar(user_id, origem_tipo, origem_id):
@@ -261,6 +261,7 @@ def ajustar():
             db.session.add(AuditLog(admin_id=current_user().id, action="xp.ajustar",
                                     detail=f"@{alvo.username} {xp:+d}: {justificativa}"[:300]))
             db.session.commit()
+            gamificacao.despachar_adiados()
             flash(f"Ajuste de {xp:+d} XP aplicado a @{alvo.username}.", "ok")
             return redirect("/admin/xp")
     return render_template("progressao/admin.html", erros=erros, form=form), (400 if erros else 200)

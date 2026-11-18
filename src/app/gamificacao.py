@@ -297,7 +297,21 @@ def emitir_evento(user_id, tipo, **ctx):
     except Exception:
         log.exception("motor de conquistas falhou no evento %s do usuário %s", tipo, user_id)
         db.session.rollback()
+        db.session.info.pop("eventos_adiados", None)  # eram consequência do que foi desfeito
         return []
+
+
+def adiar_evento(user_id, tipo, **ctx):
+    """Evento que nasce dentro de outro (nível, meta de clube): ouvintes nunca fazem commit, então ele espera
+    o commit de quem o causou e sai em despachar_adiados."""
+    db.session.info.setdefault("eventos_adiados", []).append((user_id, tipo, ctx))
+
+
+def despachar_adiados():
+    """Emite os eventos adiados; quem grava fora de emitir_evento (ex.: /admin/xp) chama depois do commit."""
+    while db.session.info.get("eventos_adiados"):
+        user_id, tipo, ctx = db.session.info["eventos_adiados"].pop(0)
+        emitir_evento(user_id, tipo, **ctx)
 
 
 def _emitir(user_id, tipo, ctx):
@@ -306,12 +320,14 @@ def _emitir(user_id, tipo, ctx):
     metricas = [m.nome for m in METRICAS.values() if tipo in m.eventos]
     if not metricas:  # nenhum ouvinte de conquista: nenhuma consulta às conquistas
         db.session.commit()
+        despachar_adiados()
         return []
     user = db.session.get(User, user_id)
     novas = avaliar(user, metricas) if user is not None else []
     db.session.commit()
     for c in novas:
         _emitir(user_id, "conquista", {"raridade": c.raridade, "conquista_id": c.id})
+    despachar_adiados()
     return novas
 
 

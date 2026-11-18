@@ -319,3 +319,23 @@ def test_prg_11_ajuste_do_admin_validado_e_auditado(base):
     with base.app_context():
         assert AuditLog.query.one().action == "xp.ajustar"
     assert cliente(base).post("/admin/xp", data={"usuario": "ana", "xp": "5", "justificativa": "x"}).status_code == 403
+
+
+def test_prg_11_falha_no_evento_de_nivel_nao_separa_lancamento_e_auditoria(base, monkeypatch):
+    from app import gamificacao
+
+    vistos = []
+
+    def quebra_no_nivel(user_id, tipo, ctx):
+        vistos.append(tipo)
+        if tipo == "nivel":
+            with base.app_context():  # o evento derivado só roda depois do commit do ajuste
+                assert ExtratoXP.query.count() == 1 and AuditLog.query.count() == 1
+            raise RuntimeError("conquista de nível quebrou")
+    monkeypatch.setattr(gamificacao, "_ouvintes", gamificacao._ouvintes + [quebra_no_nivel])
+    r = cliente(base, "chefe").post("/admin/xp", data={"usuario": "ana", "xp": "500", "justificativa": "bônus"},
+                                    follow_redirects=True)
+    assert "Ajuste de +500 XP aplicado" in r.get_data(as_text=True) and vistos == ["nivel"]
+    assert extrato(base) == [("ajuste", 500, "bônus")] and perfil(base).nivel == 3
+    with base.app_context():
+        assert AuditLog.query.one().action == "xp.ajustar"

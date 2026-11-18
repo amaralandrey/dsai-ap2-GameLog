@@ -165,7 +165,7 @@ def progresso(meta):
 
 
 def avaliar_meta(meta, clube):
-    """Marca a meta como atingida uma única vez e avisa (CLB-08)."""
+    """Marca a meta como atingida uma única vez e avisa (CLB-08); quem chama faz o commit."""
     if meta.atingida_em is not None or not meta.inicio <= hoje() or meta.fim < meta.inicio:
         return False
     total, _ = progresso(meta)
@@ -184,9 +184,8 @@ def avaliar_meta(meta, clube):
     if clube.publico:
         dono = MembroClube.query.filter_by(clube_id=clube.id, papel="dono").first()
         db.session.add(Activity(user_id=dono.user_id, kind="clube", texto=f"comemora: o clube {clube.nome} atingiu uma meta"))
-    db.session.commit()
     for user_id in contribuintes:
-        gamificacao.emitir_evento(user_id, "meta_clube", meta_id=meta.id)
+        gamificacao.adiar_evento(user_id, "meta_clube", meta_id=meta.id)
     return True
 
 
@@ -396,8 +395,10 @@ def nova_meta(slug):
         return redirect(f"/clubes/{slug}")
     meta = MetaClube(clube_id=clube.id, tipo=tipo, alvo=alvo, inicio=inicio, fim=fim, game_id=game.id if game else None)
     db.session.add(meta)
-    db.session.commit()
+    db.session.flush()
     avaliar_meta(meta, clube)
+    db.session.commit()
+    gamificacao.despachar_adiados()
     return redirect(f"/clubes/{slug}")
 
 
