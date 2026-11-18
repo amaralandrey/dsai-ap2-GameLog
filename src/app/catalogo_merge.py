@@ -21,7 +21,7 @@ SUFIXOS_DE_EDICAO = (  # lista fixa, já normalizada; a mais longa primeiro (MRG
 _SUFIXOS = re.compile(r"\b(?:" + "|".join(re.escape(s) for s in SUFIXOS_DE_EDICAO) + r")\b")
 DESENVOLVEDORA_DESCONHECIDA = slugify("Desenvolvedora desconhecida")  # não conta como "mesma desenvolvedora"
 PESO_TITULO, PESO_ANO, PESO_ANO_VIZINHO, PESO_DEV = 70, 20, 10, 10
-MESMO_JOGO, PARECIDO, ANOS_MAX = 90, 70, 2  # MRG-02, MRG-03
+MESMO_JOGO, PARECIDO = 90, 70  # MRG-02, MRG-03
 
 Perfil = namedtuple("Perfil", "titulo ano dev")
 
@@ -135,8 +135,7 @@ def reconhecer(fonte, j, titulo, data):
     if achado is None:
         return Decisao("criar", None, None)
     nota, game = achado
-    perto = abs(game.release_date.year - data.year) <= ANOS_MAX
-    if nota >= MESMO_JOGO and perto and not ocupado(game, fonte, external_id):
+    if nota >= MESMO_JOGO and not ocupado(game, fonte, external_id):  # ≥ 90 já implica até 1 ano de diferença
         return Decisao("vincular", game, nota)
     return Decisao("pendencia", game, nota)
 
