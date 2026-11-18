@@ -13,6 +13,7 @@ from sqlalchemy import func
 
 from . import serializadores
 from .diario import pode_ver_perfil
+from .diario_import import sem_formula
 from .listas import MAX_ITEMS, get_list
 from .models import (
     LOJAS, NOMES_DAS_LOJAS, STATUSES, Game, GameList, Genre, JogoFonte, ListaInteligente, ListItem, Review,
@@ -202,11 +203,6 @@ def progresso_inteligente(lista):
 
 
 # ---------- exportação (LSA-09) ----------
-def sem_formula(texto):
-    texto = str(texto)
-    return "'" + texto if texto[:1] in ("=", "+", "-", "@") else texto
-
-
 def _status_e_horas(user_id, games):
     ids = [g.id for g in games]
     if not ids:

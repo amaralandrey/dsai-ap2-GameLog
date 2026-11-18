@@ -183,7 +183,7 @@ def _interpretar(linha):
     zerei = fold(linha.get("zerei", ""))
     if zerei not in SIM | NAO:
         raise ErroImportacao("zerei deve ser sim ou não")
-    anotacao = linha.get("anotacao", "")
+    anotacao = com_formula(linha.get("anotacao", ""))
     if len(anotacao) > diario.MAX_ANOTACAO:
         raise ErroImportacao("anotação passa de 1000 caracteres")
     return {"jogada_em": jogada_em, "duracao_min": duracao, "inicio": inicio, "plataforma_id": plataforma_id,
@@ -273,10 +273,18 @@ def confirmar(previa, user):
     return criadas, puladas
 
 
+INICIO_DE_FORMULA = ("=", "+", "-", "@", "\t", "\r")
+
+
 def sem_formula(texto):
     """Prefixa com aspas simples o texto que viraria fórmula na planilha."""
     texto = str(texto)
-    return "'" + texto if texto[:1] in ("=", "+", "-", "@") else texto
+    return "'" + texto if texto[:1] in INICIO_DE_FORMULA else texto
+
+
+def com_formula(texto):
+    """Desfaz sem_formula, para o arquivo exportado voltar igual (HRS-11)."""
+    return texto[1:] if texto[:1] == "'" and texto[1:2] in INICIO_DE_FORMULA else texto
 
 
 def exportar_csv(user_id):

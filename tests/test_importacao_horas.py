@@ -338,3 +338,17 @@ def test_hrs_11_exportar_e_reimportar_da_tudo_duplicado(app, ana):
     assert "'=SOMA(A1)" in texto and ",hades," in texto
     _, linhas = previa(app, ana, texto)
     assert sorted(x["classe"] for x in linhas) == ["duplicada", "duplicada", "steam"]
+
+
+def test_hrs_11_anotacao_de_1000_caracteres_com_formula_volta_duplicada(app, ana):
+    ana.post("/jogos/hades/sessoes", data={"jogada_em": "2026-11-02", "duracao": "90", "anotacao": "-" * 1000})
+    _, linhas = previa(app, ana, ana.get("/diario/exportar.csv").get_data(as_text=True))
+    assert classes(linhas) == [("duplicada", "")]
+
+
+@pytest.mark.parametrize("texto,esperado", [("=1", "'=1"), ("+1", "'+1"), ("-1", "'-1"), ("@x", "'@x"),
+                                            ("\tx", "'\tx"), ("\rx", "'\rx"), ("ok", "ok")])
+def test_hrs_11_sem_formula(texto, esperado):
+    from app.diario_import import com_formula, sem_formula
+
+    assert sem_formula(texto) == esperado and com_formula(esperado) == texto
