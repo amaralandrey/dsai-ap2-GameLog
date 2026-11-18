@@ -169,7 +169,8 @@ STATUSES = {
 
 
 class Review(db.Model):
-    __table_args__ = (db.UniqueConstraint("user_id", "game_id"),)
+    # AUTOINCREMENT: o id vira origem do extrato de XP e não pode ser reaproveitado depois de apagar (PRG-03)
+    __table_args__ = (db.UniqueConstraint("user_id", "game_id"), {"sqlite_autoincrement": True})
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.ForeignKey("user.id"), nullable=False)
     game_id = db.Column(db.ForeignKey("game.id"), nullable=False)
@@ -295,6 +296,7 @@ ORIGENS_SESSAO = ("manual", "csv", "steam")
 
 class SessaoJogo(db.Model):
     """Uma sessão do diário (DIA-01); `origem` steam é um saldo acumulado da biblioteca (HRS-04)."""
+    __table_args__ = {"sqlite_autoincrement": True}  # o id vira origem do extrato de XP (PRG-03)
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.ForeignKey("user.id"), nullable=False, index=True)
     game_id = db.Column(db.ForeignKey("game.id"), nullable=False, index=True)

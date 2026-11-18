@@ -124,6 +124,22 @@ def test_prg_03_idempotente_e_estorno(base):
     assert [e[1] for e in extrato(base) if e[0].endswith("sessao")] == [10, -10]
 
 
+def test_prg_03_id_apagado_nao_e_reaproveitado(base):
+    ana = cliente(base)
+    for jogo in (0, 1):
+        ana.post(f"/jogos/jogo-{jogo}/avaliar", data={"score": 7})
+        with base.app_context():
+            rid = Review.query.one().id
+        ana.post(f"/avaliacoes/{rid}/apagar")
+        sessao(ana, jogo)
+        with base.app_context():
+            from app.models import SessaoJogo
+            sid = SessaoJogo.query.one().id
+        ana.post(f"/sessoes/{sid}/apagar")
+    xps = [e[1] for e in extrato(base) if e[0].endswith(("avaliacao", "sessao"))]
+    assert xps == [10, -10, 10, -10] * 2
+
+
 def test_prg_03_zerar_de_novo_nao_da_xp(base):
     ana = cliente(base)
     sessao(ana, 0, zerou="on")
