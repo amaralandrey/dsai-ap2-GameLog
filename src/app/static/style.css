@@ -73,6 +73,7 @@ footer{text-align:center;color:var(--mut);padding:24px;font-size:.85rem}
 .comments{margin-top:10px;padding-top:10px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
 .comment p{margin:4px 0 0 0;overflow-wrap:anywhere}
 .avatar.small{width:26px;height:26px;font-size:.7rem}
+.avatar.anonimo{background:var(--muted,#777)}
 .comment-form{display:flex;gap:8px;align-items:center}.comment-form input{flex:1;min-width:0}
 button.danger-link{color:var(--err);font-size:.85rem}
 /* estatísticas (EST-01..05) */

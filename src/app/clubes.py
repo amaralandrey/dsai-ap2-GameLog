@@ -246,9 +246,17 @@ def pagina(slug):
     def nome_visivel(user_id):
         u = usuarios.get(user_id)
         return u.display_name if u and pode_ver_perfil(me, u) else "membro do clube"
+
+    def autor(user_id):
+        """(usuário para o avatar, ou None, e o nome); perfil privado e ex-membro ficam sem iniciais."""
+        u = usuarios.get(user_id)
+        if u is None:
+            return None, "ex-membro"
+        return (u, u.display_name) if pode_ver_perfil(me, u) else (None, "membro do clube")
     return render_template(
         "clubes/clube.html", clube=clube, m=m, membros=membros, jdm=jdm, minutos_jdm=minutos_jdm, metas=metas,
-        mural=mural, pendentes=pendentes, tipos=TIPOS_META, nome_visivel=nome_visivel, top=top_horas(clube),
+        mural=mural, pendentes=pendentes, tipos=TIPOS_META, nome_visivel=nome_visivel, autor=autor,
+        top=top_horas(clube),
         reasons=REPORT_REASONS, modera=modera(m), ativo=ativo(m),
     )
 
@@ -332,6 +340,9 @@ def papel(slug, user_id, acao):
         alvo.papel = "moderador" if acao == "promover" else "membro"
     elif acao == "transferir":
         exigir(ativo(m) and m.papel == "dono")
+        if MembroClube.query.filter_by(user_id=alvo.user_id, papel="dono", situacao="ativo").count() >= MAX_DONO:
+            flash(f"Esse membro já é dono de {MAX_DONO} clubes, o máximo permitido.", "erro")
+            return redirect(f"/clubes/{slug}")
         alvo.papel, m.papel = "dono", "moderador"
     else:
         abort(404)
@@ -491,7 +502,7 @@ def moderacao(slug):
     clube, me, m = clube_ou_404(slug)
     exigir(modera(m))
     if request.method == "POST":
-        post = post_do_clube(clube, int(request.form.get("post", 0)))
+        post = post_do_clube(clube, request.form.get("post", 0, type=int))
         if request.form.get("decisao") == "manter":
             post.oculto, post.motivo_ocultacao = False, ""
             _decidir_denuncias(post, "rejeitada", me)

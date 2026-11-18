@@ -148,6 +148,15 @@ def test_clb_04_transferencia_de_dono(clube):
     assert membro(clube, "ana") is None
 
 
+def test_clb_04_transferencia_respeita_o_limite_de_dono(clube):
+    carla = cliente(clube, "carla")
+    for i in range(5):
+        criar(carla, f"Clube {i}")
+    r = cliente(clube, "ana").post(f"/clubes/roguelikes/membros/{uid(clube, 'carla')}/transferir", follow_redirects=True)
+    assert "já é dono de 5 clubes" in r.get_data(as_text=True)
+    assert membro(clube, "carla").papel == "membro" and membro(clube, "ana").papel == "dono"
+
+
 # ---------- CLB-05..08 ----------
 def sessao(app, nome, slug, dia, minutos, origem="manual"):
     with app.app_context():
@@ -315,6 +324,22 @@ def test_clb_11_denuncia_uma_vez_e_ocultacao_automatica(clube):
         decididas = Report.query.filter_by(alvo_tipo="post_clube").all()
         assert {r.status for r in decididas} == {"rejeitada"} and all(r.decided_by == uid(clube, "bia") for r in decididas)
     assert "ofensa" not in cliente(clube, "chefe").get("/admin/denuncias").get_data(as_text=True)
+
+
+def test_clb_10_autor_privado_no_mural_sem_nome_nem_iniciais(clube):
+    carla = cliente(clube, "carla")
+    carla.post("/u/carla/editar", data={"display_name": "Zuleica", "bio": "", "perfil_privado": "on"})
+    carla.post("/clubes/roguelikes/mural", data={"texto": "segredo"})
+
+    def autor(nome=None):
+        html = cliente(clube, nome).get("/clubes/roguelikes").get_data(as_text=True)
+        return html[html.index('class="post-clube"'):html.index("segredo")]
+    assert "membro do clube" in autor() and "anonimo" in autor() and "ZU" not in autor("ana")
+    assert "Zuleica" in autor("chefe") and "ZU" in autor("chefe")  # admin vê o perfil privado (DIA-12)
+
+
+def test_clb_11_moderacao_com_post_invalido_responde_404(clube):
+    assert cliente(clube, "bia").post("/clubes/roguelikes/moderacao", data={"post": "abc"}).status_code == 404
 
 
 # ---------- CLB-12, CLB-13 ----------
