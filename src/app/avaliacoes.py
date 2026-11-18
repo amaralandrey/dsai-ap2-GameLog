@@ -45,6 +45,7 @@ def rate(slug):
         flash("A resenha deve ter até 5000 caracteres.", "erro")  # AVA-03
         return back(game)
     review = Review.query.filter_by(user_id=me.id, game_id=game.id).first()
+    nova = review is None
     if review:  # AVA-02: nova submissão edita a existente
         review.score, review.text, review.spoiler, review.edited = score, text, bool(f.get("spoiler")), True
     else:
@@ -55,7 +56,7 @@ def rate(slug):
     if not Status.query.filter_by(user_id=me.id, game_id=game.id).first():  # AVA-11
         db.session.add(Status(user_id=me.id, game_id=game.id, value="jogado"))
     db.session.commit()
-    emitir_evento(me.id, "avaliacao", review_id=review.id, game_id=game.id)  # GAM-03
+    emitir_evento(me.id, "avaliacao", review_id=review.id, game_id=game.id, nova=nova)  # GAM-03
     emitir_evento(me.id, "status", game_id=game.id)
     flash("Avaliação salva.", "ok")
     return back(game, review)

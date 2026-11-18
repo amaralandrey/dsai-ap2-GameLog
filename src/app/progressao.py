@@ -122,7 +122,7 @@ def _creditar_zerados(user_id):
 
 @gamificacao.ouvir
 def ao_evento(user_id, tipo, ctx):
-    if tipo == "avaliacao" and ctx.get("review_id"):
+    if tipo == "avaliacao" and ctx.get("review_id") and ctx.get("nova", True):  # editar não dá XP nem sequência
         review = db.session.get(Review, ctx["review_id"])
         if review is not None:
             longa = len(review.text or "") >= RESENHA_MIN
@@ -133,7 +133,7 @@ def ao_evento(user_id, tipo, ctx):
         estornar(user_id, "avaliacao", ctx["review_id"])
     elif tipo == "sessao" and ctx.get("sessao_id"):
         sessao = db.session.get(SessaoJogo, ctx["sessao_id"])
-        if sessao is not None and sessao.origem == "manual":  # importadas não dão XP
+        if sessao is not None and sessao.origem == "manual" and ctx.get("nova", True):  # importadas e edições não
             lancar(user_id, "sessao", sessao.id, XP_SESSAO, "sessão no diário")
             registrar_semana(user_id)
         _creditar_zerados(user_id)

@@ -140,6 +140,24 @@ def test_prg_03_id_apagado_nao_e_reaproveitado(base):
     assert xps == [10, -10, 10, -10] * 2
 
 
+def test_prg_03_editar_conteudo_antigo_nao_da_xp_nem_sequencia(base):
+    from app.models import Game, SessaoJogo
+
+    with base.app_context():
+        a = uid(base)
+        jogos = Game.query.order_by(Game.id).limit(2).all()
+        db.session.add(Review(user_id=a, game_id=jogos[0].id, score=7, text=""))
+        s = SessaoJogo(user_id=a, game_id=jogos[1].id, jogada_em=date(2026, 11, 10), duracao_min=30)
+        db.session.add(s)
+        db.session.commit()
+        sid = s.id
+    ana = cliente(base)
+    ana.post("/jogos/jogo-0/avaliar", data={"score": 9, "text": "x" * 200})
+    ana.post(f"/sessoes/{sid}/editar", data={"jogada_em": "2026-11-10", "duracao": "45"})
+    assert [e for e in extrato(base) if e[0] in ("avaliacao", "sessao")] == []
+    assert perfil(base) is None or perfil(base).sequencia_semanas == 0
+
+
 def test_prg_03_zerar_de_novo_nao_da_xp(base):
     ana = cliente(base)
     sessao(ana, 0, zerou="on")

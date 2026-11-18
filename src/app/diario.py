@@ -331,7 +331,7 @@ def editar(sid):
         atualizar_atividade(sessao.user_id, sessao.game_id, dia_antigo)
         atualizar_atividade(sessao.user_id, sessao.game_id, sessao.jogada_em)
     db.session.commit()
-    emitir_evento(sessao.user_id, "sessao", sessao_id=sessao.id, game_id=game.id, origem=sessao.origem)
+    emitir_evento(sessao.user_id, "sessao", sessao_id=sessao.id, game_id=game.id, origem=sessao.origem, nova=False)
     flash("Sessão atualizada.", "ok")
     return redirect("/diario")
 
