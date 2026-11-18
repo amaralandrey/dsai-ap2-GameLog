@@ -5,6 +5,7 @@ from difflib import SequenceMatcher
 from itertools import combinations
 
 from sqlalchemy import or_, text
+from sqlalchemy.orm import joinedload
 
 from .fontes import FONTES, external_id_da_url
 from .models import (
@@ -120,13 +121,17 @@ def jogo_por_link(fonte, j):
     return None
 
 
+def _candidatos():
+    return visible_games().filter(Game.mesclado_em_id.is_(None)).options(joinedload(Game.developer))
+
+
 def reconhecer(fonte, j, titulo, data):
     """O que fazer com um item novo da fonte: ligar a um jogo, criar com pendência ou só criar (MRG-02, MRG-03)."""
     external_id = str(j.get("external_id"))
     game = jogo_por_link(fonte, j)
     if game is not None:
         return Decisao("repetido" if ocupado(game, fonte, external_id) else "vincular", game, None)
-    achado = mais_parecido(perfil_item(j, titulo, data), visible_games().filter(Game.mesclado_em_id.is_(None)))
+    achado = mais_parecido(perfil_item(j, titulo, data), _candidatos())
     if achado is None:
         return Decisao("criar", None, None)
     nota, game = achado
@@ -155,7 +160,7 @@ def registrar_pendencia(g1, g2, nota):
 
 def sugerir_duplicatas():
     """Compara os jogos do catálogo dois a dois e registra pendências, sem mesclar nada (MRG-04)."""
-    jogos = visible_games().filter(Game.mesclado_em_id.is_(None)).order_by(Game.id).all()
+    jogos = _candidatos().order_by(Game.id).all()
     perfis = {g.id: perfil_jogo(g) for g in jogos}
     novas = 0
     for g1, g2 in combinations(jogos, 2):
