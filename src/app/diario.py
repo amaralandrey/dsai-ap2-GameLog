@@ -140,18 +140,27 @@ def consistencia(user_id, jogada_em, duracao_min, inicio=None, ignorar_id=None, 
     `pendentes` são sessões ainda não gravadas (linhas anteriores do mesmo CSV), como dicionários com
     `jogada_em`, `duracao_min` e `inicio`. A sessão de saldo da Steam não entra em nenhuma das somas.
     """
-    if not 1 <= duracao_min <= MAX_MIN:
-        return "duração fora do intervalo de 1 minuto a 24 horas"
-    if jogada_em > hoje():
-        return "A data não pode estar no futuro"
+    problema = problema_entre(jogada_em, duracao_min, None, ())  # duração e data, antes de consultar
+    if problema:
+        return problema
+    um_dia = timedelta(days=1)
     vizinhas = (
         SessaoJogo.query.filter(SessaoJogo.user_id == user_id, SessaoJogo.origem.in_(("manual", "csv")),
-                                SessaoJogo.jogada_em.between(jogada_em - timedelta(days=1), jogada_em + timedelta(days=1)))
+                                SessaoJogo.jogada_em.between(jogada_em - um_dia, jogada_em + um_dia))
         .filter(SessaoJogo.id != (ignorar_id or 0))
         .all()
     )
     outras = [(s.jogada_em, s.duracao_min, s.inicio) for s in vizinhas]
     outras += [(p["jogada_em"], p["duracao_min"], p["inicio"]) for p in pendentes]
+    return problema_entre(jogada_em, duracao_min, inicio, outras)
+
+
+def problema_entre(jogada_em, duracao_min, inicio, outras):
+    """A regra de `consistencia` sobre `outras` (dia, duração, início) já carregadas, sem consultar o banco."""
+    if not 1 <= duracao_min <= MAX_MIN:
+        return "duração fora do intervalo de 1 minuto a 24 horas"
+    if jogada_em > hoje():
+        return "A data não pode estar no futuro"
     if sum(d for dia, d, _ in outras if dia == jogada_em) + duracao_min > MAX_MIN:
         return "a soma das sessões do dia passaria de 24 horas"
     if inicio is not None:

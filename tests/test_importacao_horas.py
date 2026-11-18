@@ -291,6 +291,24 @@ def test_hrs_09_sessao_que_atravessa_a_meia_noite_ve_as_do_dia_seguinte(app, ana
     assert classes(linhas) == [("erro", "sobrepõe a sessão de 02/11 às 00:30")]
 
 
+def test_hrs_07_consultas_da_previa_nao_crescem_com_as_linhas(app, ana):
+    from sqlalchemy import event
+
+    def consultas(n):
+        texto = "data,jogo,duracao,inicio\n" + "".join(
+            f"2026-10-{d:02d},{('hades', 'Celeste')[d % 2]},30,{h:02d}:00\n" for d in range(1, 11) for h in range(n))
+        contadas = []
+
+        def conta(*a):
+            contadas.append(1)
+        with app.app_context():
+            event.listen(db.engine, "before_cursor_execute", conta)
+            assert enviar(ana, texto).status_code == 302
+            event.remove(db.engine, "before_cursor_execute", conta)
+        return len(contadas)
+    assert consultas(10) == consultas(1)  # 100 linhas custam o mesmo que 10
+
+
 def test_hrs_09_soma_do_dia_acima_de_24h(app, ana):
     _, linhas = previa(app, ana, "data,jogo,duracao\n2026-11-01,hades,20h\n2026-11-01,celeste,5h\n")
     assert classes(linhas)[1] == ("erro", "a soma das sessões do dia passaria de 24 horas")

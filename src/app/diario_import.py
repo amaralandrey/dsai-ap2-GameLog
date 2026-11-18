@@ -8,7 +8,8 @@ import io
 import json
 import os
 import re
-from datetime import timedelta
+from collections import defaultdict
+from datetime import date, timedelta
 
 from flask import Blueprint, Response, abort, flash, redirect, render_template, request
 from sqlalchemy import func
@@ -158,12 +159,12 @@ def achar_jogo(texto):
     return jogo or Game.query.filter(func.lower(Game.title) == texto.lower(), Game.removed_at.is_(None)).first()
 
 
-def _interpretar(linha):
+def _interpretar(linha, achar=achar_jogo):
     """(dados da sessão, jogo) ou levanta ErroImportacao com o motivo da linha."""
     jogada_em = diario.ler_data(linha.get("data"))
     if jogada_em is None:
         raise ErroImportacao("data inválida")
-    jogo = achar_jogo(linha.get("jogo", ""))
+    jogo = achar(linha.get("jogo", ""))
     if jogo is None:
         raise ErroImportacao("jogo não encontrado")
     duracao = diario.ler_duracao(linha.get("duracao"))
@@ -195,31 +196,70 @@ def sessao_existe(user_id, game_id, dados):
                                       inicio=dados["inicio"], duracao_min=dados["duracao_min"]).first() is not None
 
 
+def _sessoes_entre(user_id, datas):
+    """Sessões do usuário do dia anterior à primeira data até o dia seguinte à última, numa consulta."""
+    if not datas:
+        return []
+    de, ate = _tres_dias(min(datas))[0], _tres_dias(max(datas))[-1]
+    return SessaoJogo.query.filter(SessaoJogo.user_id == user_id, SessaoJogo.jogada_em.between(de, ate)).all()
+
+
+def _tres_dias(dia):
+    """O dia anterior, o dia e o seguinte, sem passar dos limites de `date`."""
+    o = dia.toordinal()
+    return [date.fromordinal(x) for x in (o - 1, o, o + 1) if 1 <= x <= date.max.toordinal()]
+
+
 def classificar(user_id, linhas):
-    """Cada linha vira `nova`, `duplicada`, `erro` (com motivo) ou `steam` (ignorada, HRS-07, HRS-08)."""
-    resultado, vistas, pendentes = [], set(), []
+    """Cada linha vira `nova`, `duplicada`, `erro` (com motivo) ou `steam` (ignorada, HRS-07, HRS-08).
+
+    Jogos e sessões são carregados uma vez para o arquivo inteiro; a regra de HRS-09 roda em memória.
+    """
+    jogos = {}
+
+    def achar(texto):
+        chave = texto.strip().lower()
+        if chave not in jogos:
+            jogos[chave] = achar_jogo(texto)
+        return jogos[chave]
+
+    lidas = []
     for n, linha in enumerate(linhas, start=2):  # a linha 1 é o cabeçalho
         item = {"linha": n, "jogo": linha.get("jogo", ""), "data": linha.get("data", ""),
                 "duracao": linha.get("duracao", "")}
         if fold(linha.get("origem", "")) == "steam":
-            resultado.append({**item, "classe": "steam", "motivo": "horas da Steam só entram pela importação da Steam"})
+            lidas.append(({**item, "classe": "steam", "motivo": "horas da Steam só entram pela importação da Steam"},))
             continue
         try:
-            dados, jogo = _interpretar(linha)
+            lidas.append((item, *_interpretar(linha, achar)))
         except ErroImportacao as exc:
-            resultado.append({**item, "classe": "erro", "motivo": str(exc)})
+            lidas.append(({**item, "classe": "erro", "motivo": str(exc)},))
+
+    existentes = _sessoes_entre(user_id, [x[1]["jogada_em"] for x in lidas if len(x) == 3])
+    vistas = {(s.game_id, s.jogada_em, s.inicio, s.duracao_min) for s in existentes}
+    por_dia = defaultdict(list)
+    for s in existentes:
+        if s.origem in ("manual", "csv"):
+            por_dia[s.jogada_em].append((s.jogada_em, s.duracao_min, s.inicio))
+
+    resultado = []
+    for lida in lidas:
+        if len(lida) == 1:
+            resultado.append(lida[0])
             continue
-        chave = (jogo.id, dados["jogada_em"], dados["inicio"], dados["duracao_min"])
-        if chave in vistas or sessao_existe(user_id, jogo.id, dados):
+        item, dados, jogo = lida
+        dia = dados["jogada_em"]
+        chave = (jogo.id, dia, dados["inicio"], dados["duracao_min"])
+        if chave in vistas:
             resultado.append({**item, "classe": "duplicada", "motivo": ""})
             continue
-        problema = diario.consistencia(user_id, dados["jogada_em"], dados["duracao_min"], dados["inicio"],
-                                       pendentes=pendentes)
+        outras = [s for vizinho in _tres_dias(dia) for s in por_dia[vizinho]]
+        problema = diario.problema_entre(dia, dados["duracao_min"], dados["inicio"], outras)
         if problema:
             resultado.append({**item, "classe": "erro", "motivo": problema})
             continue
         vistas.add(chave)
-        pendentes.append(dados)
+        por_dia[dia].append((dia, dados["duracao_min"], dados["inicio"]))
         resultado.append({**item, "classe": "nova", "motivo": "", "game_id": jogo.id, "dados": _para_json(dados)})
     return resultado
 
