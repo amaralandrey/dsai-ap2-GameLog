@@ -190,6 +190,11 @@ def _interpretar(linha):
             "zerou": zerei in SIM, "anotacao": anotacao, "spoiler": False}, jogo
 
 
+def sessao_existe(user_id, game_id, dados):
+    return SessaoJogo.query.filter_by(user_id=user_id, game_id=game_id, jogada_em=dados["jogada_em"],
+                                      inicio=dados["inicio"], duracao_min=dados["duracao_min"]).first() is not None
+
+
 def classificar(user_id, linhas):
     """Cada linha vira `nova`, `duplicada`, `erro` (com motivo) ou `steam` (ignorada, HRS-07, HRS-08)."""
     resultado, vistas, pendentes = [], set(), []
@@ -205,9 +210,7 @@ def classificar(user_id, linhas):
             resultado.append({**item, "classe": "erro", "motivo": str(exc)})
             continue
         chave = (jogo.id, dados["jogada_em"], dados["inicio"], dados["duracao_min"])
-        existe = SessaoJogo.query.filter_by(user_id=user_id, game_id=jogo.id, jogada_em=dados["jogada_em"],
-                                            inicio=dados["inicio"], duracao_min=dados["duracao_min"]).first()
-        if chave in vistas or existe:
+        if chave in vistas or sessao_existe(user_id, jogo.id, dados):
             resultado.append({**item, "classe": "duplicada", "motivo": ""})
             continue
         problema = diario.consistencia(user_id, dados["jogada_em"], dados["duracao_min"], dados["inicio"],
@@ -247,20 +250,27 @@ def previa_do_dono(pid):
 
 
 def confirmar(previa, user):
-    """Grava as linhas `nova` numa única transação e devolve quantas sessões criou (HRS-07, HRS-08)."""
-    criadas = 0
+    """Grava as linhas `nova` numa única transação e devolve (criadas, puladas) (HRS-07, HRS-08).
+
+    O diário pode ter mudado depois da prévia (outra prévia confirmada, sessão manual), então a duplicata e
+    HRS-09 são conferidas de novo; o flush de gravar_sessao deixa as linhas anteriores visíveis.
+    """
+    criadas = puladas = 0
     for linha in json.loads(previa.linhas):
         if linha["classe"] != "nova":
             continue
         game = db.session.get(Game, linha["game_id"])
-        if game is None or game.removed_at is not None:
+        dados = _de_json(linha["dados"])
+        if (game is None or game.removed_at is not None or sessao_existe(user.id, game.id, dados)
+                or diario.consistencia(user.id, dados["jogada_em"], dados["duracao_min"], dados["inicio"])):
+            puladas += 1
             continue
-        diario.gravar_sessao(user, game, _de_json(linha["dados"]), origem="csv")
+        diario.gravar_sessao(user, game, dados, origem="csv")
         criadas += 1
     registrar_importacao(user.id, criadas)
     db.session.delete(previa)
     db.session.commit()
-    return criadas
+    return criadas, puladas
 
 
 def sem_formula(texto):
@@ -316,8 +326,9 @@ def ver_previa(pid):
 @bp.route("/diario/importar/<int:pid>/confirmar", methods=["POST"])
 @login_required
 def confirmar_previa(pid):
-    criadas = confirmar(previa_do_dono(pid), current_user())
-    flash(f"Importação concluída: {criadas} sessões gravadas no diário.", "ok")
+    criadas, puladas = confirmar(previa_do_dono(pid), current_user())
+    aviso = f" Ficaram de fora {puladas}, que viraram duplicadas ou conflitantes desde a prévia." if puladas else ""
+    flash(f"Importação concluída: {criadas} sessões gravadas no diário.{aviso}", "ok")
     return redirect("/diario")
 
 

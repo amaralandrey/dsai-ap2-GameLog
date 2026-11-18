@@ -240,6 +240,22 @@ def test_hrs_08_reenvio_e_repeticao_no_arquivo_sao_duplicadas(app, ana):
     assert [x["classe"] for x in linhas] == ["duplicada", "duplicada"]
 
 
+def test_hrs_08_confirmar_duas_previas_do_mesmo_arquivo_grava_uma_vez(app, ana):
+    texto = "data,jogo,duracao,inicio\n2026-11-01,hades,90,20:00\n"
+    p1, _ = previa(app, ana, texto)
+    p2, _ = previa(app, ana, texto)
+    ana.post(f"/diario/importar/{p1}/confirmar")
+    r = ana.post(f"/diario/importar/{p2}/confirmar", follow_redirects=True)
+    assert len(sessoes(app)) == 1 and "Ficaram de fora 1, que viraram duplicadas" in r.get_data(as_text=True)
+
+
+def test_hrs_09_confirmar_confere_sessao_registrada_depois_da_previa(app, ana):
+    pid, _ = previa(app, ana, "data,jogo,duracao,inicio\n2026-11-01,hades,90,20:00\n")
+    ana.post("/jogos/celeste/sessoes", data={"jogada_em": "2026-11-01", "duracao": "60", "inicio": "20:30"})
+    ana.post(f"/diario/importar/{pid}/confirmar")
+    assert [s.origem for s in sessoes(app)] == ["manual"]
+
+
 def test_hrs_08_linha_de_origem_steam_e_ignorada(app, ana):
     _, linhas = previa(app, ana, "data,jogo,duracao,origem\n2026-11-01,hades,90,steam\n2026-11-01,hades,30,csv\n")
     assert [x["classe"] for x in linhas] == ["steam", "nova"]
