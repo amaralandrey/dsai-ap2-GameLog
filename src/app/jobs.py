@@ -11,7 +11,8 @@ from datetime import timedelta
 from sqlalchemy.exc import IntegrityError
 
 from . import tempo
-from .models import Job, db
+from .cron import proxima_execucao
+from .models import Agendamento, Job, db
 
 TAREFAS = {}
 ESPERA_BASE, ESPERA_MAX = timedelta(seconds=30), timedelta(hours=6)
@@ -124,8 +125,35 @@ def liberar_abandonados():
     return len(abandonados)
 
 
+# ---------- agendamentos (JOB-08) ----------
+def _marcar(ag, antes):
+    """Avança `ultima_execucao` só se ninguém avançou antes: o executor que conseguir enfileira."""
+    igual = Agendamento.ultima_execucao.is_(None) if antes is None else Agendamento.ultima_execucao == antes
+    mudou = (Agendamento.query.filter(Agendamento.id == ag.id, igual)
+             .update({"ultima_execucao": tempo.agora_utc()}, synchronize_session=False))
+    db.session.commit()
+    return mudou == 1
+
+
+def enfileirar_agendados():
+    """Um job por agendamento vencido; execuções perdidas viram um job só. Devolve quantos enfileirou."""
+    enfileirados = 0
+    for ag in Agendamento.query.filter_by(ativo=True).order_by(Agendamento.id).all():
+        antes = ag.ultima_execucao
+        if antes is None:  # recém-criado: conta a partir de agora
+            _marcar(ag, None)
+            continue
+        prevista = proxima_execucao(ag.cron, tempo.para_belem(antes))
+        if prevista > tempo.agora() or ag.tipo not in TAREFAS or not _marcar(ag, antes):
+            continue
+        enfileirar(ag.tipo, chave_unica=f"agenda:{ag.nome}:{prevista.isoformat()}", **json.loads(ag.args))
+        enfileirados += 1
+    return enfileirados
+
+
 def ciclo(limite=50, executor=None):
-    """Um ciclo do executor; devolve a contagem que `jobs rodar` imprime (JOB-04)."""
+    """Um ciclo do executor; devolve a contagem que `jobs rodar` imprime (JOB-04, JOB-08)."""
+    enfileirar_agendados()
     liberar_abandonados()
     ids = [i for (i,) in db.session.query(Job.id)
            .filter(Job.status == "pendente", Job.executar_em <= tempo.agora_utc())

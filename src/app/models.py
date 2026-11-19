@@ -288,6 +288,14 @@ class Agendamento(db.Model):
     ativo = db.Column(db.Boolean, default=True, nullable=False)
     ultima_execucao = db.Column(db.DateTime, nullable=True)
 
+    @validates("cron")
+    def _cron_valido(self, _, cron):
+        from .cron import CronInvalido, validar
+
+        if problema := validar(cron):
+            raise CronInvalido(f"cron: {problema}")
+        return cron
+
 
 def visible_games():
     """Jogos não removidos (CAT-07)."""

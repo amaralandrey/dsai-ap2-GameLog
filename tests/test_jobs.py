@@ -159,3 +159,90 @@ def test_job_05_abandonado_volta_para_pendente_contando_tentativa(app, tarefas, 
         assert jobs.ciclo()["ok"] == 1
         j = db.session.get(Job, jid)
         assert (j.status, j.tentativas, j.travado_por) == ("ok", 1, None)
+
+
+# ---------- JOB-07, JOB-08 ----------
+@pytest.mark.parametrize("expressao", ["* * * * *", "*/15 4 1,15 1-6 1-5", "0 0 29 2 *", "30 4 * * 7",
+                                       "1-30/5 * * * 0"])
+def test_job_07_cron_valido(expressao):
+    from app.cron import validar
+
+    assert validar(expressao) is None
+
+
+@pytest.mark.parametrize("expressao,trecho", [
+    ("* * * *", "5 campos"), ("60 * * * *", "minuto: 60 fora de 0 a 59"), ("* 24 * * *", "hora: 24"),
+    ("* * 0 * *", "dia do mês: 0"), ("* * * 13 *", "mês: 13"), ("* * * * 8", "dia da semana: 8"),
+    ("*/0 * * * *", "minuto: 0 fora de 1"), ("5-1 * * * *", "invertido"), ("a * * * *", "não é um número"),
+    ("0 0 31 2 *", "nunca acontece"), ("", "5 campos"),
+])
+def test_job_07_cron_invalido_com_mensagem_do_campo(expressao, trecho):
+    from app.cron import validar
+
+    assert trecho in validar(expressao)
+
+
+@pytest.mark.parametrize("expressao,depois_de,esperado", [
+    ("*/15 * * * *", (2026, 11, 16, 10, 59, 30), (2026, 11, 16, 11, 0)),  # virada de hora
+    ("0 4 * * *", (2026, 11, 16, 4, 0), (2026, 11, 17, 4, 0)),  # estritamente depois
+    ("30 23 * * *", (2026, 11, 30, 23, 45), (2026, 12, 1, 23, 30)),  # virada de dia e de mês
+    ("0 0 1 1 *", (2026, 12, 31, 23, 59), (2027, 1, 1, 0, 0)),  # virada de ano
+    ("0 0 29 2 *", (2026, 3, 1, 0, 0), (2028, 2, 29, 0, 0)),  # só em ano bissexto
+    ("0 9 * * 1", (2026, 11, 16, 9, 0), (2026, 11, 23, 9, 0)),  # segunda-feira
+    ("0 9 13 * 5", (2026, 11, 1, 0, 0), (2026, 11, 6, 9, 0)),  # dia 13 OU sexta, como no cron do Unix
+])
+def test_job_07_proxima_execucao_nas_viradas(expressao, depois_de, esperado):
+    from app.cron import proxima_execucao
+
+    assert proxima_execucao(expressao, datetime(*depois_de)) == datetime(*esperado)
+    com_fuso = proxima_execucao(expressao, datetime(*depois_de, tzinfo=tempo.FUSO))
+    assert com_fuso == datetime(*esperado, tzinfo=tempo.FUSO)
+
+
+def test_job_07_agendamento_com_cron_invalido_nao_grava(app):
+    from app.cron import CronInvalido
+    from app.models import Agendamento
+
+    with app.app_context(), pytest.raises(CronInvalido, match="cron: hora: 25"):
+        Agendamento(nome="x", cron="0 25 * * *", tipo="anota")
+
+
+def agendamento(app, cron="0 4 * * *", ativo=True, tipo="anota"):
+    from app.models import Agendamento
+
+    with app.app_context():
+        db.session.add(Agendamento(nome="diario", cron=cron, tipo=tipo, args='{"n": 7}', ativo=ativo))
+        db.session.commit()
+
+
+def test_job_08_agendamento_vencido_vira_um_job_sem_duplicar(app, tarefas, relogio):
+    agendamento(app)
+    with app.app_context():
+        assert jobs.enfileirar_agendados() == 0  # recém-criado: conta a partir de agora (16/11 12:00)
+        relogio.andar(hours=16)  # 17/11 04:00 em Belém
+        assert jobs.enfileirar_agendados() == 1 and jobs.enfileirar_agendados() == 0
+        j = Job.query.one()
+        assert j.chave_unica == "agenda:diario:2026-11-17T04:00:00-03:00" and j.args == '{"n": 7}'
+        relogio.andar(days=3)  # três execuções perdidas viram uma só
+        assert jobs.ciclo()["executados"] == 2 and Job.query.count() == 2
+        assert tarefas == [{"n": 7}, {"n": 7}]
+
+
+def test_job_08_agendamento_desligado_nao_enfileira(app, tarefas, relogio):
+    agendamento(app, ativo=False)
+    with app.app_context():
+        relogio.andar(days=2)
+        jobs.ciclo()
+        assert Job.query.count() == 0
+
+
+def test_job_08_dois_executores_marcam_o_agendamento_uma_vez(app, tarefas, relogio):
+    from app.models import Agendamento
+
+    agendamento(app)
+    with app.app_context():
+        jobs.enfileirar_agendados()
+        antes = Agendamento.query.one().ultima_execucao
+        relogio.andar(days=1)
+        ag = Agendamento.query.one()
+        assert jobs._marcar(ag, antes) and not jobs._marcar(ag, antes)
