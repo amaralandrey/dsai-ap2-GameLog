@@ -1,8 +1,8 @@
-# Sessão Claude Code: correções da review dos PRs #21–#23 e fila de jobs (2026-11-18)
+# Sessão Claude Code: correções da review dos PRs #21–#23, fila de jobs e verificação de idade (2026-11-18)
 
 **Ferramenta:** Claude Code CLI (Claude Opus 5.5, `claude-opus-5-5`), sem subagentes
 **Quem conduziu:** Andrey Amaral
-**Horário:** 19:53–21:20 (horário de Belém)
+**Horário:** 19:53–21:55 (horário de Belém)
 **Ponto de partida:** PRs #21 (Épico 2, restante), #22 (Épico 3) e #23 (Épico 4) abertos, com a review do Fbc00 de 2026-11-17
 
 ## Custo
@@ -11,13 +11,13 @@ Medido no log da sessão do Claude Code (`~/.claude/projects/.../32a7a036-....js
 
 | Tipo de token | Tokens | Preço (US$/1M) | Custo (US$) |
 |---|---:|---:|---:|
-| Entrada | 426 | 4,00 | 0,00 |
-| Saída | 154.487 | 20,00 | 3,09 |
-| Leitura de cache | 40.034.381 | 0,20 | 8,01 |
-| Escrita de cache (TTL 1h) | 314.397 | 8,00 | 2,52 |
-| **Total** | **40.503.691** | | **≈ 13,61** |
+| Entrada | 490 | 4,00 | 0,00 |
+| Saída | 194.747 | 20,00 | 3,89 |
+| Leitura de cache | 51.760.354 | 0,20 | 10,35 |
+| Escrita de cache (TTL 1h) | 367.022 | 8,00 | 2,94 |
+| **Total** | **52.322.613** | | **≈ 17,19** |
 
-São 205 requisições ao modelo, com a sessão inteira: as correções da review e a fila de jobs. A conta foi refeita antes desta atualização do registro, então ficam de fora as últimas respostas: esta edição e o push.
+São 236 requisições ao modelo, com a sessão inteira: as correções da review, a fila de jobs e a verificação de idade. A conta foi refeita antes desta atualização do registro, então ficam de fora as últimas respostas: esta edição e o push.
 
 ## Prompts
 
@@ -30,6 +30,7 @@ São 205 requisições ao modelo, com a sessão inteira: as correções da revie
 7. so could we implement epic 8 then?
 8. map out everything I could start now from main
 9. yes, start JOB from main
+10. start IDA from main
 
 ## Como foi feito
 
@@ -109,10 +110,30 @@ São 205 requisições ao modelo, com a sessão inteira: as correções da revie
   - `jobs agendar` não muda o liga/desliga feito pelo admin;
   - `enriquecer_snapshot` termina com `ErroPermanente` enquanto o snapshot do #21 não estiver na `main`.
 
+## Verificação de idade (SPEC-30, PR #25)
+
+- **Branch `feat/verificacao-de-idade` a partir da `main`, com 4 commits:**
+
+| Critérios | Commit | O quê |
+|---|---|---|
+| IDA-03, 06, 07, 08 | `e4caddf` | faixa etária, adaptadores, regra de divergência e histórico só de inserção |
+| IDA-01, 02, 04, 05, 09 | `a6397e9` | cadastro com data, `/conta/pendente`, `/conta/nascimento`, conta suspensa no login |
+| IDA-07, 10 | `ee33aea` | `/conta/idade` e provedor simulado (404 sem `VERIFICACAO_PROVEDOR`) |
+| IDA-11, 12 | `1fb850a` | `/admin/usuarios` com contestação auditada; o nascimento fora de todas as respostas |
+
+- **Testes:** 49 em `tests/test_idade.py`; a suíte da branch tem 319.
+- **Teste de merge:** numa branch local descartável, este PR mesclado com o #23 passou nos 849 testes. Os conflitos são só de linhas acrescentadas no mesmo ponto (`routes.py`, `README.md`, `.env.example`). As colunas de `User` ficam antes de `role`, longe das que o #23 acrescenta.
+- **Decisões:**
+  - a checagem de conta pendente ou sem data fica em `login_required` e `admin_required`, então rotas públicas continuam respondendo (IDA-04);
+  - um sinal confiável corrige um não confiável; entre sinais de mesma confiança, vale o mais protetivo, e um sinal mais novo protege mesmo sem prova (IDA-08 com IDA-10);
+  - `User.nascimento_confiavel` guarda se a data veio de um sinal confiável;
+  - o convite do responsável e o adaptador `responsavel` ficam sem tela até o RSP.
+
 ## Pontos de atenção
 
 - **`rankings.apurar`** continua trazendo o ranking inteiro para o Python. Os filtros de PMN (`pode`) e BLQ (`bloqueados_com`) só existem em Python, e o cartão RNK-06 precisa da posição na lista inteira. Isso fica para quando as specs de PMN e BLQ forem implementadas.
 - **Nit de comentários:** o Fbc00 apontou de 110 a 150 linhas de comentário em cada PR. Não foi tratado; ofereci um commit de limpeza em cada um.
 - **Banco local:** depois do #23, o banco precisa de `./dev.sh reset` (`AUTOINCREMENT` em `review` e `sessao_jogo`).
-- **Ordem de merge:** #21 → #22 → #23 → #24. O #23 aguarda nova aprovação, porque a anterior foi dada antes dos achados. O #24 precisa da `main` mesclada depois do #23, para resolver os 4 conflitos triviais.
+- **Ordem de merge:** #21 → #22 → #23 → #24 → #25. O #25 também pede `./dev.sh reset` (colunas novas em `user`), e o admin do deploy informa a data de nascimento no primeiro login (IDA-05).
+- **Ordem de merge (detalhe):** #21 → #22 → #23 → #24. O #23 aguarda nova aprovação, porque a anterior foi dada antes dos achados. O #24 precisa da `main` mesclada depois do #23, para resolver os 4 conflitos triviais.
 - **Divisão de autoria:** o Fabrício ainda não tem commits no repositório, e o plano pede pelo menos 30% de autoria de cada um. O Épico 5 continua com ele.
