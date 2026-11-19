@@ -4,7 +4,7 @@ services:
     runtime: python
     plan: free
     buildCommand: pip install -r requirements.txt
-    startCommand: cd src && flask --app app seed && gunicorn "app:create_app()" --bind 0.0.0.0:$PORT --workers 2 --timeout 60
+    startCommand: cd src && flask --app app seed && flask --app app jobs agendar && gunicorn "app:create_app()" --bind 0.0.0.0:$PORT --workers 2 --timeout 60
     envVars:
       - key: PYTHON_VERSION
         value: 3.12.3
@@ -13,4 +13,6 @@ services:
       - key: ADMIN_EMAIL
         sync: false
       - key: ADMIN_PASSWORD
+        sync: false
+      - key: JOBS_TOKEN
         sync: false

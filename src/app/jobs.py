@@ -3,6 +3,7 @@
 Quem executa é `flask jobs rodar` ou `POST /jobs/ciclo`, chamados de fora; a trava por UPDATE condicional
 garante que dois executores (ou os 2 workers do gunicorn) nunca rodem o mesmo job ao mesmo tempo.
 """
+import hmac
 import json
 import os
 import signal
@@ -11,7 +12,7 @@ import time
 from datetime import timedelta
 
 import click
-from flask import Blueprint, flash, redirect, render_template, request
+from flask import Blueprint, abort, current_app, flash, jsonify, redirect, render_template, request
 from sqlalchemy.exc import IntegrityError
 
 from . import tempo
@@ -225,6 +226,19 @@ def rodar_cmd(uma_vez, limite, intervalo):
         fim = time.monotonic() + intervalo
         while not parar and time.monotonic() < fim:
             time.sleep(0.2)
+
+
+# ---------- disparo externo (JOB-11) ----------
+@bp.route("/jobs/ciclo", methods=["POST"])
+def ciclo_http():
+    """Um ciclo curto para o cron HTTP externo; no plano gratuito do Render o cron não vê o disco do web."""
+    esperado = current_app.config.get("JOBS_TOKEN") or os.environ.get("JOBS_TOKEN")
+    if not esperado:
+        abort(404)
+    recebido = request.headers.get("Authorization", "")
+    if not hmac.compare_digest(recebido.encode(), f"Bearer {esperado}".encode()):
+        return jsonify(erro="token inválido"), 401
+    return jsonify(ciclo(limite=10))
 
 
 # ---------- painel do admin (JOB-10) ----------

@@ -376,3 +376,36 @@ def test_job_10_acoes_com_auditoria(app, chefe, tarefas):
                                                                             "jobs.agendamento"]
     assert chefe.post("/admin/jobs/999/retentar").status_code == 404
     assert "Ligar" in chefe.get("/admin/jobs").get_data(as_text=True)
+
+
+# ---------- JOB-11 ----------
+def test_job_11_criar_o_app_nao_inicia_agendador_nem_thread(tmp_path):
+    import sys
+
+    from app import create_app
+
+    antes = threading.active_count()
+    create_app({"TESTING": True, "SQLALCHEMY_DATABASE_URI": f"sqlite:///{tmp_path}/x.db"})
+    assert threading.active_count() == antes
+    assert not {"apscheduler", "sched", "schedule", "celery", "rq"} & set(sys.modules)
+
+
+def test_job_11_rota_ciclo_com_token(tmp_path, tarefas):
+    from app import create_app
+
+    app = create_app({"TESTING": True, "CSRF": True, "JOBS_TOKEN": "s3gredo",
+                      "SQLALCHEMY_DATABASE_URI": f"sqlite:///{tmp_path}/c.db"})
+    with app.app_context():
+        for i in range(12):
+            jobs.enfileirar("anota", n=i)
+    c = app.test_client()
+    assert c.post("/jobs/ciclo").status_code == 401
+    assert c.post("/jobs/ciclo", headers={"Authorization": "Bearer errado"}).status_code == 401
+    r = c.post("/jobs/ciclo", headers={"Authorization": "Bearer s3gredo"})  # sem cookie nem csrf_token
+    assert r.status_code == 200 and r.get_json() == {"executados": 10, "ok": 10, "falhas": 0, "mortos": 0}
+    assert c.get("/jobs/ciclo").status_code == 405
+
+
+def test_job_11_rota_ciclo_sem_token_configurado_e_404(app, monkeypatch):
+    monkeypatch.delenv("JOBS_TOKEN", raising=False)
+    assert app.test_client().post("/jobs/ciclo", headers={"Authorization": "Bearer x"}).status_code == 404
