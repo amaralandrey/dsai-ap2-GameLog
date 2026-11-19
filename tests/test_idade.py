@@ -265,3 +265,58 @@ def test_ida_10_provedor_que_aponta_menos_de_12_suspende(app, client, monkeypatc
     login(client)
     r = client.post("/conta/idade/provedor_simulado", data={"codigo": "CRIANCA"}, follow_redirects=True)
     assert "Conta suspensa" in r.get_data(as_text=True) and login(client).status_code == 403
+
+
+# ---------- IDA-11 ----------
+def test_ida_11_admin_contesta_a_idade_com_auditoria(app, monkeypatch):
+    from app.models import AuditLog
+    from conftest import login
+
+    make_user(app, "chefe", role="admin")
+    make_user(app)
+    chefe, ana = app.test_client(), app.test_client()
+    login(chefe, "chefe")
+    login(ana)
+    with app.app_context():
+        aid = User.query.filter_by(username="ana").one().id
+    assert ana.post(f"/admin/usuarios/{aid}/contestar-idade").status_code == 403
+    assert "@ana" in chefe.get("/admin/usuarios").get_data(as_text=True)
+    chefe.post(f"/admin/usuarios/{aid}/contestar-idade")
+    chefe.post(f"/admin/usuarios/{aid}/contestar-idade")  # repetir não duplica a auditoria
+    with app.app_context():
+        u = db.session.get(User, aid)
+        assert ida.faixa_etaria(u) == "adolescente_vinculado" and u.aguardando_responsavel  # adulto contestado
+        assert [a.action for a in AuditLog.query] == ["idade.contestar"]
+    assert ana.get("/listas").headers["Location"] == "/conta/pendente"
+    assert "contestada pela moderação" in ana.get("/conta/pendente").get_data(as_text=True)
+    ana.post("/conta/idade/autodeclaracao", data={"nascimento": "1990-01-01"})
+    assert ana.get("/listas").status_code == 302  # autodeclaração não encerra a contestação
+    monkeypatch.setenv("VERIFICACAO_PROVEDOR", "simulado")
+    ana.post("/conta/idade/provedor_simulado", data={"codigo": "ADULTO"})
+    assert ana.get("/listas").status_code == 200
+    with app.app_context():
+        assert db.session.get(User, aid).idade_contestada_em is None
+
+
+# ---------- IDA-12 ----------
+def test_ida_12_nascimento_nunca_aparece_nas_respostas(app):
+    from conftest import login, make_game
+    from app.models import Game, Review
+
+    make_user(app, "chefe", role="admin")
+    make_user(app)
+    make_game(app)
+    with app.app_context():
+        u = User.query.filter_by(username="ana").one()
+        u.nascimento = date(1987, 3, 14)
+        db.session.add(Review(user_id=u.id, game_id=Game.query.one().id, score=8, text="bom"))
+        db.session.commit()
+    ana, chefe = app.test_client(), app.test_client()
+    login(ana)
+    login(chefe, "chefe")
+    respostas = [app.test_client().get("/u/ana"), ana.get("/u/ana"), ana.get("/u/ana/editar"), ana.get("/feed"),
+                 ana.get("/conta/idade"), app.test_client().get("/api/jogos/jogo-teste"),
+                 app.test_client().get("/api/jogos/jogo-teste/avaliacoes"), chefe.get("/admin/usuarios")]
+    for r in respostas:
+        texto = r.get_data(as_text=True)
+        assert r.status_code == 200 and "1987" not in texto and "14/03" not in texto, r.request.path

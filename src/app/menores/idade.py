@@ -11,8 +11,8 @@ from datetime import date, datetime
 from flask import Blueprint, abort, flash, redirect, render_template, request, session
 
 from .. import tempo
-from ..models import VerificacaoIdade, db, now
-from ..util import current_user, login_required, safe_next
+from ..models import AuditLog, User, VerificacaoIdade, db, now
+from ..util import admin_required, current_user, login_required, paginate, safe_next
 
 bp = Blueprint("idade", __name__)
 
@@ -210,3 +210,27 @@ def verificar_de_novo(metodo):
     db.session.commit()
     flash(f"Verificação registrada. Faixa da conta: {NOMES_DAS_FAIXAS[faixa]}.", "ok")
     return redirect("/conta/pendente" if me.aguardando_responsavel else "/conta/idade")
+
+
+# ---------- moderação (IDA-11) ----------
+@bp.route("/admin/usuarios")
+@admin_required
+def usuarios():
+    """Contas com a faixa (nunca a data), suspensas e contestadas primeiro."""
+    q = User.query.order_by(User.suspensa_em.is_(None), User.idade_contestada_em.is_(None), User.username_lower)
+    page = paginate(q, request.args.get("page"))
+    return render_template("admin/usuarios.html", page=page, faixa=lambda u: NOMES_DAS_FAIXAS[faixa_etaria(u)])
+
+
+@bp.route("/admin/usuarios/<int:uid>/contestar-idade", methods=["POST"])
+@admin_required
+def contestar_idade(uid):
+    """Indício de idade menor: a conta vira de 12 a 15 anos, à espera do responsável, até verificação confiável."""
+    alvo = db.get_or_404(User, uid)
+    if alvo.idade_contestada_em is None:
+        alvo.idade_contestada_em, alvo.aguardando_responsavel = now(), True
+        db.session.add(AuditLog(admin_id=current_user().id, action="idade.contestar",
+                                detail=f"@{alvo.username} (id {alvo.id})"))
+        db.session.commit()
+        flash(f"Idade de @{alvo.username} marcada como contestada.", "ok")
+    return redirect("/admin/usuarios")
