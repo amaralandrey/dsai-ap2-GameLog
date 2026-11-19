@@ -134,6 +134,8 @@ São 236 requisições ao modelo, com a sessão inteira: as correções da revie
 - **`rankings.apurar`** continua trazendo o ranking inteiro para o Python. Os filtros de PMN (`pode`) e BLQ (`bloqueados_com`) só existem em Python, e o cartão RNK-06 precisa da posição na lista inteira. Isso fica para quando as specs de PMN e BLQ forem implementadas.
 - **Nit de comentários:** o Fbc00 apontou de 110 a 150 linhas de comentário em cada PR. Não foi tratado; ofereci um commit de limpeza em cada um.
 - **Banco local:** depois do #23, o banco precisa de `./dev.sh reset` (`AUTOINCREMENT` em `review` e `sessao_jogo`).
-- **Ordem de merge:** #21 → #22 → #23 → #24 → #25. O #25 também pede `./dev.sh reset` (colunas novas em `user`), e o admin do deploy informa a data de nascimento no primeiro login (IDA-05).
-- **Ordem de merge (detalhe):** #21 → #22 → #23 → #24. O #23 aguarda nova aprovação, porque a anterior foi dada antes dos achados. O #24 precisa da `main` mesclada depois do #23, para resolver os 4 conflitos triviais.
+- **Ordem de merge:** #21 → #22 → #23 → #24 → #25.
+  - O #23 aguarda nova aprovação, porque a anterior foi dada antes dos achados.
+  - O #24 e o #25 precisam da `main` mesclada depois do #23, para resolver os conflitos triviais.
+  - O #25 pede `./dev.sh reset` (colunas novas em `user`), e o admin do deploy informa a data de nascimento no primeiro login (IDA-05).
 - **Divisão de autoria:** o Fabrício ainda não tem commits no repositório, e o plano pede pelo menos 30% de autoria de cada um. O Épico 5 continua com ele.
