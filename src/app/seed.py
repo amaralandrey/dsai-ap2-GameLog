@@ -89,6 +89,7 @@ def _atividade(rng, games, real):
     pw = generate_password_hash(SEED_PASSWORD)
     users = [User(username=f"jogador{i:02d}", username_lower=f"jogador{i:02d}", email=f"jogador{i:02d}@example.com",
                   password_hash=pw, display_name=f"Jogador {i:02d}", bio=rng.choice(["", "Fã de RPG.", "Platina é vida.", "Casual."]),
+                  nascimento=date(rng.randint(1970, 2004), rng.randint(1, 12), rng.randint(1, 28)),  # adultos (IDA-05)
                   created_at=BASE - timedelta(days=rng.randint(30, 400))) for i in range(1, 31)]
     db.session.add_all(users)
     db.session.flush()

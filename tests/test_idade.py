@@ -117,3 +117,110 @@ def test_ida_05_verificacao_de_menor_de_12_suspende(app):
         ida.registrar(u, ida.Resultado(anos_atras(10), "provedor_simulado", True))
         db.session.commit()
         assert u.suspensa_em is not None
+
+
+# ---------- IDA-01, IDA-02, IDA-04 (cadastro) ----------
+def cadastrar(client, nascimento, nome="novo"):
+    return client.post("/cadastro", data={"username": nome, "email": f"{nome}@ex.com", "password": "senha1234",
+                                          "nascimento": nascimento.isoformat() if isinstance(nascimento, date) else nascimento})
+
+
+@pytest.mark.parametrize("nascimento,destino,aguardando", [
+    (anos_atras(18), "/", False), (anos_atras(18, dias=1), "/", False), (anos_atras(16), "/", False),
+    (anos_atras(16, dias=1), "/conta/pendente", True), (anos_atras(12), "/conta/pendente", True),
+])
+def test_ida_04_cadastro_por_faixa(app, client, nascimento, destino, aguardando):
+    r = cadastrar(client, nascimento)
+    assert r.status_code == 302 and r.headers["Location"] == destino
+    with app.app_context():
+        u = User.query.one()
+        assert u.aguardando_responsavel is aguardando
+        v = VerificacaoIdade.query.one()
+        assert (v.metodo, v.confiavel) == ("autodeclaracao", False)
+
+
+@pytest.mark.parametrize("nascimento,mensagem", [
+    (anos_atras(11), "O GameLog é para pessoas a partir de 12 anos"),
+    (anos_atras(12, dias=1), "O GameLog é para pessoas a partir de 12 anos"),  # véspera dos 12
+    ("2010-02-30", "data de nascimento válida"), ("", "data de nascimento válida"),
+    ("2026-11-17", "futuro"), ("1900-01-01", "120 anos"),
+])
+def test_ida_02_recusa_sem_gravar_nada(app, client, nascimento, mensagem):
+    from app.models import LoginAttempt
+
+    r = cadastrar(client, nascimento)
+    assert r.status_code == 400 and mensagem in r.get_data(as_text=True)
+    with app.app_context():
+        assert User.query.count() == VerificacaoIdade.query.count() == LoginAttempt.query.count() == 0
+
+
+def test_ida_04_conta_pendente_so_acessa_rotas_livres_e_publicas(app, client):
+    from conftest import make_game
+
+    make_game(app)
+    cadastrar(client, anos_atras(14))
+    for rota in ("/listas", "/feed", "/u/novo/editar"):
+        r = client.get(rota)
+        assert r.status_code == 302 and r.headers["Location"] == "/conta/pendente", rota
+    assert client.post("/jogos/jogo-teste/avaliar", data={"score": 8}).headers["Location"] == "/conta/pendente"
+    assert "aguarda um responsável" in client.get("/conta/pendente").get_data(as_text=True)
+    for publica in ("/", "/buscar?q=jogo", "/jogos/jogo-teste", "/u/novo"):
+        assert client.get(publica).status_code == 200, publica
+    assert client.post("/sair").status_code == 302
+
+
+# ---------- IDA-05 ----------
+def sem_data(app, nome="ana", role="jogador"):
+    make_user(app, nome, role=role)
+    with app.app_context():
+        User.query.filter_by(username=nome).one().nascimento = None
+        db.session.commit()
+
+
+@pytest.mark.parametrize("role,rota", [("jogador", "/listas"), ("admin", "/admin/")])
+def test_ida_05_conta_antiga_informa_a_data_antes_de_tudo(app, client, role, rota):
+    from conftest import login
+
+    sem_data(app, role=role)
+    login(client)
+    r = client.get(rota)
+    assert r.status_code == 302 and r.headers["Location"] == "/conta/nascimento"
+    assert client.post("/conta/nascimento", data={"nascimento": "2030-01-01"}).status_code == 400
+    assert client.post("/conta/nascimento", data={"nascimento": "1990-05-05"}).status_code == 302
+    assert client.get(rota).status_code == 200
+    assert client.get("/conta/nascimento").headers["Location"] == "/"
+
+
+def test_ida_05_conta_antiga_de_menor_de_12_e_suspensa(app, client):
+    from conftest import login
+
+    sem_data(app)
+    login(client)
+    r = client.post("/conta/nascimento", data={"nascimento": anos_atras(10).isoformat()}, follow_redirects=True)
+    assert "Conta suspensa" in r.get_data(as_text=True)
+    assert client.get("/listas").status_code == 302 and "/entrar" in client.get("/listas").headers["Location"]
+    r = login(client)
+    assert r.status_code == 403 and "Conta suspensa" in r.get_data(as_text=True)
+    with app.app_context():
+        assert User.query.one().suspensa_em is not None
+
+
+def test_ida_05_conta_antiga_de_14_anos_fica_pendente(app, client):
+    from conftest import login
+
+    sem_data(app)
+    login(client)
+    r = client.post("/conta/nascimento", data={"nascimento": anos_atras(14).isoformat()})
+    assert r.headers["Location"] == "/conta/pendente"
+
+
+# ---------- IDA-09 ----------
+def test_ida_09_editar_perfil_nao_muda_o_nascimento(app, client):
+    from conftest import login
+
+    make_user(app)
+    login(client)
+    r = client.post("/u/ana/editar", data={"display_name": "Ana", "bio": "", "nascimento": "2012-01-01"})
+    assert r.status_code == 302
+    with app.app_context():
+        assert User.query.one().nascimento == date(1990, 1, 1)

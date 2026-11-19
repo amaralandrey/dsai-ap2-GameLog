@@ -24,6 +24,8 @@ def client(app):
 
 
 def make_user(app, username="ana", email=None, password="senha1234", role="jogador"):
+    from datetime import date
+
     from werkzeug.security import generate_password_hash
 
     from app.models import User
@@ -36,6 +38,7 @@ def make_user(app, username="ana", email=None, password="senha1234", role="jogad
             password_hash=generate_password_hash(password),
             display_name=username,
             role=role,
+            nascimento=date(1990, 1, 1),  # adulto: sem data, todo login cairia em /conta/nascimento (IDA-05)
         )
         db.session.add(u)
         db.session.commit()

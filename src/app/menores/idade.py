@@ -8,8 +8,13 @@ import os
 from collections import namedtuple
 from datetime import date, datetime
 
+from flask import Blueprint, flash, redirect, render_template, request, session
+
 from .. import tempo
 from ..models import VerificacaoIdade, db, now
+from ..util import current_user, login_required, safe_next
+
+bp = Blueprint("idade", __name__)
 
 IDADE_MINIMA, IDADE_MAXIMA = 12, 120
 ADULTO, ADOLESCENTE, VINCULADO = "adulto", "adolescente", "adolescente_vinculado"
@@ -128,3 +133,42 @@ def registrar(user, resultado):
     db.session.add(VerificacaoIdade(user_id=user.id, metodo=resultado.metodo, faixa_resultante=faixa,
                                     confiavel=resultado.confiavel, divergente=divergente))
     return faixa
+
+
+# ---------- telas da conta (IDA-04, IDA-05) ----------
+def _seguir(user):
+    return redirect("/conta/pendente" if user.aguardando_responsavel else safe_next(request.args.get("next")))
+
+
+@bp.route("/conta/nascimento", methods=["GET", "POST"])
+@login_required
+def nascimento():
+    """Conta antiga sem data de nascimento informa a data antes de qualquer outra rota (IDA-05)."""
+    me = current_user()
+    if me.nascimento is not None:
+        return redirect("/")
+    if request.method == "GET":
+        return render_template("conta/nascimento.html", erro=None, valor="")
+    try:
+        resultado = ADAPTADORES["autodeclaracao"].verificar(me, {"nascimento": request.form.get("nascimento")})
+    except IdadeInvalida as exc:
+        return render_template("conta/nascimento.html", erro=str(exc), valor=request.form.get("nascimento", "")), 400
+    registrar(me, resultado)
+    if me.suspensa_em is not None:  # menor de 12: suspensa, sai e aparece para o admin
+        me.session_version += 1
+        db.session.commit()
+        session.clear()
+        flash(f"Conta suspensa. {MENOR_DE_12}.", "erro")
+        return redirect("/")
+    db.session.commit()
+    return _seguir(me)
+
+
+@bp.route("/conta/pendente")
+@login_required
+def pendente():
+    """Conta de 12 a 15 anos, ou com idade contestada, espera o vínculo com um responsável (IDA-04, IDA-11)."""
+    me = current_user()
+    if not (me.aguardando_responsavel or me.idade_contestada_em is not None):
+        return redirect("/")
+    return render_template("conta/pendente.html", contestada=me.idade_contestada_em is not None)

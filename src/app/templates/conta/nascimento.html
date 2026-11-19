@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Data de nascimento — GameLog{% endblock %}
+{% block content %}
+<section class="panel" style="max-width:460px;margin:0 auto">
+<h1>Informe sua data de nascimento</h1>
+<p>O GameLog passou a pedir a data de nascimento de todas as contas, para proteger crianças e adolescentes (ECA Digital). Ela não aparece no seu perfil nem para outras pessoas.</p>
+<form method="post">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <label for="nascimento">Data de nascimento</label>
+  <input id="nascimento" name="nascimento" type="date" value="{{ valor }}" required>
+  {% if erro %}<div class="err">{{ erro }}</div>{% endif %}
+  <p><button>Continuar</button></p>
+</form>
+<form method="post" action="/sair"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="link">Sair</button></form>
+</section>
+{% endblock %}

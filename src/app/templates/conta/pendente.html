@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Conta aguardando responsável — GameLog{% endblock %}
+{% block content %}
+<section class="panel" style="max-width:560px;margin:0 auto">
+<h1>Sua conta aguarda um responsável</h1>
+{% if contestada %}
+<p>A idade desta conta foi contestada pela moderação. Até uma verificação confiável, ela é tratada como conta de 12 a 15 anos.</p>
+<p><a href="/conta/idade">Pedir nova verificação de idade</a></p>
+{% else %}
+<p>Pela lei (ECA Digital, art. 24), contas de 12 a 15 anos precisam estar vinculadas a um responsável: mãe, pai ou quem cuida de você.</p>
+{% endif %}
+<p>Quando o responsável aceitar o vínculo, a conta é liberada. Ele poderá acompanhar sua atividade e escolher o que fica ligado.</p>
+<p class="mut">Enquanto isso, você pode navegar pelo catálogo sem entrar. Se a data informada estiver errada, <a href="/conta/idade">peça nova verificação</a>.</p>
+<form method="post" action="/sair"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="ghost">Sair</button></form>
+</section>
+{% endblock %}
