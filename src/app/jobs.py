@@ -11,12 +11,13 @@ import time
 from datetime import timedelta
 
 import click
-from flask import Blueprint
+from flask import Blueprint, flash, redirect, render_template, request
 from sqlalchemy.exc import IntegrityError
 
 from . import tempo
 from .cron import proxima_execucao
-from .models import Agendamento, Job, db
+from .models import JOB_STATUS, Agendamento, AuditLog, Job, db
+from .util import admin_required, current_user, paginate
 
 bp = Blueprint("jobs", __name__, cli_group="jobs")
 TAREFAS = {}
@@ -224,6 +225,69 @@ def rodar_cmd(uma_vez, limite, intervalo):
         fim = time.monotonic() + intervalo
         while not parar and time.monotonic() < fim:
             time.sleep(0.2)
+
+
+# ---------- painel do admin (JOB-10) ----------
+@bp.route("/admin/jobs")
+@admin_required
+def painel():
+    status, tipo = request.args.get("status", ""), request.args.get("tipo", "")
+    q = Job.query
+    if status in JOB_STATUS:
+        q = q.filter(Job.status == status)
+    if tipo:
+        q = q.filter(Job.tipo == tipo)
+    page = paginate(q.order_by(Job.criado_em.desc(), Job.id.desc()), request.args.get("page"))
+    agendamentos = Agendamento.query.order_by(Agendamento.nome).all()
+    proximas = {a.id: proxima_execucao(a.cron, tempo.para_belem(a.ultima_execucao or tempo.agora_utc()))
+                for a in agendamentos}
+    return render_template("admin/jobs.html", page=page, status=status, tipo=tipo, todos_status=JOB_STATUS,
+                           tipos=sorted(TAREFAS), agendamentos=agendamentos, proximas=proximas,
+                           belem=tempo.para_belem)
+
+
+def _auditar(acao, detalhe):
+    db.session.add(AuditLog(admin_id=current_user().id, action=acao, detail=detalhe[:300]))  # ADM-09
+    db.session.commit()
+
+
+@bp.route("/admin/jobs/<int:jid>/retentar", methods=["POST"])
+@admin_required
+def retentar(jid):
+    job = db.get_or_404(Job, jid)
+    if job.status not in ("morto", "falhou"):
+        flash("Só um job morto ou que falhou pode ser tentado de novo.", "erro")
+    else:
+        job.status, job.tentativas, job.executar_em, job.concluido_em = "pendente", 0, tempo.agora_utc(), None
+        _auditar("jobs.retentar", f"job {job.id} ({job.tipo})")
+        flash(f"Job {job.id} volta para a fila.", "ok")
+    return redirect("/admin/jobs")
+
+
+@bp.route("/admin/jobs/<int:jid>/cancelar", methods=["POST"])
+@admin_required
+def cancelar(jid):
+    job = db.get_or_404(Job, jid)
+    if job.status != "pendente":
+        flash("Só um job pendente pode ser cancelado.", "erro")
+    else:  # cancelado fica como `falhou`, para poder ser tentado de novo
+        job.status, job.concluido_em = "falhou", tempo.agora_utc()
+        job.ultimo_erro = f"cancelado por @{current_user().username}"
+        _auditar("jobs.cancelar", f"job {job.id} ({job.tipo})")
+        flash(f"Job {job.id} cancelado.", "ok")
+    return redirect("/admin/jobs")
+
+
+@bp.route("/admin/jobs/agendamentos/<int:aid>", methods=["POST"])
+@admin_required
+def alternar_agendamento(aid):
+    ag = db.get_or_404(Agendamento, aid)
+    ag.ativo = not ag.ativo
+    if ag.ativo:
+        ag.ultima_execucao = None  # religado: conta a partir de agora, sem cobrar o tempo desligado
+    _auditar("jobs.agendamento", f"{ag.nome} {'ligado' if ag.ativo else 'desligado'}")
+    flash(f"Agendamento {ag.nome} {'ligado' if ag.ativo else 'desligado'}.", "ok")
+    return redirect("/admin/jobs")
 
 
 # ---------- tarefas do catálogo (JOB-09) ----------

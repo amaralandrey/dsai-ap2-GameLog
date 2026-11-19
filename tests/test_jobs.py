@@ -308,3 +308,71 @@ def test_job_09_tarefa_sem_chave_da_rawg_morre_com_mensagem_clara(app, monkeypat
         jobs.ciclo()
         j = db.session.get(Job, jid)
         assert j.status == "morto" and "RAWG_API_KEY não configurada" in j.ultimo_erro
+
+
+# ---------- JOB-10 ----------
+@pytest.fixture
+def chefe(app):
+    from conftest import login, make_user
+
+    make_user(app, "chefe", role="admin")
+    make_user(app, "ana")
+    c = app.test_client()
+    login(c, "chefe")
+    return c
+
+
+def test_job_10_so_admin(app, chefe):
+    from conftest import login
+
+    assert app.test_client().get("/admin/jobs").status_code == 302
+    ana = app.test_client()
+    login(ana, "ana")
+    assert ana.get("/admin/jobs").status_code == 403
+    for rota in ("/admin/jobs/1/retentar", "/admin/jobs/1/cancelar", "/admin/jobs/agendamentos/1"):
+        assert ana.post(rota).status_code == 403
+    assert "/admin/jobs" in chefe.get("/admin/").get_data(as_text=True)
+
+
+def test_job_10_lista_filtra_e_pagina_do_mais_recente(app, chefe, tarefas, relogio):
+    with app.app_context():
+        for i in range(22):
+            jobs.enfileirar("anota", n=i)
+            relogio.andar(seconds=1)
+        jobs.enfileirar("permanente")
+        jobs.ciclo(limite=1)  # o mais antigo (n=0) roda
+    html = chefe.get("/admin/jobs").get_data(as_text=True)
+    assert html.index("<td>23</td>") < html.index("<td>22</td>") and "<td>3</td>" not in html
+    assert "<td>3</td>" in chefe.get("/admin/jobs?page=2").get_data(as_text=True)
+    so_ok = chefe.get("/admin/jobs?status=ok").get_data(as_text=True)
+    assert "<td>1</td>" in so_ok and "<td>2</td>" not in so_ok
+    assert "<td>23</td>" in chefe.get("/admin/jobs?tipo=permanente").get_data(as_text=True)
+    assert "<td>22</td>" not in chefe.get("/admin/jobs?tipo=permanente").get_data(as_text=True)
+
+
+def test_job_10_acoes_com_auditoria(app, chefe, tarefas):
+    from app.models import Agendamento, AuditLog
+
+    agendamento(app)
+    with app.app_context():
+        morto = jobs.enfileirar("permanente").id
+        jobs.ciclo()
+        pendente = jobs.enfileirar("anota").id
+    r = chefe.post(f"/admin/jobs/{pendente}/retentar", follow_redirects=True)
+    assert "Só um job morto ou que falhou" in r.get_data(as_text=True)
+    chefe.post(f"/admin/jobs/{morto}/retentar")
+    chefe.post(f"/admin/jobs/{pendente}/cancelar")
+    assert "Só um job pendente" in chefe.post(f"/admin/jobs/{pendente}/cancelar", follow_redirects=True).get_data(as_text=True)
+    with app.app_context():
+        aid = Agendamento.query.one().id
+    chefe.post(f"/admin/jobs/agendamentos/{aid}")
+    with app.app_context():
+        j = db.session.get(Job, morto)
+        assert (j.status, j.tentativas) == ("pendente", 0)
+        c = db.session.get(Job, pendente)
+        assert c.status == "falhou" and c.ultimo_erro == "cancelado por @chefe"
+        assert Agendamento.query.one().ativo is False
+        assert [a.action for a in AuditLog.query.order_by(AuditLog.id)] == ["jobs.retentar", "jobs.cancelar",
+                                                                            "jobs.agendamento"]
+    assert chefe.post("/admin/jobs/999/retentar").status_code == 404
+    assert "Ligar" in chefe.get("/admin/jobs").get_data(as_text=True)
