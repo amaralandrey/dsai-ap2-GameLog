@@ -8,7 +8,7 @@ import os
 from collections import namedtuple
 from datetime import date, datetime
 
-from flask import Blueprint, flash, redirect, render_template, request, session
+from flask import Blueprint, abort, flash, redirect, render_template, request, session
 
 from .. import tempo
 from ..models import VerificacaoIdade, db, now
@@ -135,7 +135,18 @@ def registrar(user, resultado):
     return faixa
 
 
-# ---------- telas da conta (IDA-04, IDA-05) ----------
+# ---------- telas da conta (IDA-04, IDA-05, IDA-10) ----------
+NOMES_DAS_FAIXAS = {ADULTO: "18 anos ou mais", ADOLESCENTE: "16 ou 17 anos", VINCULADO: "12 a 15 anos"}
+
+
+def _suspender_sessao(me):
+    me.session_version += 1
+    db.session.commit()
+    session.clear()
+    flash(f"Conta suspensa. {MENOR_DE_12}.", "erro")
+    return redirect("/")
+
+
 def _seguir(user):
     return redirect("/conta/pendente" if user.aguardando_responsavel else safe_next(request.args.get("next")))
 
@@ -155,11 +166,7 @@ def nascimento():
         return render_template("conta/nascimento.html", erro=str(exc), valor=request.form.get("nascimento", "")), 400
     registrar(me, resultado)
     if me.suspensa_em is not None:  # menor de 12: suspensa, sai e aparece para o admin
-        me.session_version += 1
-        db.session.commit()
-        session.clear()
-        flash(f"Conta suspensa. {MENOR_DE_12}.", "erro")
-        return redirect("/")
+        return _suspender_sessao(me)
     db.session.commit()
     return _seguir(me)
 
@@ -172,3 +179,34 @@ def pendente():
     if not (me.aguardando_responsavel or me.idade_contestada_em is not None):
         return redirect("/")
     return render_template("conta/pendente.html", contestada=me.idade_contestada_em is not None)
+
+
+@bp.route("/conta/idade")
+@login_required
+def contestar():
+    """Contestar o resultado e pedir nova verificação com um adaptador disponível (IDA-10)."""
+    me = current_user()
+    disponiveis = [a for a in ADAPTADORES.values() if a.disponivel()]
+    return render_template("conta/idade.html", faixa=NOMES_DAS_FAIXAS[faixa_etaria(me)], adaptadores=disponiveis,
+                           contestada=me.idade_contestada_em is not None, erro=None)
+
+
+@bp.route("/conta/idade/<metodo>", methods=["POST"])
+@login_required
+def verificar_de_novo(metodo):
+    """Só um adaptador confiável deixa a faixa menos protetiva; o provedor simulado sem a variável é 404."""
+    me, adaptador = current_user(), ADAPTADORES.get(metodo)
+    if adaptador is None or not adaptador.disponivel():
+        abort(404)
+    try:
+        resultado = adaptador.verificar(me, request.form)
+    except IdadeInvalida as exc:
+        disponiveis = [a for a in ADAPTADORES.values() if a.disponivel()]
+        return render_template("conta/idade.html", faixa=NOMES_DAS_FAIXAS[faixa_etaria(me)], adaptadores=disponiveis,
+                               contestada=me.idade_contestada_em is not None, erro=str(exc)), 400
+    faixa = registrar(me, resultado)
+    if me.suspensa_em is not None:
+        return _suspender_sessao(me)
+    db.session.commit()
+    flash(f"Verificação registrada. Faixa da conta: {NOMES_DAS_FAIXAS[faixa]}.", "ok")
+    return redirect("/conta/pendente" if me.aguardando_responsavel else "/conta/idade")

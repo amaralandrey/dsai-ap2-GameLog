@@ -224,3 +224,44 @@ def test_ida_09_editar_perfil_nao_muda_o_nascimento(app, client):
     assert r.status_code == 302
     with app.app_context():
         assert User.query.one().nascimento == date(1990, 1, 1)
+
+
+# ---------- IDA-07, IDA-10 ----------
+@pytest.fixture
+def pendente_14(app, client):
+    cadastrar(client, anos_atras(14))
+    return client
+
+
+def test_ida_07_provedor_simulado_desligado_responde_404(app, pendente_14, monkeypatch):
+    monkeypatch.delenv("VERIFICACAO_PROVEDOR", raising=False)
+    assert pendente_14.post("/conta/idade/provedor_simulado", data={"codigo": "ADULTO"}).status_code == 404
+    assert pendente_14.post("/conta/idade/responsavel", data={"nascimento": "1990-01-01"}).status_code == 404
+    assert pendente_14.post("/conta/idade/inventado").status_code == 404
+    assert "Código de verificação" not in pendente_14.get("/conta/idade").get_data(as_text=True)
+
+
+def test_ida_10_provedor_confiavel_libera_e_autodeclaracao_nao(app, pendente_14, monkeypatch):
+    monkeypatch.setenv("VERIFICACAO_PROVEDOR", "simulado")
+    assert "Código de verificação" in pendente_14.get("/conta/idade").get_data(as_text=True)
+    r = pendente_14.post("/conta/idade/autodeclaracao", data={"nascimento": "1990-01-01"})
+    assert r.headers["Location"] == "/conta/pendente"  # autodeclarar mais idade não libera
+    assert pendente_14.post("/conta/idade/provedor_simulado", data={"codigo": "nada"}).status_code == 400
+    r = pendente_14.post("/conta/idade/provedor_simulado", data={"codigo": "adulto"}, follow_redirects=True)
+    assert "Faixa da conta: 18 anos ou mais" in r.get_data(as_text=True)
+    assert pendente_14.get("/listas").status_code == 200
+    with app.app_context():
+        u = User.query.one()
+        assert (u.aguardando_responsavel, u.nascimento_confiavel) == (False, True)
+        assert [(v.metodo, v.confiavel, v.divergente) for v in VerificacaoIdade.query.order_by(VerificacaoIdade.id)] == [
+            ("autodeclaracao", False, False), ("autodeclaracao", False, True), ("provedor_simulado", True, True)]
+
+
+def test_ida_10_provedor_que_aponta_menos_de_12_suspende(app, client, monkeypatch):
+    from conftest import login
+
+    monkeypatch.setenv("VERIFICACAO_PROVEDOR", "simulado")
+    make_user(app)
+    login(client)
+    r = client.post("/conta/idade/provedor_simulado", data={"codigo": "CRIANCA"}, follow_redirects=True)
+    assert "Conta suspensa" in r.get_data(as_text=True) and login(client).status_code == 403
