@@ -137,3 +137,56 @@ def test_chv_07_mesma_entrada_mesma_chave():
     a = ch.montar("eliminacao_simples", nomes(6), resultados)
     b = ch.montar("eliminacao_simples", nomes(6), list(reversed(resultados)))
     assert a == b
+
+
+# ---------- CHV-03 ----------
+def derrotas(chave):
+    conta = {}
+    for p in chave.partidas.values():
+        if p.jogada:
+            conta[p.perdedor] = conta.get(p.perdedor, 0) + 1
+    return conta
+
+
+@pytest.mark.parametrize("n", TAMANHOS)
+def test_chv_03_ninguem_sai_antes_da_segunda_derrota(n):
+    ps = nomes(n)
+    chave = jogar_tudo(ch.eliminacao_dupla(ps), melhor_semente(ps))
+    assert ch.campeao(chave) == "p1"
+    assert derrotas(chave) == {p: 2 for p in ps[1:]}  # o campeão invicto dispensa o reset
+    f2 = chave.partidas["F2"]
+    assert f2.decidida and not f2.jogada
+
+
+@pytest.mark.parametrize("n", TAMANHOS)
+def test_chv_03_campeao_dos_perdedores_vence_a_final_e_ha_reset(n):
+    ps = nomes(n)
+    chave = jogar_tudo(ch.eliminacao_dupla(ps), lambda p: p.b if p.id == "F1" else min((p.a, p.b), key=ps.index))
+    f1, f2 = chave.partidas["F1"], chave.partidas["F2"]
+    assert f1.a == "p1" and f1.vencedor == f1.b and f2.jogada and {f2.a, f2.b} == {"p1", f1.b}
+    assert ch.campeao(chave) == f2.vencedor
+    assert all(v <= 2 for v in derrotas(chave).values())
+
+
+def test_chv_03_posicoes_fixas_na_chave_de_perdedores():
+    chave = ch.eliminacao_dupla(nomes(8))
+    origem = {pid: (p.origem_a, p.origem_b) for pid, p in chave.partidas.items() if pid.startswith("P")}
+    assert origem["P1-1"] == (("perdedor", "V1-1"), ("perdedor", "V1-2"))
+    assert origem["P2-1"] == (("vencedor", "P1-1"), ("perdedor", "V2-1"))  # k = 1: mesma ordem
+    assert origem["P3-1"] == (("vencedor", "P2-1"), ("vencedor", "P2-2"))
+    assert origem["P4-1"] == (("vencedor", "P3-1"), ("perdedor", "V3-1"))
+    grande = ch.eliminacao_dupla(nomes(16))
+    assert grande.partidas["P4-1"].origem_b == ("perdedor", "V3-2")  # k = 2: ordem invertida
+    assert chave.partidas["F1"].origem_b == ("vencedor", "P4-1")
+
+
+def test_chv_09_correcao_na_dupla_desfaz_a_queda_para_os_perdedores():
+    chave = ch.eliminacao_dupla(nomes(4))
+    ch.avancar(chave, ("V1-1", "p1", 1, 0))
+    ch.avancar(chave, ("V1-2", "p2", 1, 0))
+    assert (chave.partidas["P1-1"].a, chave.partidas["P1-1"].b) == ("p4", "p3")
+    ch.corrigir(chave, "V1-2", ("V1-2", "p3", 0, 1))
+    assert (chave.partidas["P1-1"].b, chave.partidas["V2-1"].b) == ("p2", "p3")
+    ch.avancar(chave, ("P1-1", "p4", 1, 0))
+    with pytest.raises(CorrecaoBloqueada, match="P1-1"):
+        ch.corrigir(chave, "V1-1", ("V1-1", "p4", 0, 1))

@@ -249,6 +249,50 @@ def eliminacao_simples(participantes):
     return chave
 
 
+# ---------- eliminação dupla (CHV-03) ----------
+def eliminacao_dupla(participantes):
+    """Chave de vencedores (`V`) e de perdedores (`P`), final `F1` e reset `F2`.
+
+    Posições fixas na chave de perdedores, com T = tamanho da chave (potência de 2) e R = log2(T):
+    - `P1-i` recebe os perdedores de `V1-(2i−1)` e `V1-(2i)`;
+    - nas rodadas pares `P(2k)-i` (k = 1..R−1), o lado A é o vencedor de `P(2k−1)-i` e o lado B é o
+      perdedor da rodada k+1 dos vencedores. Com k ímpar, B vem de `V(k+1)-i`; com k par, a ordem é
+      invertida (`V(k+1)-(M−i+1)`, com M partidas na rodada), para adiar revanches;
+    - nas rodadas ímpares `P(2k+1)-i`, jogam os vencedores de `P(2k)-(2i−1)` e `P(2k)-(2i)`.
+
+    A final `F1` é entre o campeão dos vencedores (A) e o dos perdedores (B). Se B vencer, os dois têm
+    uma derrota e jogam o reset `F2`; se A vencer, o `F2` é dispensado. Ninguém sai antes da 2ª derrota.
+    """
+    _validar(participantes, MAX_ELIMINACAO)
+    chave = Chave("eliminacao_dupla", list(participantes))
+    tamanho = _primeira_rodada(chave, participantes, "V", "vencedores")
+    rodadas_v = _rodadas_seguintes(chave, tamanho, "V", "vencedores")
+    if rodadas_v == 1:  # dois participantes: o perdedor da única partida já é o campeão dos perdedores
+        campeao_p = ("perdedor", "V1-1")
+    else:
+        for i in range(tamanho // 4):
+            chave.adicionar(Partida(f"P1-{i + 1}", 1, "perdedores", origem_a=("perdedor", f"V1-{2 * i + 1}"),
+                                    origem_b=("perdedor", f"V1-{2 * i + 2}")))
+        partidas = tamanho // 4
+        for k in range(1, rodadas_v):
+            par = 2 * k
+            for i in range(partidas):
+                j = i + 1 if k % 2 else partidas - i
+                chave.adicionar(Partida(f"P{par}-{i + 1}", par, "perdedores", origem_a=("vencedor", f"P{par - 1}-{i + 1}"),
+                                        origem_b=("perdedor", f"V{k + 1}-{j}")))
+            if k < rodadas_v - 1:
+                partidas //= 2
+                for i in range(partidas):
+                    chave.adicionar(Partida(f"P{par + 1}-{i + 1}", par + 1, "perdedores",
+                                            origem_a=("vencedor", f"P{par}-{2 * i + 1}"),
+                                            origem_b=("vencedor", f"P{par}-{2 * i + 2}")))
+        campeao_p = ("vencedor", f"P{2 * (rodadas_v - 1)}-1")
+    chave.adicionar(Partida("F1", rodadas_v + 1, "final", origem_a=("vencedor", f"V{rodadas_v}-1"), origem_b=campeao_p))
+    chave.adicionar(Partida("F2", rodadas_v + 2, "final", origem_a=("vencedor", "F1"), origem_b=("perdedor", "F1")))
+    _resolver(chave)
+    return chave
+
+
 def montar(formato, participantes, resultados):
     """Reconstrói uma chave de eliminação aplicando os resultados na ordem em que ficam aplicáveis."""
     chave = FORMATOS_DE_ELIMINACAO[formato](participantes)
@@ -263,4 +307,4 @@ def montar(formato, participantes, resultados):
     return chave
 
 
-FORMATOS_DE_ELIMINACAO = {"eliminacao_simples": eliminacao_simples}
+FORMATOS_DE_ELIMINACAO = {"eliminacao_simples": eliminacao_simples, "eliminacao_dupla": eliminacao_dupla}
