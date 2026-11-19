@@ -1,8 +1,8 @@
-# Sessão Claude Code: correções da review dos PRs #21–#23, fila de jobs e verificação de idade (2026-11-18)
+# Sessão Claude Code: correções da review dos PRs #21–#23, jobs, verificação de idade e chaveamento (2026-11-18)
 
 **Ferramenta:** Claude Code CLI (Claude Opus 5.5, `claude-opus-5-5`), sem subagentes
 **Quem conduziu:** Andrey Amaral
-**Horário:** 19:53–21:55 (horário de Belém)
+**Horário:** 19:53–22:05 (horário de Belém)
 **Ponto de partida:** PRs #21 (Épico 2, restante), #22 (Épico 3) e #23 (Épico 4) abertos, com a review do Fbc00 de 2026-11-17
 
 ## Custo
@@ -11,13 +11,13 @@ Medido no log da sessão do Claude Code (`~/.claude/projects/.../32a7a036-....js
 
 | Tipo de token | Tokens | Preço (US$/1M) | Custo (US$) |
 |---|---:|---:|---:|
-| Entrada | 490 | 4,00 | 0,00 |
-| Saída | 194.747 | 20,00 | 3,89 |
-| Leitura de cache | 51.760.354 | 0,20 | 10,35 |
-| Escrita de cache (TTL 1h) | 367.022 | 8,00 | 2,94 |
-| **Total** | **52.322.613** | | **≈ 17,19** |
+| Entrada | 526 | 4,00 | 0,00 |
+| Saída | 236.030 | 20,00 | 4,72 |
+| Leitura de cache | 58.932.112 | 0,20 | 11,79 |
+| Escrita de cache (TTL 1h) | 411.426 | 8,00 | 3,29 |
+| **Total** | **59.580.094** | | **≈ 19,80** |
 
-São 236 requisições ao modelo, com a sessão inteira: as correções da review, a fila de jobs e a verificação de idade. A conta foi refeita antes desta atualização do registro, então ficam de fora as últimas respostas: esta edição e o push.
+São 253 requisições ao modelo, com a sessão inteira: as correções da review, a fila de jobs, a verificação de idade e o chaveamento. A conta foi refeita antes desta atualização do registro, então ficam de fora as últimas respostas: esta edição e o push.
 
 ## Prompts
 
@@ -31,6 +31,7 @@ São 236 requisições ao modelo, com a sessão inteira: as correções da revie
 8. map out everything I could start now from main
 9. yes, start JOB from main
 10. start IDA from main
+11. start CHV from main
 
 ## Como foi feito
 
@@ -129,12 +130,27 @@ São 236 requisições ao modelo, com a sessão inteira: as correções da revie
   - `User.nascimento_confiavel` guarda se a data veio de um sinal confiável;
   - o convite do responsável e o adaptador `responsavel` ficam sem tela até o RSP.
 
+## Algoritmos de chaveamento (SPEC-28, PR #26)
+
+- **Branch `feat/chaveamento` a partir da `main`, com 3 commits:**
+
+| Critérios | Commit | O quê |
+|---|---|---|
+| CHV-01, 02, 07–12 | `8067bd2` | estruturas, eliminação simples, avanço, correção, campeão, sementes |
+| CHV-03 | `b13c752` | eliminação dupla com posições fixas na chave de perdedores e reset |
+| CHV-04–07, 10 | `b4dd85e` | pontos corridos, suíço e classificação com desempates |
+
+- **Testes:** 57 em `tests/test_chaveamento.py`, parametrizados para 2, 3, 5, 8 e 16 participantes. Cobertura de 98%, e a suíte da branch tem 327.
+- **Decisão:** tudo é reconstruído a partir de `(participantes, resultados)`. O suíço refaz as rodadas anteriores, e a classificação reconstrói as partidas pelo formato; assim a assinatura da spec basta e a saída é determinística.
+- **CHV-13 adiado:** o SVG da chave vai em `graficos_svg.py`, que só existe no #22. Fica para um PR pequeno depois do merge do #22.
+- **Merge:** só arquivos novos, sem conflito com o #23.
+
 ## Pontos de atenção
 
 - **`rankings.apurar`** continua trazendo o ranking inteiro para o Python. Os filtros de PMN (`pode`) e BLQ (`bloqueados_com`) só existem em Python, e o cartão RNK-06 precisa da posição na lista inteira. Isso fica para quando as specs de PMN e BLQ forem implementadas.
 - **Nit de comentários:** o Fbc00 apontou de 110 a 150 linhas de comentário em cada PR. Não foi tratado; ofereci um commit de limpeza em cada um.
 - **Banco local:** depois do #23, o banco precisa de `./dev.sh reset` (`AUTOINCREMENT` em `review` e `sessao_jogo`).
-- **Ordem de merge:** #21 → #22 → #23 → #24 → #25.
+- **Ordem de merge:** #21 → #22 → #23 → #24 → #25; o #26 é independente. Falta o CHV-13, que entra depois do #22.
   - O #23 aguarda nova aprovação, porque a anterior foi dada antes dos achados.
   - O #24 e o #25 precisam da `main` mesclada depois do #23, para resolver os conflitos triviais.
   - O #25 pede `./dev.sh reset` (colunas novas em `user`), e o admin do deploy informa a data de nascimento no primeiro login (IDA-05).
