@@ -3,6 +3,9 @@ from sqlalchemy import func
 from sqlalchemy.orm import selectinload
 
 from .models import Activity, Comment, Follow, Game, GameList, Review, User, db
+from .diario import ocultos_para, perfil_ou_404
+from .gamificacao import emitir_evento
+from .notificacoes import avisar_seguidor
 from .util import current_user, login_required, paginate
 
 bp = Blueprint("social", __name__)
@@ -20,7 +23,10 @@ def follow(username):
         flash("Você não pode seguir a si mesmo.", "erro")
     elif not Follow.query.filter_by(follower_id=me.id, followed_id=target.id).first():  # SOC-02
         db.session.add(Follow(follower_id=me.id, followed_id=target.id))
+        avisar_seguidor(target.id, me)  # NTF-05
         db.session.commit()
+        emitir_evento(me.id, "seguir")  # GAM-03
+        emitir_evento(target.id, "seguidor")
     return redirect(f"/u/{target.username}")
 
 
@@ -34,7 +40,7 @@ def unfollow(username):
 
 
 def people(username, kind):
-    u = get_user(username)
+    u = perfil_ou_404(username)  # DIA-12
     col, other = (Follow.followed_id, Follow.follower_id) if kind == "seguidores" else (Follow.follower_id, Follow.followed_id)
     q = User.query.join(Follow, other == User.id).filter(col == u.id).order_by(User.username_lower)
     return render_template("social/pessoas.html", u=u, kind=kind, page=paginate(q, request.args.get("page")))
@@ -50,8 +56,8 @@ def following(username):
     return people(username, "seguindo")
 
 
-def feed_query(user_id):
-    """SOC-04..08: só de quem sigo; esconde lista privada, avaliação oculta e jogo removido."""
+def feed_query(user_id, visitante=None):
+    """SOC-04..08: só de quem sigo; esconde lista privada, avaliação oculta, jogo removido e perfil privado (DIA-13)."""
     return (
         Activity.query.join(Follow, (Follow.followed_id == Activity.user_id) & (Follow.follower_id == user_id))
         .outerjoin(Review, Review.id == Activity.review_id)
@@ -61,6 +67,7 @@ def feed_query(user_id):
             (Activity.review_id.is_(None)) | (Review.hidden.is_(False)),
             (Activity.game_id.is_(None)) | (Game.removed_at.is_(None)),
             (Activity.list_id.is_(None)) | (GameList.public.is_(True)),
+            Activity.user_id.not_in(ocultos_para(visitante)),
         )
         .order_by(Activity.created_at.desc(), Activity.id.desc())
     )
@@ -83,6 +90,6 @@ def suggestions(me, limit=5):
 @login_required
 def feed():
     me = current_user()
-    q = feed_query(me.id).options(selectinload(Activity.review).selectinload(Review.comments).joinedload(Comment.user))
+    q = feed_query(me.id, me).options(selectinload(Activity.review).selectinload(Review.comments).joinedload(Comment.user))
     page = paginate(q, request.args.get("page"))
     return render_template("social/feed.html", page=page, suggestions=suggestions(me) if not page.items else [])

@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Conquistas — Admin — GameLog{% endblock %}
+{% block content %}
+<h1>Conquistas</h1>
+<form method="post" action="{{ '/admin/conquistas/%d/editar' % conquista.id if conquista else '/admin/conquistas' }}" class="panel">
+  <h2>{{ 'Editar ' ~ conquista.codigo if conquista else 'Nova conquista' }}</h2>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="row">
+    {% if not conquista %}<div><label for="codigo">Código (opcional)</label><input id="codigo" name="codigo" value="{{ form.get('codigo', '') }}">
+      {% if erros.codigo %}<div class="err">{{ erros.codigo }}</div>{% endif %}</div>{% endif %}
+    <div><label for="nome">Nome</label><input id="nome" name="nome" value="{{ form.get('nome', '') }}">{% if erros.nome %}<div class="err">{{ erros.nome }}</div>{% endif %}</div>
+    <div><label for="icone">Ícone</label><input id="icone" name="icone" value="{{ form.get('icone', '') }}"></div>
+  </div>
+  <label for="descricao">Descrição</label><input id="descricao" name="descricao" value="{{ form.get('descricao', '') }}">
+  {% if erros.descricao %}<div class="err">{{ erros.descricao }}</div>{% endif %}
+  <div class="row">
+    <div><label for="metrica">Métrica</label><select id="metrica" name="metrica"><option value="">—</option>{% for m in metricas %}<option {{ 'selected' if form.get('metrica') == m }}>{{ m }}</option>{% endfor %}</select>
+      {% if erros.metrica %}<div class="err">{{ erros.metrica }}</div>{% endif %}</div>
+    <div><label for="meta">Meta</label><input id="meta" name="meta" type="number" min="1" value="{{ form.get('meta', '') }}">{% if erros.meta %}<div class="err">{{ erros.meta }}</div>{% endif %}</div>
+    <div><label for="categoria">Categoria</label><select id="categoria" name="categoria">{% for k, v in categorias.items() %}<option value="{{ k }}" {{ 'selected' if form.get('categoria') == k }}>{{ v }}</option>{% endfor %}</select>
+      {% if erros.categoria %}<div class="err">{{ erros.categoria }}</div>{% endif %}</div>
+    <div><label for="raridade">Raridade</label><select id="raridade" name="raridade">{% for k, v in raridades.items() %}<option value="{{ k }}" {{ 'selected' if form.get('raridade') == k }}>{{ v }}</option>{% endfor %}</select>
+      {% if erros.raridade %}<div class="err">{{ erros.raridade }}</div>{% endif %}</div>
+  </div>
+  <label style="font-weight:400"><input type="checkbox" name="secreta" style="width:auto" {{ 'checked' if form.get('secreta') }}> Secreta</label>
+  <label style="font-weight:400"><input type="checkbox" name="por_tempo" style="width:auto" {{ 'checked' if form.get('por_tempo') }}> Baseada em tempo de jogo</label>
+  <p><button>Salvar</button>{% if conquista %} <a href="/admin/conquistas">Cancelar</a>{% endif %}</p>
+</form>
+<table><thead><tr><th>Código</th><th>Nome</th><th>Regra</th><th>Categoria</th><th></th></tr></thead><tbody>
+{% for c in conquistas %}<tr><td>{{ c.codigo }}</td><td>{{ c.icone }} {{ c.nome }}{% if not c.ativa %} <span class="tag">desativada</span>{% endif %}</td>
+  <td>{{ c.metrica }} ≥ {{ c.meta }}</td><td>{{ categorias[c.categoria] }}</td>
+  <td><a href="/admin/conquistas/{{ c.id }}/editar">Editar</a>{% if c.ativa %}
+    <form class="inline" method="post" action="/admin/conquistas/{{ c.id }}/desativar"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="link danger-link">Desativar</button></form>{% endif %}</td></tr>{% endfor %}
+</tbody></table>
+{% endblock %}

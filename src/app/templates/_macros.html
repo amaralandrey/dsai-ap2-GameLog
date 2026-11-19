@@ -67,3 +67,35 @@
 </section>
 {% endif %}
 {% endmacro %}
+
+{# Gráfico SVG do servidor com a mesma informação em tabela, para leitores de tela (RET-04).
+   `svg` vem de graficos_svg, que já escapa todo texto de dados. #}
+{% macro grafico(svg, cabecalho, linhas) %}
+<figure class="grafico-box">{{ svg | safe }}
+  <details><summary>Ver como tabela</summary>
+    <table><thead><tr>{% for c in cabecalho %}<th>{{ c }}</th>{% endfor %}</tr></thead>
+      <tbody>{% for l in linhas %}<tr>{% for v in l %}<td>{{ v }}</td>{% endfor %}</tr>{% endfor %}</tbody></table>
+  </details>
+</figure>
+{% endmacro %}
+
+{# Barra de progresso de uma lista pelos status e horas do dono (LSA-08). #}
+{% macro progresso_lista(prog, statuses) %}
+{%- set jogados = prog.status.jogado -%}
+<div class="panel progresso-lista">
+  <p><strong>{{ jogados }} de {{ prog.total }}</strong> jogados{% if prog.status.jogando %}, {{ prog.status.jogando }} jogando{% endif %}
+    {% if prog.minutos %}· {{ prog.minutos | horas }} registradas{% endif %}</p>
+  <div class="barra" role="img" aria-label="{{ jogados }} de {{ prog.total }} jogados">
+    {% for k in ('jogado', 'jogando', 'abandonado', 'planejado') %}{% if prog.total and prog.status[k] %}<span class="st-{{ k }}" style="width:{{ (prog.status[k] * 100 / prog.total) | round(1) }}%" title="{{ statuses[k] }}: {{ prog.status[k] }}"></span>{% endif %}{% endfor %}
+  </div>
+</div>
+{% endmacro %}
+
+{# Uma conquista; a secreta só aparece depois de desbloqueada por quem vê (GAM-08). #}
+{% macro conquista_tag(c, revelada=True, aposentada=False) %}
+{%- if c.secreta and not revelada -%}
+<span class="tag conquista secreta" title="Conquista secreta"><span aria-hidden="true">❔</span> <strong>Conquista secreta</strong></span>
+{%- else -%}
+<span class="tag conquista r-{{ c.raridade }}" title="{{ c.descricao }}"><span aria-hidden="true">{{ c.icone }}</span> <strong>{{ c.nome }}</strong>{% if aposentada %} <small>aposentada</small>{% endif %}</span>
+{%- endif -%}
+{% endmacro %}

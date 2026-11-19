@@ -1,22 +1,9 @@
-import io
-import json
 from urllib.error import HTTPError, URLError
 
 import pytest
 
 from app.fontes import base, steam
-
-
-class Resp(io.BytesIO):
-    def __init__(self, corpo):
-        super().__init__(corpo if isinstance(corpo, bytes) else json.dumps(corpo).encode())
-
-    def __exit__(self, *a):
-        self.close()
-
-
-def http(code):
-    return HTTPError("https://x", code, "erro", {}, None)
+from conftest import Resp, http
 
 
 @pytest.fixture

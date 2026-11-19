@@ -6,6 +6,11 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 from .models import Activity, Follow, GameList, LoginAttempt, Review, User, db, now
 from .afinidade import resumo_com
+from .diario import minutos_registrados, pode_ver_perfil, zerados
+from .diario_import import ler_steam_id
+from .conquistas import vitrine
+from .progressao import resumo as resumo_progressao
+from .retrospectiva import sparkline_do_perfil
 from .perfil import dados as dados_perfil
 from .util import current_user, login_required, safe_next
 
@@ -96,6 +101,9 @@ def profile(username):
     user = User.query.filter_by(username_lower=username.lower()).first_or_404()
     me = current_user()
     own = me is not None and me.id == user.id
+    following = bool(me and not own and Follow.query.filter_by(follower_id=me.id, followed_id=user.id).first())
+    if not pode_ver_perfil(me, user):  # DIA-12: só o cabeçalho
+        return render_template("auth/perfil_privado.html", u=user, following=following)
     lists = GameList.query.filter_by(user_id=user.id)
     if not own:
         lists = lists.filter_by(public=True)
@@ -105,9 +113,13 @@ def profile(username):
         "listas": lists.count(),
         "seguidores": Follow.query.filter_by(followed_id=user.id).count(),
         "seguindo": Follow.query.filter_by(follower_id=user.id).count(),
+        "minutos": minutos_registrados(user.id),  # DIA-09
+        "zerados": zerados(user.id),
     }
-    following = bool(me and not own and Follow.query.filter_by(follower_id=me.id, followed_id=user.id).first())
     afin = resumo_com(me.id, user.id) if me and not own else None  # AFI-08
+    extra["sparkline"], _ = sparkline_do_perfil(user.id)  # RET-11
+    extra["vitrine"] = vitrine(user.id)  # GAM-09: lidas, sem recalcular (CON-06)
+    extra["progressao"] = resumo_progressao(user.id)  # PRG-09
     return render_template(
         "auth/perfil.html", u=user, own=own, stats=stats, following=following, lists=lists.limit(10).all(), afin=afin,
         **extra,
@@ -127,10 +139,19 @@ def edit_profile(username):
             errors["display_name"] = "Nome de exibição deve ter de 1 a 60 caracteres."
         if len(bio) > 280:
             errors["bio"] = "A bio deve ter até 280 caracteres."
+        steam_id = ler_steam_id(request.form.get("steam_id"))  # HRS-01
+        if steam_id is None:
+            errors["steam_id"] = "Informe o SteamID64 (17 dígitos) ou a URL steamcommunity.com/profiles/<id>."
+        elif steam_id and User.query.filter(User.steam_id == steam_id, User.id != user.id).first():
+            errors["steam_id"] = "Esta conta da Steam já está vinculada a outro usuário"
         if not errors:
             user.display_name, user.bio = name, bio
+            user.perfil_privado = bool(request.form.get("perfil_privado"))  # DIA-11
+            user.steam_id = steam_id or None
             db.session.commit()
             flash("Perfil atualizado.", "ok")
             return redirect(f"/u/{user.username}")
         return render_template("auth/editar.html", u=user, errors=errors, form=request.form), 400
-    return render_template("auth/editar.html", u=user, errors={}, form={"display_name": user.display_name, "bio": user.bio})
+    return render_template("auth/editar.html", u=user, errors={}, form={"display_name": user.display_name, "bio": user.bio,
+                                                                   "perfil_privado": user.perfil_privado,
+                                                                   "steam_id": user.steam_id or ""})

@@ -111,6 +111,23 @@ def test_afi06_indice_ordenado(app, duo):
     assert "dados insuficientes" in html and "1 jogo em comum" in html
 
 
+def test_afi06_indice_esconde_perfil_privado_que_nao_me_segue(app, duo):
+    jogos = [jogo(app, f"X{i}") for i in range(3)]
+    for g in jogos:
+        avalia(app, "ana", g, 8)
+        avalia(app, "bia", g, 8)
+    duo.post("/u/bia/seguir")
+    with app.app_context():
+        User.query.filter_by(username="bia").one().perfil_privado = True
+        db.session.commit()
+    html = duo.get("/comparar").get_data(as_text=True)
+    assert "@bia" not in html and "100%" not in html
+    bia = app.test_client()
+    login(bia, "bia")
+    bia.post("/u/ana/seguir")  # quem o dono segue pode ver o perfil
+    assert "@bia" in duo.get("/comparar").get_data(as_text=True)
+
+
 def test_afi06_sem_seguidos(duo):
     assert "ainda não segue ninguém" in duo.get("/comparar").get_data(as_text=True)
 

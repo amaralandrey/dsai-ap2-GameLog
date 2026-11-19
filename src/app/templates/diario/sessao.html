@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Editar sessão' if sessao else 'Registrar sessão' }} — GameLog{% endblock %}
+{% block content %}
+<section class="panel" style="max-width:720px;margin:0 auto">
+  <h1>{{ 'Editar sessão' if sessao else 'Registrar sessão' }} de <a href="/jogos/{{ game.slug }}">{{ game.title }}</a></h1>
+  <form method="post" action="{{ '/sessoes/%d/editar' % sessao.id if sessao else '/jogos/%s/sessoes' % game.slug }}">
+    {% include "diario/_form.html" %}
+    <p><button>Salvar sessão</button> <a href="{{ '/diario' if sessao else '/jogos/' ~ game.slug }}">Cancelar</a></p>
+  </form>
+</section>
+{% endblock %}

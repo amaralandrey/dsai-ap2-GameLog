@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% from "_macros.html" import conquista_tag %}
+{% block title %}Conquistas de {{ dono.display_name }} — GameLog{% endblock %}
+{% block content %}
+<h1>Conquistas de <a href="/u/{{ dono.username }}">{{ dono.display_name }}</a></h1>
+<form method="get" class="panel row">
+  <div><label for="categoria">Categoria</label><select id="categoria" name="categoria"><option value="">todas</option>{% for k, v in categorias.items() %}<option value="{{ k }}" {{ 'selected' if categoria == k }}>{{ v }}</option>{% endfor %}</select></div>
+  <div><label for="raridade">Raridade</label><select id="raridade" name="raridade"><option value="">todas</option>{% for k, v in raridades.items() %}<option value="{{ k }}" {{ 'selected' if raridade == k }}>{{ v }}</option>{% endfor %}</select></div>
+  <div style="align-self:end"><button class="ghost">Filtrar</button></div>
+</form>
+<h2>Desbloqueadas ({{ desbloqueadas | length }})</h2>
+{% for uc, c in desbloqueadas %}
+<div class="panel conquista-linha">{{ conquista_tag(c, aposentada=not c.ativa) }}
+  <span class="mut">{{ c.descricao }} · {{ raridades[c.raridade] }} · {{ uc.desbloqueada_em.strftime('%d/%m/%Y') }}</span>
+  {% if own %}<form class="inline" method="post" action="/u/{{ dono.username }}/conquistas/{{ c.codigo }}/{{ 'desafixar' if uc.fixada else 'fixar' }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="link">{{ 'Tirar da estante' if uc.fixada else 'Pôr na estante' }}</button></form>{% endif %}
+</div>
+{% else %}<p class="mut">Nenhuma conquista desbloqueada{% if categoria or raridade %} com esse filtro{% endif %}.</p>{% endfor %}
+{% if own %}<h2>Ainda bloqueadas</h2>
+{% for c, prog in bloqueadas %}
+<div class="panel conquista-linha">{{ conquista_tag(c, revelada=False) }}
+  {% if not c.secreta %}<span class="mut">{{ c.descricao }}</span>
+  <span class="progresso" role="img" aria-label="{{ prog }} de {{ c.meta }}"><span style="width:{{ (prog * 100 / c.meta) | round(1) }}%"></span></span>
+  <span class="mut">{{ prog }} de {{ c.meta }}</span>{% endif %}
+</div>{% endfor %}{% endif %}
+{% endblock %}

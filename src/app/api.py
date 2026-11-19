@@ -4,15 +4,17 @@ import json
 from flask import Blueprint, Response, request
 from sqlalchemy import func
 from sqlalchemy.orm import joinedload, selectinload
+from werkzeug.exceptions import NotFound
 
 from .busca import search_games
+from .jogo import redirecionar_mesclado
 from .models import Game, Like, Review, db, game_stats, visible_games
 from .util import paginate
 
 bp = Blueprint("api", __name__, url_prefix="/api")
 PER_PAGE, PER_PAGE_MAX = 20, 50
 ENDPOINTS = {
-    "/api/jogos": "lista e busca (q, genero, plataforma, ano_de, ano_ate, nota_min, ordem, page, per_page)",
+    "/api/jogos": "lista e busca (q, genero, plataforma, loja, ano_de, ano_ate, nota_min, ordem, page, per_page)",
     "/api/jogos/<slug>": "detalhe de um jogo",
     "/api/jogos/<slug>/avaliacoes": "avaliações visíveis de um jogo (page, per_page)",
 }
@@ -80,22 +82,39 @@ def jogo_ou_404(slug):
     return visible_games().filter_by(slug=slug).first()
 
 
+def fontes(game):
+    """Vínculos do jogo, só fonte, id externo e link, ordenados por fonte (MRG-13, API-07)."""
+    return [{"fonte": v.fonte, "external_id": v.external_id, "url": v.url_loja}
+            for v in sorted(game.fontes, key=lambda v: (v.fonte, v.id))]
+
+
+def mesclado_ou_404(slug, sufixo=""):
+    """Jogo mesclado responde 301 para o principal, como a página (MRG-08); o resto, 404 em JSON (API-05)."""
+    try:
+        return redirecionar_mesclado(slug, lambda s: f"/api/jogos/{s}{sufixo}")
+    except NotFound:
+        return erro(404, "Jogo não encontrado")
+
+
 @bp.route("/jogos/<slug>")
 def detalhe(slug):
     g = jogo_ou_404(slug)
     if not g:
-        return erro(404, "Jogo não encontrado")
+        return mesclado_ou_404(slug)
     s = game_stats(g.id)
     return resposta({**item(g, s["avg"], s["total"]), "sinopse": g.synopsis,
-                     "histograma": {str(k): v for k, v in s["hist"].items()}})
+                     "histograma": {str(k): v for k, v in s["hist"].items()}, "fontes": fontes(g)})
 
 
 @bp.route("/jogos/<slug>/avaliacoes")
 def avaliacoes(slug):
     g = jogo_ou_404(slug)
     if not g:
-        return erro(404, "Jogo não encontrado")
-    q = (Review.query.filter_by(game_id=g.id, hidden=False).options(joinedload(Review.user))
+        return mesclado_ou_404(slug, "/avaliacoes")
+    from .diario import ocultos_para
+
+    q = (Review.query.filter_by(game_id=g.id, hidden=False).filter(Review.user_id.not_in(ocultos_para(None)))
+         .options(joinedload(Review.user))
          .order_by(Review.created_at.desc(), Review.id.desc()))
     page = paginate(q, request.args.get("page"), per_page())
     ids = [r.id for r in page.items]

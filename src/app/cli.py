@@ -1,6 +1,7 @@
 import os
 
 import click
+from flask.cli import AppGroup
 from werkzeug.security import generate_password_hash
 
 from .models import User, db
@@ -24,6 +25,50 @@ def create_admin(email, password, username="admin"):
     return True
 
 
+def _nomes_das_fontes(fonte):
+    """`todas` roda cada fonte registrada, menos o snapshot `arquivo` (GOG-10)."""
+    from .fontes import FONTES
+
+    if fonte == "todas":
+        return [n for n in FONTES if n != "arquivo"]
+    if fonte not in FONTES:
+        raise click.UsageError(f"fonte desconhecida; use uma de {sorted(FONTES)} ou todas")
+    return [fonte]
+
+
+def _rodar_uma(nome, executar, campos):
+    """Linha de resumo de uma fonte e se ela falhou; a chave da RAWG nunca chega aqui (GOG-05)."""
+    from .fontes import FONTES, Interrompido, indisponivel
+
+    if motivo := indisponivel(FONTES[nome]):
+        return f"erro={motivo}", True
+    extra = ""
+    try:
+        contagens = executar(nome)
+    except Interrompido as exc:  # 429 persistente: fica o que já foi gravado (GOG-11)
+        contagens, extra = exc.parcial, f" interrompido={exc.motivo}"
+    except Exception as exc:  # fonte fora do ar ou resposta inesperada: sem traceback
+        return f"erro=fonte indisponivel: {str(exc).strip() or exc.__class__.__name__}", True
+    return " ".join(f"{c}={n}" for c, n in zip(campos, contagens)) + extra, False
+
+
+def rodar(fonte, executar, campos):
+    """Roda uma fonte ou todas, em sequência; a falha de uma não impede as seguintes (GOG-04, GOG-10).
+
+    Com uma fonte só, falha ou falta de chave termina com código 1; em `todas`, a fonte sem chave fica
+    desligada sem erro (GOG-07) e só uma falha de verdade muda o código de saída.
+    """
+    from .fontes import FONTES, indisponivel
+
+    nomes, todas, falhou = _nomes_das_fontes(fonte), fonte == "todas", False
+    for nome in nomes:
+        linha, erro = _rodar_uma(nome, executar, campos)
+        click.echo(f"{nome}: {linha}" if todas else linha)
+        falhou = falhou or (erro and not (todas and indisponivel(FONTES[nome])))
+    if falhou:
+        raise click.exceptions.Exit(1)
+
+
 def register(app):
     @app.cli.command("seed")
     @click.option("--seed", default=42)
@@ -31,7 +76,16 @@ def register(app):
         """Popula o banco com dados fictícios reproduzíveis."""
         from .seed import run
 
-        run(seed, real=True)
+        populou = run(seed, real=True)
+        from .conquistas_catalogo import sincronizar
+        from .gamificacao import recalcular
+
+        criadas, _ = sincronizar()  # GAM-02: catálogo a cada subida, sem duplicar
+        if populou or criadas:  # GAM-13: só quando há histórico ou conquista novos
+            recalcular()
+        from .rankings import abrir_temporada
+
+        abrir_temporada()  # RNK-01
         click.echo("seed ok")
         email, pw = os.environ.get("ADMIN_EMAIL"), os.environ.get("ADMIN_PASSWORD")
         if email and pw and create_admin(email, pw):
@@ -45,35 +99,100 @@ def register(app):
         click.echo("admin criado" if create_admin(email, pw) else "admin já existe")
 
     @app.cli.command("import-games")
-    @click.option("--fonte", default="steam")
+    @click.option("--fonte", default="steam", help="uma fonte de FONTES ou `todas`")
     @click.option("--limite", default=40)
     @click.option("--termo", default=None)
     def import_games_cmd(fonte, limite, termo):
         """Importa jogos reais de uma fonte externa (padrão: Steam, sem chave)."""
-        from .fontes import FONTES, importar
+        from .fontes import importar
 
-        if fonte not in FONTES:
-            raise click.UsageError(f"fonte desconhecida; use uma de {sorted(FONTES)}")
-        ok, ign, erro = importar(fonte, limite, termo)
-        click.echo(f"importados={ok} ignorados={ign} falhas={erro}")
+        rodar(fonte, lambda nome: importar(nome, limite, termo), ("importados", "ignorados", "falhas"))
 
     @app.cli.command("sync-games")
-    @click.option("--fonte", default="steam")
+    @click.option("--fonte", default="steam", help="uma fonte de FONTES ou `todas`")
     @click.option("--limite", default=40)
     @click.option("--termo", default=None)
     def sync_games_cmd(fonte, limite, termo):
         """Sincroniza o catálogo com uma fonte externa (idempotente; pensado para cron)."""
-        from .fontes import FONTES
-        from .sync import FonteIndisponivel, sincronizar
+        from .sync import sincronizar
 
-        if fonte not in FONTES:
-            raise click.UsageError(f"fonte desconhecida; use uma de {sorted(FONTES)}")
+        rodar(fonte, lambda nome: sincronizar(nome, limite, termo), ("novos", "atualizados", "ignorados", "falhas"))
+
+    @app.cli.command("sugerir-duplicatas")
+    def sugerir_duplicatas_cmd():
+        """Registra pendências de mesclagem entre jogos parecidos do catálogo, sem mesclar nada (MRG-04)."""
+        from .catalogo_merge import sugerir_duplicatas
+
+        click.echo(f"pendencias={sugerir_duplicatas()}")
+
+    @app.cli.command("enriquecer-snapshot")
+    @click.option("--arquivo", default=None, help="padrão: o snapshot do seed (src/app/dados/jogos.json)")
+    def enriquecer_snapshot_cmd(arquivo):
+        """Grava no snapshot os links de GOG e Epic e o id da RAWG de cada jogo (SNP-01; exige RAWG_API_KEY)."""
+        from .fontes import arquivo as snapshot_padrao
+        from .snapshot import enriquecer
+
+        caminho = arquivo or snapshot_padrao.CAMINHO
+        rodar("rawg", lambda _: enriquecer(caminho), ("jogos", "vinculados", "sem_correspondencia", "falhas"))
+
+    conquistas_cli = AppGroup("conquistas", help="Catálogo e recálculo das conquistas (GAM-02, GAM-13).")
+
+    @conquistas_cli.command("sincronizar")
+    def conquistas_sincronizar():
+        """Grava o catálogo inicial; rodar de novo atualiza pelo código, sem duplicar."""
+        from .conquistas_catalogo import sincronizar
+
+        criadas, atualizadas = sincronizar()
+        click.echo(f"criadas={criadas} atualizadas={atualizadas}")
+
+    @conquistas_cli.command("recalcular")
+    @click.option("--usuario", default=None, help="nome de usuário; sem ele, todos")
+    def conquistas_recalcular(usuario):
+        """Reavalia o histórico e desbloqueia o que faltar, sem duplicar."""
+        from .gamificacao import recalcular
+
+        usuarios, desbloqueadas = recalcular(usuario)
+        click.echo(f"usuarios={usuarios} desbloqueadas={desbloqueadas}")
+
+    app.cli.add_command(conquistas_cli)
+
+    progressao_cli = AppGroup("progressao", help="XP e sequências semanais (PRG).")
+
+    @progressao_cli.command("avisar-sequencias")
+    def progressao_avisar():
+        """Aviso semanal de sequência prestes a quebrar (PRG-10); o job de domingo chama o mesmo."""
+        from .progressao import avisar_sequencias
+
+        click.echo(f"avisados={avisar_sequencias()}")
+
+    app.cli.add_command(progressao_cli)
+
+    rankings_cli = AppGroup("rankings", help="Temporadas dos rankings (RNK-01, RNK-08).")
+
+    @rankings_cli.command("abrir-temporada")
+    def rankings_abrir():
+        """Cria a temporada do trimestre atual, se ainda não existir."""
+        from .rankings import abrir_temporada
+
+        t, criada = abrir_temporada()
+        click.echo(f"temporada={t.slug} criada={int(criada)}")
+
+    @rankings_cli.command("encerrar-temporada")
+    @click.argument("slug")
+    def rankings_encerrar(slug):
+        """Grava o retrato e premia o pódio de uma temporada que já terminou."""
+        from .rankings import TemporadaEmAndamento, encerrar
+
         try:
-            novos, atualizados, ignorados, falhas = sincronizar(fonte, limite, termo)
-        except FonteIndisponivel as exc:
-            click.echo(f"erro=fonte indisponivel: {exc}")
-            raise click.exceptions.Exit(1) from exc
-        click.echo(f"novos={novos} atualizados={atualizados} ignorados={ignorados} falhas={falhas}")
+            click.echo("encerrada=1" if encerrar(slug) else "ja_encerrada=1")
+        except TemporadaEmAndamento:
+            click.echo("erro=temporada em andamento")
+            raise click.exceptions.Exit(1)
+        except LookupError:
+            click.echo("erro=temporada inexistente")
+            raise click.exceptions.Exit(1)
+
+    app.cli.add_command(rankings_cli)
 
     @app.cli.command("export-games")
     @click.option("--termos", required=True, help="nomes separados por ;, um jogo por nome")

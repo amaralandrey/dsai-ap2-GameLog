@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% from "_macros.html" import avatar %}
+{% block title %}{{ u.display_name }} (@{{ u.username }}) — GameLog{% endblock %}
+{% block content %}
+<section class="panel">
+  <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
+    {{ avatar(u, 'big') }}
+    <div style="flex:1">
+      <h1 style="margin:0">{{ u.display_name }}</h1>
+      <div class="mut">@{{ u.username }} · perfil privado</div>
+    </div>
+    {% if me %}
+      <form method="post" action="/u/{{ u.username }}/{{ 'deixar-de-seguir' if following else 'seguir' }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="{{ 'ghost' if following }}">{{ 'Seguindo' if following else 'Seguir' }}</button>
+      </form>
+    {% else %}<a class="btn" href="/entrar?next=/u/{{ u.username }}">Seguir</a>{% endif %}
+  </div>
+  <p class="mut">Este perfil é privado. Só quem {{ u.display_name }} segue vê o diário, as avaliações e as listas.</p>
+</section>
+{% endblock %}

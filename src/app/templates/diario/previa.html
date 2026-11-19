@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Prévia da importação — GameLog{% endblock %}
+{% block content %}
+<h1>Prévia da importação</h1>
+<p><span class="tag">novas: <strong>{{ totais.nova }}</strong></span> <span class="tag">duplicadas: <strong>{{ totais.duplicada }}</strong></span>
+  <span class="tag">com erro: <strong>{{ totais.erro }}</strong></span>{% if totais.steam %} <span class="tag">da Steam, ignoradas: <strong>{{ totais.steam }}</strong></span>{% endif %}</p>
+{% if totais.nova %}
+<form method="post" action="/diario/importar/{{ previa.id }}/confirmar"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <button>Gravar {{ totais.nova }} {{ 'sessão' if totais.nova == 1 else 'sessões' }}</button> <a href="/diario/importar">Cancelar</a></form>
+{% else %}<p class="mut">Nenhuma linha nova para gravar. <a href="/diario/importar">Enviar outro arquivo</a></p>{% endif %}
+<table><thead><tr><th>Linha</th><th>Jogo</th><th>Data</th><th>Duração</th><th>Situação</th></tr></thead><tbody>
+{% for l in linhas %}<tr><td>{{ l.linha }}</td><td>{{ l.jogo }}</td><td>{{ l.data }}</td><td>{{ l.duracao }}</td>
+  <td>{{ l.classe }}{% if l.motivo %}: {{ l.motivo }}{% endif %}</td></tr>{% endfor %}
+</tbody></table>
+{% endblock %}

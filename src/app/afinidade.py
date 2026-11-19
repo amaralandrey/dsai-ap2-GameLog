@@ -43,7 +43,10 @@ def resumo_com(me_id, outro_id):
 @login_required
 def indice():
     me = current_user()
-    seguidos = User.query.join(Follow, Follow.followed_id == User.id).filter(Follow.follower_id == me.id).all()
+    from .diario import ocultos_para
+
+    seguidos = (User.query.join(Follow, Follow.followed_id == User.id)
+                .filter(Follow.follower_id == me.id, User.id.not_in(ocultos_para(me))).all())  # DIA-12
     n = notas([me.id] + [u.id for u in seguidos])
     linhas = []
     for u in seguidos:
@@ -56,7 +59,9 @@ def indice():
 @bp.route("/u/<username>/comparar")
 @login_required
 def comparar(username):
-    outro = User.query.filter_by(username_lower=username.lower()).first_or_404()
+    from .diario import perfil_ou_404
+
+    outro = perfil_ou_404(username)  # DIA-12
     me = current_user()
     if outro.id == me.id:
         return redirect(f"/u/{me.username}")  # AFI-07
