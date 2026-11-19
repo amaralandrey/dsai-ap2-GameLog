@@ -246,3 +246,65 @@ def test_job_08_dois_executores_marcam_o_agendamento_uma_vez(app, tarefas, relog
         relogio.andar(days=1)
         ag = Agendamento.query.one()
         assert jobs._marcar(ag, antes) and not jobs._marcar(ag, antes)
+
+
+# ---------- JOB-04 (comando), JOB-09 ----------
+def test_job_04_rodar_uma_vez_imprime_contagem(app, tarefas):
+    with app.app_context():
+        jobs.enfileirar("anota")
+        jobs.enfileirar("permanente")
+    r = app.test_cli_runner().invoke(args=["jobs", "rodar", "--uma-vez", "--limite", "5"])
+    assert r.exit_code == 0 and r.output.strip() == "executados=2 ok=1 falhas=0 mortos=1"
+
+
+def test_job_04_rodar_em_laco_para_no_sinal_depois_do_ciclo(app, tarefas, monkeypatch):
+    import signal
+
+    tratadores, ciclos = {}, []
+    monkeypatch.setattr(signal, "signal", lambda s, f: tratadores.__setitem__(s, f))
+
+    def ciclo(limite):
+        ciclos.append(limite)
+        if len(ciclos) == 2:
+            tratadores[signal.SIGTERM](signal.SIGTERM, None)  # chega no meio do ciclo: ele termina antes
+        return {"executados": 0, "ok": 0, "falhas": 0, "mortos": 0}
+    monkeypatch.setattr(jobs, "ciclo", ciclo)
+    r = app.test_cli_runner().invoke(args=["jobs", "rodar", "--intervalo", "0"])
+    assert r.exit_code == 0 and ciclos == [50, 50] and set(tratadores) == {signal.SIGINT, signal.SIGTERM}
+
+
+def test_job_09_agendar_e_idempotente_e_respeita_o_admin(app):
+    from app.models import Agendamento
+
+    r = app.test_cli_runner().invoke(args=["jobs", "agendar"])
+    assert r.output.strip() == f"criados={len(jobs.AGENDAS_PADRAO)} atualizados=0"
+    with app.app_context():
+        ags = {a.nome: a for a in Agendamento.query}
+        assert (ags["sync_games"].cron, ags["sync_games"].ativo) == ("0 4 * * *", True)
+        assert ags["enriquecer_snapshot"].ativo is False
+        ags["sync_games"].ativo, ags["sync_games"].cron = False, "0 3 * * *"
+        db.session.commit()
+    assert app.test_cli_runner().invoke(args=["jobs", "agendar"]).output.strip() == "criados=0 atualizados=1"
+    assert app.test_cli_runner().invoke(args=["jobs", "agendar"]).output.strip() == "criados=0 atualizados=0"
+    with app.app_context():
+        a = Agendamento.query.filter_by(nome="sync_games").one()
+        assert (a.cron, a.ativo) == ("0 4 * * *", False)
+
+
+def test_job_09_sync_games_reaproveita_a_funcao_do_comando(app, monkeypatch):
+    from app import sync
+
+    chamadas = []
+    monkeypatch.setattr(sync, "sincronizar", lambda fonte, limite: chamadas.append((fonte, limite)))
+    with app.app_context():
+        jobs.enfileirar("sync_games", limite=10)
+        assert jobs.ciclo()["ok"] == 1 and chamadas == [("steam", 10)]
+
+
+def test_job_09_tarefa_sem_chave_da_rawg_morre_com_mensagem_clara(app, monkeypatch):
+    monkeypatch.delenv("RAWG_API_KEY", raising=False)
+    with app.app_context():
+        jid = jobs.enfileirar("enriquecer_snapshot").id
+        jobs.ciclo()
+        j = db.session.get(Job, jid)
+        assert j.status == "morto" and "RAWG_API_KEY não configurada" in j.ultimo_erro

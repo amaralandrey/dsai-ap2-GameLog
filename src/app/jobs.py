@@ -5,16 +5,22 @@ garante que dois executores (ou os 2 workers do gunicorn) nunca rodem o mesmo jo
 """
 import json
 import os
+import signal
 import socket
+import time
 from datetime import timedelta
 
+import click
+from flask import Blueprint
 from sqlalchemy.exc import IntegrityError
 
 from . import tempo
 from .cron import proxima_execucao
 from .models import Agendamento, Job, db
 
+bp = Blueprint("jobs", __name__, cli_group="jobs")
 TAREFAS = {}
+AGENDAS_PADRAO = {}  # nome -> (cron, tipo, args, ativo), declarados por quem registra a tarefa (JOB-09)
 ESPERA_BASE, ESPERA_MAX = timedelta(seconds=30), timedelta(hours=6)
 ABANDONO = timedelta(minutes=15)
 MAX_ERRO = 2000
@@ -32,6 +38,11 @@ def tarefa(nome):
         TAREFAS[nome] = funcao
         return funcao
     return registrar
+
+
+def agenda_padrao(nome, cron, tipo, ativo=True, **args):
+    """Declara um agendamento padrão que `flask jobs agendar` cria (JOB-09)."""
+    AGENDAS_PADRAO[nome] = (cron, tipo, json.dumps(args, sort_keys=True), ativo)
 
 
 def _abertos(chave):
@@ -166,3 +177,75 @@ def ciclo(limite=50, executor=None):
         conta["executados"] += 1
         conta[{"ok": "ok", "pendente": "falhas", "morto": "mortos"}[resultado]] += 1
     return conta
+
+
+# ---------- comandos (JOB-04, JOB-09) ----------
+def agendar_padrao():
+    """Cria os agendamentos padrão e atualiza cron, tipo e args dos que mudaram; `ativo` fica com o admin."""
+    criados = atualizados = 0
+    existentes = {a.nome: a for a in Agendamento.query}
+    for nome, (cron, tipo, args, ativo) in sorted(AGENDAS_PADRAO.items()):
+        ag = existentes.get(nome)
+        if ag is None:
+            db.session.add(Agendamento(nome=nome, cron=cron, tipo=tipo, args=args, ativo=ativo))
+            criados += 1
+        elif (ag.cron, ag.tipo, ag.args) != (cron, tipo, args):
+            ag.cron, ag.tipo, ag.args = cron, tipo, args
+            atualizados += 1
+    db.session.commit()
+    return criados, atualizados
+
+
+@bp.cli.command("agendar")
+def agendar_cmd():
+    """Cria ou atualiza os agendamentos padrão, sem duplicar."""
+    criados, atualizados = agendar_padrao()
+    click.echo(f"criados={criados} atualizados={atualizados}")
+
+
+def _linha(conta):
+    return " ".join(f"{k}={conta[k]}" for k in ("executados", "ok", "falhas", "mortos"))
+
+
+@bp.cli.command("rodar")
+@click.option("--uma-vez", is_flag=True, help="um ciclo só, para o cron do host")
+@click.option("--limite", default=50, show_default=True)
+@click.option("--intervalo", default=30, show_default=True, help="segundos entre ciclos")
+def rodar_cmd(uma_vez, limite, intervalo):
+    """Executa os jobs vencidos; sem --uma-vez, repete até SIGINT ou SIGTERM."""
+    if uma_vez:
+        click.echo(_linha(ciclo(limite)))
+        return
+    parar = []
+    for sinal in (signal.SIGINT, signal.SIGTERM):  # o job em andamento termina antes de sair
+        signal.signal(sinal, lambda *_: parar.append(True))
+    while not parar:
+        click.echo(_linha(ciclo(limite)))
+        fim = time.monotonic() + intervalo
+        while not parar and time.monotonic() < fim:
+            time.sleep(0.2)
+
+
+# ---------- tarefas do catálogo (JOB-09) ----------
+@tarefa("sync_games")
+def sync_games(fonte="steam", limite=40):
+    from .sync import sincronizar
+
+    sincronizar(fonte, limite)
+
+
+@tarefa("enriquecer_snapshot")
+def enriquecer_snapshot():
+    if not os.environ.get("RAWG_API_KEY"):
+        raise ErroPermanente("RAWG_API_KEY não configurada: o enriquecimento do snapshot usa a RAWG")
+    try:
+        from .snapshot import enriquecer
+    except ModuleNotFoundError:
+        raise ErroPermanente("o snapshot multi-loja ainda não existe nesta versão") from None
+    from .fontes import arquivo
+
+    enriquecer(arquivo.CAMINHO)
+
+
+agenda_padrao("sync_games", "0 4 * * *", "sync_games")
+agenda_padrao("enriquecer_snapshot", "0 5 * * 1", "enriquecer_snapshot", ativo=False)
