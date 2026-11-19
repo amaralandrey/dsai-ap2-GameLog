@@ -1,8 +1,8 @@
-# Sessão Claude Code: correções da review do Fabricio nos PRs #21, #22 e #23 (2026-11-18)
+# Sessão Claude Code: correções da review dos PRs #21–#23 e fila de jobs (2026-11-18)
 
 **Ferramenta:** Claude Code CLI (Claude Opus 5.5, `claude-opus-5-5`), sem subagentes
 **Quem conduziu:** Andrey Amaral
-**Horário:** 19:53–20:50 (horário de Belém)
+**Horário:** 19:53–21:20 (horário de Belém)
 **Ponto de partida:** PRs #21 (Épico 2, restante), #22 (Épico 3) e #23 (Épico 4) abertos, com a review do Fbc00 de 2026-11-17
 
 ## Custo
@@ -11,13 +11,13 @@ Medido no log da sessão do Claude Code (`~/.claude/projects/.../32a7a036-....js
 
 | Tipo de token | Tokens | Preço (US$/1M) | Custo (US$) |
 |---|---:|---:|---:|
-| Entrada | 312 | 4,00 | 0,00 |
-| Saída | 94.138 | 20,00 | 1,88 |
-| Leitura de cache | 24.048.176 | 0,20 | 4,81 |
-| Escrita de cache (TTL 1h) | 221.792 | 8,00 | 1,77 |
-| **Total** | **24.364.418** | | **≈ 8,47** |
+| Entrada | 426 | 4,00 | 0,00 |
+| Saída | 154.487 | 20,00 | 3,09 |
+| Leitura de cache | 40.034.381 | 0,20 | 8,01 |
+| Escrita de cache (TTL 1h) | 314.397 | 8,00 | 2,52 |
+| **Total** | **40.503.691** | | **≈ 13,61** |
 
-São 152 requisições ao modelo. A conta foi feita antes de escrever este registro, então ficam de fora as últimas respostas: este arquivo e o push.
+São 205 requisições ao modelo, com a sessão inteira: as correções da review e a fila de jobs. A conta foi refeita antes desta atualização do registro, então ficam de fora as últimas respostas: esta edição e o push.
 
 ## Prompts
 
@@ -26,6 +26,10 @@ São 152 requisições ao modelo. A conta foi feita antes de escrever este regis
 3. now start on #22 and #23's fixes
 4. are the due artefacts being generated for this session?
 5. please, write it, now on, always do that.
+6. make an assesment if we can implement epic 5 now? remember me if epic 4 is done
+7. so could we implement epic 8 then?
+8. map out everything I could start now from main
+9. yes, start JOB from main
 
 ## Como foi feito
 
@@ -76,9 +80,39 @@ São 152 requisições ao modelo. A conta foi feita antes de escrever este regis
 - **XP só na criação (#23):** os eventos de edição levam `nova=False`. As conquistas que o conteúdo antigo já merecia continuam desbloqueando na edição.
 - **Transferência acima do limite (#23):** volta com mensagem em vez de 403.
 
+## Fila de jobs (SPEC-16, PR #24)
+
+- **Análise antes de codar.** Pedi a dependência de cada spec restante contra a `main`, que só tem a AP1 e o PR #12. Resultado:
+  - os épicos 5 e 8 dependem de #21–#23 estarem na `main`, e o 5 é do Fabrício pela divisão do plano;
+  - dá para começar da `main` agora: JOB, IDA, CHV e o núcleo da AP2;
+  - JOB foi o escolhido porque destrava mais specs (EML, RTN, INC, BKP, PRC e OFR).
+- **Branch `feat/fila-de-jobs` a partir da `main`, com 5 commits:**
+
+| Critérios | Commit | Testes |
+|---|---|---|
+| JOB-01..06 | `bae9396` | enfileirar, chave única, espera crescente com teto, rollback, `ErroPermanente`, trava com duas threads e job abandonado |
+| JOB-07, 08 | `7d1c8a3` | parser de cron (válidos, inválidos e viradas de hora, dia, mês e ano) e agendamento sem duplicar |
+| JOB-04, 09 | `fc93981` | `jobs rodar` (uma vez e em laço até o sinal), `jobs agendar` idempotente e as tarefas `sync_games` e `enriquecer_snapshot` |
+| JOB-10 | `d14d8e6` | `/admin/jobs`: 403, filtros, paginação e ações com auditoria |
+| JOB-11 | `f3b4719` | o app não inicia agendador nem thread; `/jobs/ciclo` com token certo, errado e ausente |
+
+- **Testes:** 48 em `tests/test_jobs.py`; a suíte da branch tem 318. A cobertura é de 100% em `cron.py` e 94% em `jobs.py`.
+- **Decisões para reduzir conflito com #21–#23:**
+  - `tempo.py` é cópia byte a byte da versão do #23;
+  - os modelos entram depois de `AuditLog`, longe das regiões que o #23 mexe;
+  - os comandos usam o `cli_group` do blueprint, sem tocar no `cli.py`.
+
+  O `git merge-tree` contra o #23 mostra só 4 conflitos de linhas acrescentadas no mesmo ponto: `routes.py`, `render.yaml`, `.env.example` e `README.md`.
+- **Outras decisões:**
+  - cancelar deixa o job como `falhou`, para poder ser tentado de novo;
+  - agendamento novo ou religado conta a partir de agora;
+  - `jobs agendar` não muda o liga/desliga feito pelo admin;
+  - `enriquecer_snapshot` termina com `ErroPermanente` enquanto o snapshot do #21 não estiver na `main`.
+
 ## Pontos de atenção
 
 - **`rankings.apurar`** continua trazendo o ranking inteiro para o Python. Os filtros de PMN (`pode`) e BLQ (`bloqueados_com`) só existem em Python, e o cartão RNK-06 precisa da posição na lista inteira. Isso fica para quando as specs de PMN e BLQ forem implementadas.
 - **Nit de comentários:** o Fbc00 apontou de 110 a 150 linhas de comentário em cada PR. Não foi tratado; ofereci um commit de limpeza em cada um.
 - **Banco local:** depois do #23, o banco precisa de `./dev.sh reset` (`AUTOINCREMENT` em `review` e `sessao_jogo`).
-- **Ordem de merge:** #21 → #22 → #23. O #23 aguarda nova aprovação, porque a anterior foi dada antes dos achados.
+- **Ordem de merge:** #21 → #22 → #23 → #24. O #23 aguarda nova aprovação, porque a anterior foi dada antes dos achados. O #24 precisa da `main` mesclada depois do #23, para resolver os 4 conflitos triviais.
+- **Divisão de autoria:** o Fabrício ainda não tem commits no repositório, e o plano pede pelo menos 30% de autoria de cada um. O Épico 5 continua com ele.
