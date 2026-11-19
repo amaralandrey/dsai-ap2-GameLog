@@ -11,6 +11,7 @@ Identificadores das partidas:
 - pontos corridos: `L<rodada>-<n>`;
 - suíço: `S<rodada>-<n>`.
 """
+import math
 import random
 from dataclasses import dataclass, field
 
@@ -291,6 +292,195 @@ def eliminacao_dupla(participantes):
     chave.adicionar(Partida("F2", rodadas_v + 2, "final", origem_a=("vencedor", "F1"), origem_b=("perdedor", "F1")))
     _resolver(chave)
     return chave
+
+
+# ---------- pontos corridos (CHV-04) ----------
+def pontos_corridos(participantes, ida_e_volta=False):
+    """Todas as rodadas pelo método do círculo; com número ímpar, cada um folga uma rodada por turno.
+
+    A folga aparece como partida contra BYE, sem pontos. Na volta, o mando (lado A) se inverte.
+    """
+    _validar(participantes)
+    roda = list(participantes) + ([BYE] if len(participantes) % 2 else [])
+    m = len(roda)
+    ida = []
+    for r in range(1, m):
+        for i in range(m // 2):
+            a, b = roda[i], roda[m - 1 - i]
+            if i == 0 and r % 2 == 0:
+                a, b = b, a  # alterna o mando de quem fica fixo na roda
+            if a is BYE:
+                a, b = b, a  # a folga fica sempre no lado B
+            ida.append((r, a, b))
+        roda = [roda[0], roda[-1]] + roda[1:-1]
+    volta = [(r + m - 1, a, b) if b is BYE else (r + m - 1, b, a) for r, a, b in ida]
+    turnos = [ida, volta] if ida_e_volta else [ida]
+    partidas, contador = [], {}
+    for turno in turnos:
+        for r, a, b in turno:
+            contador[r] = contador.get(r, 0) + 1
+            p = Partida(f"L{r}-{contador[r]}", r, "liga", a=a, b=b)
+            if b is BYE:
+                p.vencedor = a  # folga: decidida, sem jogo e sem pontos
+            partidas.append(p)
+    return partidas
+
+
+# ---------- suíço (CHV-05) ----------
+PONTOS = {"vitoria": 3, "empate": 1, "derrota": 0}
+LIMITE_DE_TENTATIVAS = 200_000
+
+
+def rodadas_suico(n):
+    """Número padrão de rodadas: ⌈log2 N⌉."""
+    return max(1, math.ceil(math.log2(n)))
+
+
+def _aplicar(p, resultado, empate_permitido=True):
+    _, vencedor, placar_a, placar_b = resultado
+    if vencedor is None and not empate_permitido:
+        raise ResultadoInvalido("eliminação não aceita empate: informe o vencedor")
+    if vencedor is not None and vencedor not in (p.a, p.b):
+        raise ResultadoInvalido(f"o vencedor da partida {p.id} precisa ser um dos dois participantes")
+    p.vencedor, p.placar_a, p.placar_b, p.jogada = vencedor, placar_a, placar_b, True
+
+
+def _pontos(partidas, com_bye):
+    pontos = {}
+    for p in partidas:
+        if p.b is BYE:
+            if com_bye:
+                pontos[p.a] = pontos.get(p.a, 0) + PONTOS["vitoria"]
+        elif p.jogada:
+            for quem in (p.a, p.b):
+                ganho = "empate" if p.vencedor is None else "vitoria" if p.vencedor == quem else "derrota"
+                pontos[quem] = pontos.get(quem, 0) + PONTOS[ganho]
+    return pontos
+
+
+def _parear(fila, ja_jogaram):
+    """Pares sem revanche, do topo para baixo, com volta atrás; None se não houver (ou se demorar demais)."""
+    tentativas = [0]
+
+    def buscar(restantes):
+        tentativas[0] += 1
+        if tentativas[0] > LIMITE_DE_TENTATIVAS:
+            return None
+        if not restantes:
+            return []
+        x = restantes[0]
+        for j in range(1, len(restantes)):
+            if frozenset((x, restantes[j])) in ja_jogaram:
+                continue
+            resto = buscar(restantes[1:j] + restantes[j + 1:])
+            if resto is not None:
+                return [(x, restantes[j])] + resto
+        return None
+    return buscar(fila)
+
+
+def _emparelhar_suico(participantes, anteriores, rodada):
+    pontos = _pontos(anteriores, com_bye=True)
+    fila = sorted(participantes, key=lambda x: (-pontos.get(x, 0), participantes.index(x)))
+    partidas = []
+    if len(fila) % 2:  # bye para o de menor pontuação que ainda não teve bye
+        tiveram = {p.a for p in anteriores if p.b is BYE}
+        folga = next((x for x in reversed(fila) if x not in tiveram), fila[-1])
+        fila.remove(folga)
+        partidas.append(Partida("", rodada, "suico", a=folga, b=BYE, vencedor=folga))
+    ja_jogaram = {frozenset((p.a, p.b)) for p in anteriores if p.b is not BYE}
+    pares = _parear(fila, ja_jogaram) or list(zip(fila[::2], fila[1::2]))  # sem alternativa: revanche
+    jogos = [Partida("", rodada, "suico", a=a, b=b) for a, b in pares]
+    for n, p in enumerate(jogos + partidas, start=1):
+        p.id = f"S{rodada}-{n}"
+    return jogos + partidas
+
+
+def _rodadas_do_suico(participantes, resultados, ate):
+    """Partidas das rodadas 1..`ate`, com os resultados aplicados; cada rodada exige a anterior completa."""
+    por_id = {r[0]: r for r in resultados}
+    todas = []
+    for rodada in range(1, ate + 1):
+        if rodada > 1 and (faltam := [p.id for p in todas if p.rodada == rodada - 1 and p.b is not BYE
+                                      and p.id not in por_id]):
+            raise ResultadoInvalido(f"faltam resultados da rodada {rodada - 1}: {', '.join(faltam)}")
+        for p in _emparelhar_suico(participantes, todas, rodada):
+            if p.id in por_id and p.b is not BYE:
+                _aplicar(p, por_id[p.id])
+            todas.append(p)
+    return todas
+
+
+def suico(participantes, resultados, rodada):
+    """Partidas da `rodada`: mesma pontuação junta, sementes como desempate, sem revanche se houver saída."""
+    _validar(participantes)
+    return [p for p in _rodadas_do_suico(participantes, resultados, rodada) if p.rodada == rodada]
+
+
+# ---------- classificação (CHV-06, CHV-07) ----------
+CRITERIOS = ("pontos", "confronto_direto", "saldo", "buchholz", "semente")
+
+
+@dataclass
+class Linha:
+    posicao: int
+    participante: object
+    pontos: int
+    vitorias: int
+    empates: int
+    derrotas: int
+    saldo: int
+    buchholz: int
+    criterio: str  # o critério que separou esta linha da de cima; None na 1ª
+
+
+def _partidas_com_resultados(formato, participantes, resultados):
+    if formato in FORMATOS_DE_ELIMINACAO:
+        return list(montar(formato, participantes, resultados).partidas.values())
+    if formato == "suico":
+        ate = max((int(r[0][1:].split("-")[0]) for r in resultados), default=0)
+        return _rodadas_do_suico(participantes, resultados, ate)
+    if formato != "pontos_corridos":
+        raise ValueError(f"formato desconhecido: {formato}")
+    partidas = {p.id: p for p in pontos_corridos(participantes, ida_e_volta=True)}
+    for r in resultados:
+        if r[0] not in partidas or partidas[r[0]].b is BYE:
+            raise ResultadoInvalido(f"partida desconhecida: {r[0]}")
+        _aplicar(partidas[r[0]], r)
+    return list(partidas.values())
+
+
+def classificacao(formato, participantes, resultados):
+    """Tabela ordenada: pontos, confronto direto, saldo, Buchholz (só no suíço) e semente, nessa ordem."""
+    _validar(participantes)
+    partidas = _partidas_com_resultados(formato, participantes, resultados)
+    jogadas = [p for p in partidas if p.jogada]
+    pontos = {x: 0 for x in participantes} | _pontos(partidas, com_bye=formato == "suico")
+    conta = {x: {"v": 0, "e": 0, "d": 0, "saldo": 0, "adversarios": []} for x in participantes}
+    for p in jogadas:
+        for quem, outro, meu, dele in ((p.a, p.b, p.placar_a, p.placar_b), (p.b, p.a, p.placar_b, p.placar_a)):
+            c = conta[quem]
+            c["v" if p.vencedor == quem else "e" if p.vencedor is None else "d"] += 1
+            c["saldo"] += (meu or 0) - (dele or 0)
+            c["adversarios"].append(outro)
+    empatados = {}
+    for x in participantes:
+        empatados.setdefault(pontos[x], set()).add(x)
+    confronto = _pontos([p for p in jogadas if len(empatados[pontos[p.a]] & {p.a, p.b}) == 2], com_bye=False)
+    buchholz = {x: sum(pontos[o] for o in conta[x]["adversarios"]) if formato == "suico" else 0 for x in participantes}
+
+    def chave_de(x):
+        return (-pontos[x], -confronto.get(x, 0), -conta[x]["saldo"], -buchholz[x], participantes.index(x))
+    ordem = sorted(participantes, key=chave_de)
+    tabela = []
+    for i, x in enumerate(ordem):
+        criterio = None
+        if i:
+            anterior, atual = chave_de(ordem[i - 1]), chave_de(x)
+            criterio = CRITERIOS[next(k for k in range(len(CRITERIOS)) if anterior[k] != atual[k])]
+        c = conta[x]
+        tabela.append(Linha(i + 1, x, pontos[x], c["v"], c["e"], c["d"], c["saldo"], buchholz[x], criterio))
+    return tabela
 
 
 def montar(formato, participantes, resultados):

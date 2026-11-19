@@ -190,3 +190,148 @@ def test_chv_09_correcao_na_dupla_desfaz_a_queda_para_os_perdedores():
     ch.avancar(chave, ("P1-1", "p4", 1, 0))
     with pytest.raises(CorrecaoBloqueada, match="P1-1"):
         ch.corrigir(chave, "V1-1", ("V1-1", "p4", 0, 1))
+
+
+# ---------- CHV-04 ----------
+def pares(partidas):
+    return [frozenset((p.a, p.b)) for p in partidas if p.b is not BYE]
+
+
+@pytest.mark.parametrize("n", TAMANHOS)
+def test_chv_04_rodizio_completo_com_folga(n):
+    ps = nomes(n)
+    partidas = ch.pontos_corridos(ps)
+    esperados = {frozenset((x, y)) for i, x in enumerate(ps) for y in ps[i + 1:]}
+    assert sorted(map(sorted, pares(partidas))) == sorted(map(sorted, esperados))  # cada par uma vez
+    rodadas = {p.rodada for p in partidas}
+    assert rodadas == set(range(1, n + (n % 2)))
+    for r in rodadas:  # ninguém joga duas vezes na mesma rodada
+        nesta = [x for p in partidas if p.rodada == r for x in (p.a, p.b) if x is not BYE]
+        assert len(nesta) == len(set(nesta)) == n
+    folgas = [p.a for p in partidas if p.b is BYE]
+    assert sorted(folgas) == (sorted(ps) if n % 2 else [])  # cada um folga exatamente uma vez
+    assert all(not p.jogada and p.vencedor == p.a for p in partidas if p.b is BYE)
+
+
+@pytest.mark.parametrize("n", TAMANHOS)
+def test_chv_04_ida_e_volta_inverte_o_mando(n):
+    partidas = ch.pontos_corridos(nomes(n), ida_e_volta=True)
+    turno = n - 1 + n % 2
+    ida = {(p.a, p.b) for p in partidas if p.rodada <= turno and p.b is not BYE}
+    volta = {(p.a, p.b) for p in partidas if p.rodada > turno and p.b is not BYE}
+    assert volta == {(b, a) for a, b in ida} and len(ida) == n * (n - 1) // 2
+    folgas_volta = [p.a for p in partidas if p.rodada > turno and p.b is BYE]
+    assert sorted(folgas_volta) == (sorted(nomes(n)) if n % 2 else [])
+
+
+# ---------- CHV-05 ----------
+def jogar_suico(ps, rodadas, quem_vence=None):
+    resultados = []
+    for r in range(1, rodadas + 1):
+        for p in ch.suico(ps, resultados, r):
+            if p.b is not BYE:
+                v = quem_vence(p) if quem_vence else min((p.a, p.b), key=ps.index)
+                resultados.append((p.id, v, 1 if v == p.a else 0, 1 if v == p.b else 0))
+    return resultados
+
+
+@pytest.mark.parametrize("n", TAMANHOS)
+def test_chv_05_suico_sem_revanche_e_bye_unico(n):
+    ps = nomes(n)
+    rodadas = ch.rodadas_suico(n)
+    assert rodadas == max(1, (n - 1).bit_length())
+    resultados = jogar_suico(ps, rodadas)
+    todas = ch._rodadas_do_suico(ps, resultados, rodadas)
+    assert len(pares(todas)) == len(set(pares(todas)))
+    byes = [p.a for p in todas if p.b is BYE]
+    assert len(byes) == (rodadas if n % 2 else 0) and len(byes) == len(set(byes))
+    for r in range(1, rodadas + 1):
+        nesta = [x for p in todas if p.rodada == r for x in (p.a, p.b) if x is not BYE]
+        assert sorted(nesta) == sorted(ps)
+
+
+def test_chv_05_mesma_pontuacao_juntos_e_bye_para_o_ultimo():
+    ps = nomes(5)
+    r1 = ch.suico(ps, [], 1)
+    assert [(p.a, p.b) for p in r1] == [("p1", "p2"), ("p3", "p4"), ("p5", BYE)]
+    resultados = [("S1-1", "p2", 0, 1), ("S1-2", "p3", 1, 0)]
+    r2 = ch.suico(ps, resultados, 2)
+    # p2, p3 e p5 (bye) têm 3 pontos; p1 e p4 têm 0: o bye vai para o último que ainda não teve
+    assert [(p.a, p.b) for p in r2] == [("p2", "p3"), ("p5", "p1"), ("p4", BYE)]
+    with pytest.raises(ResultadoInvalido, match="faltam resultados da rodada 1: S1-2"):
+        ch.suico(ps, resultados[:1], 2)
+
+
+def test_chv_05_revanche_so_sem_alternativa():
+    resultados = jogar_suico(nomes(2), 1)
+    assert [(p.a, p.b) for p in ch.suico(nomes(2), resultados, 2)] == [("p1", "p2")]
+
+
+# ---------- CHV-06, CHV-07 ----------
+def resultado(partidas, x, y, gx, gy):
+    p = next(p for p in partidas if {p.a, p.b} == {x, y})
+    placar = (gx, gy) if p.a == x else (gy, gx)
+    return (p.id, None if gx == gy else (x if gx > gy else y), *placar)
+
+
+def tabela(formato, ps, resultados):
+    return [(l.participante, l.pontos, l.criterio) for l in ch.classificacao(formato, ps, resultados)]
+
+
+def test_chv_06_cada_criterio_isolado_em_pontos_corridos():
+    ps = nomes(3)
+    liga = ch.pontos_corridos(ps)
+
+    def r(*a):
+        return resultado(liga, *a)
+    assert tabela("pontos_corridos", ps, [r("p3", "p1", 1, 0)]) == [
+        ("p3", 3, None), ("p2", 0, "pontos"), ("p1", 0, "saldo")]  # p1 perdeu de 1 a 0
+    # p1 tem saldo melhor, mas perdeu para p2: o confronto direto vem antes
+    assert tabela("pontos_corridos", ps, [r("p2", "p1", 1, 0), r("p1", "p3", 9, 0)])[:2] == [
+        ("p2", 3, None), ("p1", 3, "confronto_direto")]
+    # empate entre p1 e p2: o saldo separa
+    assert tabela("pontos_corridos", ps, [r("p1", "p2", 1, 1), r("p2", "p3", 1, 0), r("p1", "p3", 3, 0)])[:2] == [
+        ("p1", 4, None), ("p2", 4, "saldo")]
+    linhas = ch.classificacao("pontos_corridos", ps, [r("p1", "p2", 1, 1), r("p2", "p3", 1, 0), r("p1", "p3", 3, 0)])
+    assert [(l.posicao, l.vitorias, l.empates, l.derrotas, l.saldo) for l in linhas] == [
+        (1, 1, 1, 0, 3), (2, 1, 1, 0, 1), (3, 0, 0, 2, -4)]
+
+
+def test_chv_06_buchholz_so_no_suico():
+    ps = nomes(4)
+    resultados = [("S1-1", "p1", 2, 0), ("S1-2", None, 1, 1)]
+    assert [(p.a, p.b) for p in ch.suico(ps, resultados, 2)] == [("p1", "p3"), ("p4", "p2")]
+    resultados += [("S2-1", "p1", 1, 0), ("S2-2", "p2", 0, 1)]
+    linhas = ch.classificacao("suico", ps, resultados)
+    assert [(l.participante, l.pontos, l.buchholz, l.criterio) for l in linhas] == [
+        ("p1", 6, 4, None), ("p2", 3, 7, "pontos"), ("p3", 1, 7, "pontos"), ("p4", 1, 4, "buchholz")]
+
+
+def test_chv_07_empate_total_vai_para_a_semente_nunca_para_a_ordem_dos_resultados():
+    ps = nomes(4)
+    liga = ch.pontos_corridos(ps)
+    resultados = [resultado(liga, "p4", "p3", 0, 0), resultado(liga, "p2", "p1", 0, 0)]
+    a = ch.classificacao("pontos_corridos", ps, resultados)
+    b = ch.classificacao("pontos_corridos", ps, list(reversed(resultados)))
+    assert a == b and [l.participante for l in a] == ps and {l.criterio for l in a[1:]} == {"semente"}
+
+
+@pytest.mark.parametrize("formato", ["eliminacao_simples", "eliminacao_dupla"])
+def test_chv_06_classificacao_nos_formatos_de_eliminacao(formato):
+    ps = nomes(4)
+    chave = jogar_tudo(ch.FORMATOS_DE_ELIMINACAO[formato](ps), melhor_semente(ps))
+    resultados = [(p.id, p.vencedor, p.placar_a, p.placar_b) for p in chave.partidas.values() if p.jogada]
+    linhas = ch.classificacao(formato, ps, resultados)
+    assert linhas[0].participante == "p1" and linhas[0].derrotas == 0
+    assert sum(l.vitorias for l in linhas) == sum(l.derrotas for l in linhas) == len(resultados)
+
+
+def test_chv_10_empate_aceito_so_em_pontos_corridos_e_suico():
+    ps = nomes(2)
+    assert ch.classificacao("suico", ps, [("S1-1", None, 0, 0)])[0].empates == 1
+    with pytest.raises(ResultadoInvalido, match="empate"):
+        ch.classificacao("eliminacao_simples", ps, [("E1-1", None, 0, 0)])
+    with pytest.raises(ResultadoInvalido, match="um dos dois"):
+        ch.classificacao("pontos_corridos", ps, [("L1-1", "p9", 1, 0)])
+    with pytest.raises(ResultadoInvalido, match="desconhecida"):
+        ch.classificacao("pontos_corridos", ps, [("L9-9", "p1", 1, 0)])
