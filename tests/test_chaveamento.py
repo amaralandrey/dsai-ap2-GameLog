@@ -172,12 +172,21 @@ def test_chv_03_posicoes_fixas_na_chave_de_perdedores():
     chave = ch.eliminacao_dupla(nomes(8))
     origem = {pid: (p.origem_a, p.origem_b) for pid, p in chave.partidas.items() if pid.startswith("P")}
     assert origem["P1-1"] == (("perdedor", "V1-1"), ("perdedor", "V1-2"))
-    assert origem["P2-1"] == (("vencedor", "P1-1"), ("perdedor", "V2-1"))  # k = 1: mesma ordem
+    assert origem["P2-1"] == (("vencedor", "P1-1"), ("perdedor", "V2-2"))  # k = 1: ordem invertida
     assert origem["P3-1"] == (("vencedor", "P2-1"), ("vencedor", "P2-2"))
     assert origem["P4-1"] == (("vencedor", "P3-1"), ("perdedor", "V3-1"))
     grande = ch.eliminacao_dupla(nomes(16))
-    assert grande.partidas["P4-1"].origem_b == ("perdedor", "V3-2")  # k = 2: ordem invertida
+    assert grande.partidas["P4-1"].origem_b == ("perdedor", "V3-1")  # k = 2: mesma ordem
     assert chave.partidas["F1"].origem_b == ("vencedor", "P4-1")
+
+
+@pytest.mark.parametrize("n", [8, 16, 32])
+def test_chv_03_primeira_queda_nao_repete_o_jogo_da_primeira_rodada(n):
+    ps = nomes(n)
+    chave = jogar_tudo(ch.eliminacao_dupla(ps), melhor_semente(ps))
+    primeira = {frozenset((p.a, p.b)) for p in chave.partidas.values() if p.chave == "vencedores" and p.rodada == 1}
+    p2 = [frozenset((p.a, p.b)) for p in chave.partidas.values() if p.chave == "perdedores" and p.rodada == 2]
+    assert p2 and not primeira & set(p2)
 
 
 def test_chv_09_correcao_na_dupla_desfaz_a_queda_para_os_perdedores():

@@ -257,8 +257,9 @@ def eliminacao_dupla(participantes):
     Posições fixas na chave de perdedores, com T = tamanho da chave (potência de 2) e R = log2(T):
     - `P1-i` recebe os perdedores de `V1-(2i−1)` e `V1-(2i)`;
     - nas rodadas pares `P(2k)-i` (k = 1..R−1), o lado A é o vencedor de `P(2k−1)-i` e o lado B é o
-      perdedor da rodada k+1 dos vencedores. Com k ímpar, B vem de `V(k+1)-i`; com k par, a ordem é
-      invertida (`V(k+1)-(M−i+1)`, com M partidas na rodada), para adiar revanches;
+      perdedor da rodada k+1 dos vencedores. Com k ímpar, a ordem é invertida (`V(k+1)-(M−i+1)`, com M
+      partidas na rodada); com k par, B vem de `V(k+1)-i`. A inversão evita que `P2-i` junte de novo os
+      dois jogadores dos mesmos jogos da 1ª rodada;
     - nas rodadas ímpares `P(2k+1)-i`, jogam os vencedores de `P(2k)-(2i−1)` e `P(2k)-(2i)`.
 
     A final `F1` é entre o campeão dos vencedores (A) e o dos perdedores (B). Se B vencer, os dois têm
@@ -278,7 +279,7 @@ def eliminacao_dupla(participantes):
         for k in range(1, rodadas_v):
             par = 2 * k
             for i in range(partidas):
-                j = i + 1 if k % 2 else partidas - i
+                j = partidas - i if k % 2 else i + 1
                 chave.adicionar(Partida(f"P{par}-{i + 1}", par, "perdedores", origem_a=("vencedor", f"P{par - 1}-{i + 1}"),
                                         origem_b=("perdedor", f"V{k + 1}-{j}")))
             if k < rodadas_v - 1:
