@@ -13,7 +13,7 @@ from datetime import timedelta
 
 import click
 from flask import Blueprint, abort, current_app, flash, jsonify, redirect, render_template, request
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.dialects.sqlite import insert
 
 from . import tempo
 from .admin import audit
@@ -53,7 +53,11 @@ def _abertos(chave):
 
 
 def enfileirar(tipo, executar_em=None, chave_unica=None, **args):
-    """Cria o job pendente e o devolve; com a mesma `chave_unica` aberta, devolve o que já existe (JOB-01, JOB-02)."""
+    """Cria o job pendente e o devolve; com a mesma `chave_unica` aberta, devolve o que já existe (JOB-01, JOB-02).
+
+    Não faz commit: o job entra junto com o resto da transação de quem chama. Dentro de uma tarefa, ele é
+    desfeito se a tarefa falhar (JOB-06).
+    """
     if tipo not in TAREFAS:
         raise ValueError(f"tarefa desconhecida: {tipo}")
     try:
@@ -63,14 +67,14 @@ def enfileirar(tipo, executar_em=None, chave_unica=None, **args):
     if chave_unica and (existente := _abertos(chave_unica)):
         return existente
     agora = tempo.agora_utc()
-    job = Job(tipo=tipo, args=texto, executar_em=executar_em or agora, chave_unica=chave_unica, criado_em=agora)
-    try:
-        with db.session.begin_nested():
-            db.session.add(job)
-    except IntegrityError:  # outro executor gravou a mesma chave entre a consulta e o insert
+    # DO NOTHING cobre outro executor que gravou a mesma chave entre a consulta e o insert. Um savepoint
+    # não serve: no pysqlite, sem transação aberta, ele vira a transação de fora e o RELEASE faz commit.
+    resultado = db.session.execute(insert(Job).values(
+        tipo=tipo, args=texto, executar_em=executar_em or agora, chave_unica=chave_unica, criado_em=agora,
+    ).on_conflict_do_nothing())
+    if resultado.rowcount == 0:
         return _abertos(chave_unica)
-    db.session.commit()
-    return job
+    return db.session.get(Job, resultado.inserted_primary_key[0])
 
 
 # ---------- execução (JOB-04..06) ----------
@@ -178,6 +182,7 @@ def enfileirar_agendados():
         if prevista > tempo.agora() or ag.tipo not in TAREFAS or not _marcar(ag, antes):
             continue
         enfileirar(ag.tipo, chave_unica=f"agenda:{ag.nome}:{prevista.isoformat()}", **json.loads(ag.args))
+        db.session.commit()
         enfileirados += 1
     return enfileirados
 

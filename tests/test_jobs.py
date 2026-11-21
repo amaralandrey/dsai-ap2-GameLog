@@ -79,6 +79,28 @@ def test_job_03_registrar_duas_vezes_levanta(tarefas):
         jobs.tarefa("anota")(lambda: None)
 
 
+def test_job_06_job_enfileirado_por_tarefa_que_falha_e_desfeito(app, tarefas):
+    @jobs.tarefa("enfileira_e_falha")
+    def enfileira_e_falha():
+        jobs.enfileirar("anota", n=1)
+        raise RuntimeError("quebrou depois de enfileirar")
+
+    with app.app_context():
+        jid = jobs.enfileirar("enfileira_e_falha").id
+        db.session.commit()
+        jobs.executar(jid)
+        assert [j.tipo for j in Job.query] == ["enfileira_e_falha"]
+
+
+def test_job_01_enfileirar_nao_esconde_o_erro_de_quem_chama(app, tarefas):
+    from sqlalchemy.exc import IntegrityError
+
+    with app.app_context():
+        db.session.add(User(username="w", username_lower="w", password_hash="h", display_name="w"))  # sem e-mail
+        with pytest.raises(IntegrityError):
+            jobs.enfileirar("anota", chave_unica="k")
+
+
 # ---------- JOB-04..06 ----------
 def test_job_04_ciclo_executa_vencidos_do_mais_antigo_ao_mais_novo(app, tarefas, relogio):
     with app.app_context():
@@ -148,6 +170,7 @@ def test_job_06_tarefa_que_sumiu_do_codigo_morre(app, tarefas, monkeypatch):
 def test_job_05_dois_executores_nunca_rodam_o_mesmo_job(app, tarefas):
     with app.app_context():
         ids = [jobs.enfileirar("anota", n=i).id for i in range(10)]
+        db.session.commit()
     barreira, travou = threading.Barrier(2), {}
 
     def executor(nome):
@@ -285,6 +308,7 @@ def test_job_04_rodar_uma_vez_imprime_contagem(app, tarefas):
     with app.app_context():
         jobs.enfileirar("anota")
         jobs.enfileirar("permanente")
+        db.session.commit()
     r = app.test_cli_runner().invoke(args=["jobs", "rodar", "--uma-vez", "--limite", "5"])
     assert r.exit_code == 0 and r.output.strip() == "executados=2 ok=1 falhas=0 mortos=1"
 
@@ -390,6 +414,7 @@ def test_job_10_acoes_com_auditoria(app, chefe, tarefas):
         morto = jobs.enfileirar("permanente").id
         jobs.ciclo()
         pendente = jobs.enfileirar("anota").id
+        db.session.commit()
     r = chefe.post(f"/admin/jobs/{pendente}/retentar", follow_redirects=True)
     assert "Só um job morto ou que falhou" in r.get_data(as_text=True)
     chefe.post(f"/admin/jobs/{morto}/retentar")
@@ -468,6 +493,7 @@ def test_job_11_rota_ciclo_com_token(tmp_path, tarefas):
     with app.app_context():
         for i in range(12):
             jobs.enfileirar("anota", n=i)
+        db.session.commit()
     c = app.test_client()
     assert c.post("/jobs/ciclo").status_code == 401
     assert c.post("/jobs/ciclo", headers={"Authorization": "Bearer errado"}).status_code == 401
