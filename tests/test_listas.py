@@ -146,3 +146,17 @@ def test_soc05_trocar_para_jogado_de_novo_nao_duplica_atividade(app, ctx):
         ctx.post(f"/jogos/{slug}/status", data={"status": v})
     with app.app_context():
         assert Activity.query.filter_by(kind="jogado").count() == 1
+
+
+def test_soc05_remover_jogo_da_lista_apaga_a_atividade(app, ctx):
+    from app.models import Activity
+
+    slug, outro = make_game(app), make_game(app, "Outro")
+    lid = new_list(ctx)
+    add(ctx, slug, lid)
+    add(ctx, outro, lid)
+    with app.app_context():
+        gid = Game.query.filter_by(slug=slug).one().id
+    ctx.post(f"/listas/{lid}/jogos/{gid}/remover")
+    with app.app_context():
+        assert [a.game.slug for a in Activity.query.filter_by(kind="lista_jogo")] == [outro]

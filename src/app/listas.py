@@ -164,6 +164,7 @@ def add_to_list(slug):
 def remove_item(lid, gid):
     gl, _ = get_list(lid, owner_only=True)
     ListItem.query.filter_by(list_id=lid, game_id=gid).delete()
+    Activity.query.filter_by(kind="lista_jogo", list_id=lid, game_id=gid).delete()  # SOC-05
     db.session.flush()
     db.session.refresh(gl)
     renumber(gl)
