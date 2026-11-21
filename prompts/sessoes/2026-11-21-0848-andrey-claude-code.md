@@ -1,8 +1,8 @@
-# Sessão Claude Code: correções da review do PR #26, chaveamento (2026-11-21)
+# Sessão Claude Code: correções da review do PR #26 e SVG da chave (2026-11-21)
 
 **Ferramenta:** Claude Code CLI (Claude Opus 5.5, `claude-opus-5-5`), sem subagentes
 **Quem conduziu:** Andrey Amaral
-**Horário:** 08:48–09:10 (horário de Belém)
+**Horário:** 08:48–09:20 (horário de Belém)
 **Ponto de partida:** PR #26 (`feat/chaveamento`, SPEC-28) aberto, com a review do Fbc00 de 2026-11-19 sem resposta
 
 ## Custo
@@ -11,19 +11,20 @@ Medido no log da sessão do Claude Code (`~/.claude/projects/.../9118fa7e-....js
 
 | Tipo de token | Tokens | Preço (US$/1M) | Custo (US$) |
 |---|---:|---:|---:|
-| Entrada | 78 | 4,00 | 0,00 |
-| Saída | 32.956 | 20,00 | 0,66 |
-| Leitura de cache | 3.149.090 | 0,20 | 0,63 |
-| Escrita de cache (TTL 1h) | 96.386 | 8,00 | 0,77 |
-| **Total** | **3.278.510** | | **≈ 2,06** |
+| Entrada | 116 | 4,00 | 0,00 |
+| Saída | 48.542 | 20,00 | 0,97 |
+| Leitura de cache | 5.528.908 | 0,20 | 1,11 |
+| Escrita de cache (TTL 1h) | 122.008 | 8,00 | 0,98 |
+| **Total** | **5.699.574** | | **≈ 3,05** |
 
-São 37 requisições ao modelo. A conta foi feita antes de escrever este registro, então ficam de fora as últimas respostas: este arquivo, o commit dele e o push.
+São 55 requisições ao modelo, com a sessão inteira: as correções da review, as respostas no PR e o CHV-13. A conta foi refeita antes desta atualização do registro, então ficam de fora as últimas respostas: esta edição, o push e a descrição do PR.
 
 ## Prompts
 
 1. give me a overview of the project, current state of local and remote, pending stuff
 2. i will address fabricios comments, before we start it would be needed to update the local repo?
 3. fix fabricio's findings on #26, make sure to observe the projects requirements
+4. do it (responder os comentários do Fbc00, pedir a revisão de novo e fazer o CHV-13)
 
 ## Como foi feito
 
@@ -51,8 +52,14 @@ São 37 requisições ao modelo. A conta foi feita antes de escrever este regist
 - **`classificacao(..., ida_e_volta=False)`:** parâmetro opcional, então a assinatura da spec continua valendo.
 - **`suico()` e rodadas futuras:** resultados de rodadas depois da pedida ficam de fora, sem erro, para o torneio poder mostrar uma rodada antiga.
 
+## Respostas no PR e CHV-13
+
+- **Respostas:** cada comentário inline do Fbc00 ganhou uma resposta com o commit e o teste da correção. A revisão foi pedida de novo.
+- **CHV-13 no próprio #26:** um PR separado ficaria empilhado no #26, porque o `chaveamento.py` ainda não está na `main`. Por isso a `main` foi mesclada na branch (sem conflito, `b5c172f`) e o SVG entrou no `542cc24`.
+- **`graficos_svg.chave(chave, titulo, nomes=None)`:** uma coluna por rodada de cada chave, rotulada como Rodada N, Vencedores N, Perdedores N, Final ou Reset. Há uma caixa por partida, com dica de placar e o vencedor em negrito e com a marca `serie-0`. O SVG tem `<title>` e `role="img"`, e todo nome passa por `escape`. `nomes` troca o id pelo nome exibido, para os torneios.
+- **Testes:** 3 (`test_chv_13_*`), que falham sem o código. A cobertura de `graficos_svg.py` é de 100%. A suíte com a `main` mesclada tem 877 testes passando, e o `jscpd` fica em 0,67%. O README ganhou a linha do chaveamento no mapa spec → código → testes.
+
 ## Pendências
 
-- Pedir de novo a revisão do Fbc00 no #26 e responder os comentários inline.
-- CHV-13 (SVG da chave) continua para um PR pequeno depois do #26, agora que o `graficos_svg.py` está na `main`.
+- Aprovação e merge do #26 pelo Fbc00 (o merge é feito com `!`).
 - #24 e #25: merge da `main` (conflitos) e os achados das reviews deles.
