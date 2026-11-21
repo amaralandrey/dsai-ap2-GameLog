@@ -123,6 +123,10 @@ CAMPOS = {
               ("motivo_ocultacao oculto_por", {"finalidade": "moderacao", "exportar": False})),
     # ---------- perfil e feed ----------
     **_tabela("follow", SOCIAL, ("id", TECNICO), ("follower_id followed_id", {})),
+    **_tabela("bloqueio", dict(SOCIAL, categoria="preferencia"), ("id", TECNICO), ("bloqueador_id", DONO),
+              ("bloqueado_id created_at", {}), ("criado_por", {"exportar": False})),  # RSP-09: o responsável
+    **_tabela("silencio", dict(SOCIAL, categoria="preferencia"), ("id", TECNICO), ("user_id", DONO),
+              ("silenciado_id created_at", {})),
     **_tabela("activity", SOCIAL, ("id", TECNICO), ("user_id", DONO),
               ("kind game_id review_id list_id dia valor texto created_at", {})),
     # ---------- diário e acompanhamento ----------
