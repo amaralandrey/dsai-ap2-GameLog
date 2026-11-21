@@ -13,6 +13,7 @@ from .models import db
 from .util import avatar_style, current_user, fold
 
 BLUEPRINTS = []  # preenchido por register_blueprints(); um módulo por spec
+CSRF_ISENTAS = {"/jobs/ciclo"}  # autenticadas por Bearer, sem cookie (JOB-11)
 
 
 def create_app(config=None):
@@ -33,7 +34,7 @@ def create_app(config=None):
 
     @app.before_request
     def csrf_protect():
-        if request.method == "POST" and app.config["CSRF"]:
+        if request.method == "POST" and app.config["CSRF"] and request.path not in CSRF_ISENTAS:
             token = session.get("csrf")
             if not token or token != request.form.get("csrf_token"):
                 abort(400, "Token CSRF inválido")

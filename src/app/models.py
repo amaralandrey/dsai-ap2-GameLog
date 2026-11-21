@@ -522,6 +522,50 @@ class AuditLog(db.Model):
     admin = db.relationship(User)
 
 
+JOB_STATUS = ("pendente", "rodando", "ok", "falhou", "morto")
+
+
+class Job(db.Model):
+    """Tarefa da fila (JOB-01); `chave_unica` não se repete entre os jobs pendentes e rodando (JOB-02)."""
+    __table_args__ = (
+        db.Index("ix_job_chave_aberta", "chave_unica", unique=True,
+                 sqlite_where=db.text("status IN ('pendente', 'rodando')")),
+        db.Index("ix_job_fila", "status", "executar_em"),
+    )
+    id = db.Column(db.Integer, primary_key=True)
+    tipo = db.Column(db.String(60), nullable=False)
+    args = db.Column(db.Text, default="{}", nullable=False)
+    status = db.Column(db.String(10), default="pendente", nullable=False)
+    tentativas = db.Column(db.Integer, default=0, nullable=False)
+    max_tentativas = db.Column(db.Integer, default=5, nullable=False)
+    executar_em = db.Column(db.DateTime, nullable=False)
+    travado_por = db.Column(db.String(120), nullable=True)
+    travado_em = db.Column(db.DateTime, nullable=True)
+    ultimo_erro = db.Column(db.String(2000), nullable=True)
+    chave_unica = db.Column(db.String(200), nullable=True)
+    criado_em = db.Column(db.DateTime, nullable=False)
+    concluido_em = db.Column(db.DateTime, nullable=True)
+
+
+class Agendamento(db.Model):
+    """Execução periódica de uma tarefa por expressão cron no fuso de Belém (JOB-07)."""
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(60), unique=True, nullable=False)
+    cron = db.Column(db.String(100), nullable=False)
+    tipo = db.Column(db.String(60), nullable=False)
+    args = db.Column(db.Text, default="{}", nullable=False)
+    ativo = db.Column(db.Boolean, default=True, nullable=False)
+    ultima_execucao = db.Column(db.DateTime, nullable=True)
+
+    @validates("cron")
+    def _cron_valido(self, _, cron):
+        from .cron import CronInvalido, validar
+
+        if problema := validar(cron):
+            raise CronInvalido(f"cron: {problema}")
+        return cron
+
+
 def visible_games():
     """Jogos não removidos (CAT-07)."""
     return Game.query.filter(Game.removed_at.is_(None))

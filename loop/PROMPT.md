@@ -11,6 +11,8 @@ não resolve isso, porque a mudança acontece fora da aplicação. O comando pre
 para que a execução diária possa repetir sem duplicar nem sobrescrever dados de usuários.
 
 O agendador fica **fora** do processo web (cron do host ou cron job do Render chamando o CLI).
+Na AP2, a execução diária passou a ser o agendamento `sync_games` da fila de jobs
+(`SPEC/2026-11-15-fila-de-jobs.md`), disparado por `flask jobs rodar` ou `POST /jobs/ciclo`.
 Não criar scheduler em thread/processo dentro do Flask: o deploy usa 2 workers Gunicorn e o job
 rodaria duas vezes.
 
