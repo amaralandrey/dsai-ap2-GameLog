@@ -8,8 +8,8 @@ import logging
 from collections import namedtuple
 from datetime import date
 
-from sqlalchemy import func
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy import func, update
+from sqlalchemy.dialects.sqlite import insert
 from sqlalchemy.orm import aliased
 
 from .menores.politica import pode
@@ -239,15 +239,23 @@ def _ativas(user, metricas):
 
 
 def _desbloquear(user, uc, conquista, quando=None, avisar=True):
-    """Grava o desbloqueio uma vez; a unicidade por (usuário, conquista) segura os eventos simultâneos (GAM-05)."""
+    """Grava o desbloqueio uma vez; entre eventos simultâneos, só um desbloqueia e avisa (GAM-05).
+
+    O INSERT ... ON CONFLICT DO NOTHING garante a linha (outro evento pode tê-la criado depois da consulta), e
+    o UPDATE condicional decide quem desbloqueia. Um savepoint não serve: o begin_nested faz flush antes do
+    SAVEPOINT, então a violação de unicidade escapava dele e deixava a sessão quebrada.
+    """
     from .notificacoes import notificar
 
-    uc.desbloqueada_em = quando or now()
-    uc.progresso = conquista.meta
-    try:
-        with db.session.begin_nested():
-            db.session.flush()
-    except IntegrityError:
+    if uc in db.session.new:  # ainda não gravada: quem grava é o INSERT, não o flush do ORM
+        db.session.expunge(uc)
+        db.session.execute(insert(UsuarioConquista).values(user_id=user.id, conquista_id=conquista.id, progresso=0)
+                           .on_conflict_do_nothing())
+    mudou = db.session.execute(update(UsuarioConquista).where(
+        UsuarioConquista.user_id == user.id, UsuarioConquista.conquista_id == conquista.id,
+        UsuarioConquista.desbloqueada_em.is_(None),
+    ).values(progresso=conquista.meta, desbloqueada_em=quando or now())).rowcount
+    if mudou != 1:
         return False  # já desbloqueada por outro evento
     if avisar:  # GAM-06
         notificar(user.id, "conquista", texto=conquista.nome, alvo_url=f"/u/{user.username}/conquistas")
