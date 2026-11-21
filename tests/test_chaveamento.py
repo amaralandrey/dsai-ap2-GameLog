@@ -120,6 +120,16 @@ def test_chv_09_correcao_bloqueada_quando_a_seguinte_ja_foi_jogada():
         ch.corrigir(ch.eliminacao_simples(nomes(3)), "E1-1", ("E1-1", "p1", 1, 0))  # bye não se corrige
 
 
+@pytest.mark.parametrize("novo", [("E1-1", "p9", 1, 0), ("E1-1", None, 1, 1)])
+def test_chv_09_correcao_invalida_mantem_o_resultado_confirmado(novo):
+    chave = ch.eliminacao_simples(nomes(4))
+    ch.avancar(chave, ("E1-1", "p1", 2, 0))
+    with pytest.raises(ResultadoInvalido):
+        ch.corrigir(chave, "E1-1", novo)
+    p = chave.partidas["E1-1"]
+    assert (p.vencedor, p.placar_a, p.jogada, chave.partidas["E2-1"].a) == ("p1", 2, True, "p1")
+
+
 # ---------- CHV-11 ----------
 def test_chv_11_sementes_por_pontuacao_id_e_sem_pontuacao_no_fim():
     assert ch.sementes([5, 3, 9, 1, 7], {3: 10, 9: 10, 1: 50}) == [1, 3, 9, 5, 7]

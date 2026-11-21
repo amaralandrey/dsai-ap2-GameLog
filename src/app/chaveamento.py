@@ -147,25 +147,30 @@ def _reset_dispensado(chave):
     return f1.decidida and f1.jogada and f1.vencedor == f1.a
 
 
-def _empate_permitido(chave):
-    return chave.formato in ("pontos_corridos", "suico")
+def _conferir_vencedor(p, vencedor, empate_permitido):
+    if vencedor is None and not empate_permitido:
+        raise ResultadoInvalido("eliminação não aceita empate: informe o vencedor")
+    if vencedor is not None and vencedor not in (p.a, p.b):
+        raise ResultadoInvalido(f"o vencedor da partida {p.id} precisa ser um dos dois participantes")
+
+
+def _aplicar(p, resultado, empate_permitido):
+    """Registra o resultado na partida, que precisa ter os dois participantes e ainda não ter resultado."""
+    _, vencedor, placar_a, placar_b = resultado
+    if p.decidida or p.jogada:
+        raise ResultadoInvalido(f"a partida {p.id} já foi decidida")
+    if p.a is None or p.b is None:
+        raise ResultadoInvalido(f"a partida {p.id} ainda não tem os dois participantes")
+    _conferir_vencedor(p, vencedor, empate_permitido)
+    p.vencedor, p.placar_a, p.placar_b, p.jogada = vencedor, placar_a, placar_b, True
 
 
 def avancar(chave, resultado):
     """Registra o resultado e leva vencedor (e perdedor, na dupla) às partidas seguintes (CHV-08, CHV-10)."""
-    pid, vencedor, placar_a, placar_b = resultado
-    p = chave.partidas.get(pid)
+    p = chave.partidas.get(resultado[0])
     if p is None:
-        raise ResultadoInvalido(f"partida desconhecida: {pid}")
-    if p.decidida:
-        raise ResultadoInvalido(f"a partida {pid} já foi decidida")
-    if p.a is None or p.b is None:
-        raise ResultadoInvalido(f"a partida {pid} ainda não tem os dois participantes")
-    if vencedor is None and not _empate_permitido(chave):
-        raise ResultadoInvalido("eliminação não aceita empate: informe o vencedor")
-    if vencedor is not None and vencedor not in (p.a, p.b):
-        raise ResultadoInvalido(f"o vencedor da partida {pid} precisa ser um dos dois participantes")
-    p.vencedor, p.placar_a, p.placar_b, p.jogada = vencedor, placar_a, placar_b, True
+        raise ResultadoInvalido(f"partida desconhecida: {resultado[0]}")
+    _aplicar(p, resultado, empate_permitido=False)  # uma Chave só existe nos formatos de eliminação
     _resolver(chave)
     return chave
 
@@ -189,6 +194,7 @@ def corrigir(chave, partida_id, novo_resultado):
     p = chave.partidas.get(partida_id)
     if p is None or not p.jogada:
         raise ResultadoInvalido(f"a partida {partida_id} não tem resultado para corrigir")
+    _conferir_vencedor(p, novo_resultado[1], empate_permitido=False)  # antes de apagar o resultado confirmado
     seguintes = _dependentes(chave, partida_id)
     jogadas = [pid for pid in seguintes if chave.partidas[pid].jogada]
     if jogadas:
@@ -337,15 +343,6 @@ def rodadas_suico(n):
     return max(1, math.ceil(math.log2(n)))
 
 
-def _aplicar(p, resultado, empate_permitido=True):
-    _, vencedor, placar_a, placar_b = resultado
-    if vencedor is None and not empate_permitido:
-        raise ResultadoInvalido("eliminação não aceita empate: informe o vencedor")
-    if vencedor is not None and vencedor not in (p.a, p.b):
-        raise ResultadoInvalido(f"o vencedor da partida {p.id} precisa ser um dos dois participantes")
-    p.vencedor, p.placar_a, p.placar_b, p.jogada = vencedor, placar_a, placar_b, True
-
-
 def _pontos(partidas, com_bye):
     pontos = {}
     for p in partidas:
@@ -407,7 +404,7 @@ def _rodadas_do_suico(participantes, resultados, ate):
             raise ResultadoInvalido(f"faltam resultados da rodada {rodada - 1}: {', '.join(faltam)}")
         for p in _emparelhar_suico(participantes, todas, rodada):
             if p.id in por_id and p.b is not BYE:
-                _aplicar(p, por_id[p.id])
+                _aplicar(p, por_id[p.id], empate_permitido=True)
             todas.append(p)
     return todas
 
@@ -447,7 +444,7 @@ def _partidas_com_resultados(formato, participantes, resultados):
     for r in resultados:
         if r[0] not in partidas or partidas[r[0]].b is BYE:
             raise ResultadoInvalido(f"partida desconhecida: {r[0]}")
-        _aplicar(partidas[r[0]], r)
+        _aplicar(partidas[r[0]], r, empate_permitido=True)
     return list(partidas.values())
 
 
