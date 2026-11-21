@@ -34,6 +34,14 @@ def test_lis01_lis02_um_status_trocar_remover(app, ctx):
         assert Status.query.count() == 0
 
 
+def test_lis01_duplo_envio_simultaneo_nao_da_500(app, ctx, corrida):
+    slug = make_game(app)
+    corrida("INSERT INTO status (user_id, game_id, value, updated_at) VALUES (1, 1, 'planejado', '2026-01-01')")
+    assert ctx.post(f"/jogos/{slug}/status", data={"status": "jogando"}).status_code == 302
+    with app.app_context():
+        assert [s.value for s in Status.query] == ["jogando"]
+
+
 def test_lis03_meus_jogos_agrupa_filtra_pagina(app, ctx):
     slugs = [make_game(app, f"J{i:02d}") for i in range(25)]
     for i, s in enumerate(slugs):
