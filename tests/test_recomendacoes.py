@@ -45,6 +45,16 @@ def test_rec02_rec03_afinidade_e_motivo(app, world):
     assert len(recs) <= 20
 
 
+def test_rec02_so_avaliou_jogos_sem_genero(app, world):
+    client, uid = world
+    with app.app_context():
+        db.session.get(Game, Game.query.filter_by(slug="acao1").one().id).genres = []
+        db.session.commit()
+    rate(client, "Acao1", 9)
+    r = client.get("/recomendacoes")
+    assert r.status_code == 200 and "Acao2" in r.get_data(as_text=True)
+
+
 def test_rec03_limite_de_20(app, client):
     uid = make_user(app, "ana")
     login(client, "ana")

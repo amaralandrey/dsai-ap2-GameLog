@@ -65,7 +65,7 @@ def recommend(user_id, limit=LIMIT):
     for r in reviews:
         for gen in r.game.genres:
             affinity[gen.id] = affinity.get(gen.id, 0) + (r.score / 10) ** 2
-    top_aff = max(affinity.values()) or 1
+    top_aff = max(affinity.values(), default=0) or 1  # avaliou só jogos sem gênero
     colab = colaborativo(viz) if (viz := vizinhos(user_id)) else {}
     ranked = []
     for g in games:
