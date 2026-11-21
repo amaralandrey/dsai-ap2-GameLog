@@ -73,6 +73,7 @@ footer{text-align:center;color:var(--mut);padding:24px;font-size:.85rem}
 .comments{margin-top:10px;padding-top:10px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
 .comment p{margin:4px 0 0 0;overflow-wrap:anywhere}
 .avatar.small{width:26px;height:26px;font-size:.7rem}
+.avatar.anonimo{background:var(--muted,#777)}
 .comment-form{display:flex;gap:8px;align-items:center}.comment-form input{flex:1;min-width:0}
 button.danger-link{color:var(--err);font-size:.85rem}
 /* estatísticas (EST-01..05) */
@@ -82,3 +83,35 @@ button.danger-link{color:var(--err);font-size:.85rem}
 .momento h3{margin-top:0}
 footer a{color:var(--mut);text-decoration:underline}
 .momento img.cover{width:100%;max-width:160px;border-radius:10px}
+.dup-jogo{display:flex;gap:12px}.dup-jogo img{width:90px;aspect-ratio:3/4;object-fit:cover;border-radius:8px;flex:0 0 90px}
+/* diário (DIA-06) */
+.sessao{padding:8px 0;border-bottom:1px solid var(--line)}.sessao:last-child{border-bottom:0}
+.sessao p{margin:4px 0;overflow-wrap:anywhere}
+.registrar-sessao{margin:10px 0}.registrar-sessao summary{list-style:none;cursor:pointer}
+/* gráficos SVG do servidor (RET-01..04) */
+.grafico-box{margin:0}.grafico-box svg{width:100%;height:auto;color:var(--mut);font-size:12px}
+.grafico .eixo{stroke-width:1}
+.serie-0{fill:var(--acc);stroke:var(--acc)}.serie-1{fill:#ffc247;stroke:#ffc247}
+.serie-2{fill:var(--ok);stroke:var(--ok)}.serie-3{fill:var(--err);stroke:var(--err)}
+polyline.serie-0,polyline.serie-1,polyline.serie-2,polyline.serie-3{fill:none;stroke-width:2}
+.sparkline{width:160px;height:36px;vertical-align:middle;color:var(--mut)}
+/* progresso e ordem das listas (LSA-08, LSA-11) */
+.progresso-lista .barra{display:flex;height:10px;border-radius:99px;overflow:hidden;background:var(--line)}
+.barra .st-jogado{background:var(--ok)}.barra .st-jogando{background:var(--acc)}
+.barra .st-abandonado{background:var(--err)}.barra .st-planejado{background:#ffc247}
+.ordenavel .item-lista[draggable=true]{cursor:grab}.item-lista.arrastando{opacity:.5}
+/* notificações (NTF-07, NTF-10) */
+.sino{position:relative}.sino .contador{margin-left:4px;padding:0 6px;border-radius:99px;background:var(--err);color:#fff;font-size:.75rem}
+.notificacao{display:flex;gap:10px;align-items:center}.notificacao.nao-lida{border-color:var(--acc);background:var(--panel-strong)}
+.notificacao form{margin-left:auto}
+/* conquistas (GAM-08..11) */
+.conquista.r-rara{border-color:#4aa3ff}.conquista.r-epica{border-color:var(--acc)}.conquista.r-lendaria{border-color:#ffc247}
+.conquista.secreta{opacity:.7}.conquista-linha{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:6px 0}
+.progresso{display:inline-block;width:120px;height:8px;border-radius:99px;background:var(--line);overflow:hidden}
+.progresso span{display:block;height:100%;background:var(--acc)}
+.estante .tag{font-size:1rem;padding:4px 12px}
+/* nível e XP (PRG-09, PRG-10) */
+.nivel-topo{gap:6px}.barra-xp{display:inline-block;width:44px;height:6px;border-radius:99px;background:var(--line);overflow:hidden}
+.barra-xp span{display:block;height:100%;background:var(--ok)}
+.cartao-ranking{border-color:var(--acc)}tr.eu td{background:var(--acc-soft)}
+.meta-clube{padding:8px 0;border-bottom:1px solid var(--line)}.post-clube{padding:8px 0;border-bottom:1px solid var(--line)}.post-clube p{overflow-wrap:anywhere}

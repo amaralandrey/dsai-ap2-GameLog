@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Ajustar XP — Admin — GameLog{% endblock %}
+{% block content %}
+<section class="panel" style="max-width:520px;margin:0 auto">
+<h1>Ajustar XP</h1>
+<form method="post">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <label for="usuario">Usuário</label><input id="usuario" name="usuario" value="{{ form.get('usuario', '') }}">
+  {% if erros.usuario %}<div class="err">{{ erros.usuario }}</div>{% endif %}
+  <label for="xp">XP (positivo ou negativo)</label><input id="xp" name="xp" type="number" value="{{ form.get('xp', '') }}">
+  {% if erros.xp %}<div class="err">{{ erros.xp }}</div>{% endif %}
+  <label for="justificativa">Justificativa</label><input id="justificativa" name="justificativa" maxlength="200" value="{{ form.get('justificativa', '') }}">
+  {% if erros.justificativa %}<div class="err">{{ erros.justificativa }}</div>{% endif %}
+  <p><button>Aplicar ajuste</button></p>
+</form>
+</section>
+{% endblock %}

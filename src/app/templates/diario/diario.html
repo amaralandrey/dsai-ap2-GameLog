@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% from "_macros.html" import pager %}
+{% block title %}Diário de {{ dono.display_name }} — GameLog{% endblock %}
+{% block content %}
+<h1>{% if own %}Meu diário{% else %}Diário de <a href="/u/{{ dono.username }}">{{ dono.display_name }}</a>{% endif %}</h1>
+{% if own %}<p><a class="btn ghost" href="/diario/importar">Importar horas ou CSV</a> <a class="btn ghost" href="/diario/exportar.csv">Exportar CSV</a></p>{% endif %}
+{% if jogo %}<p class="mut">Só sessões de <a href="/jogos/{{ jogo.slug }}">{{ jogo.title }}</a> · <a href="{{ request.path }}">ver todas</a></p>{% endif %}
+{% for chave, sessoes in meses %}
+<section class="panel"><h2 style="text-transform:capitalize">{{ nome_do_mes(chave) }}</h2>
+  {% for s in sessoes %}
+  <div class="sessao" id="sessao-{{ s.id }}">
+    <strong><a href="/jogos/{{ s.game.slug }}">{{ s.game.title }}</a></strong>
+    · {{ s.duracao_min | horas }}
+    <span class="mut">· {{ s.jogada_em.strftime('%d/%m/%Y') }}{% if s.inicio %} às {{ s.inicio.strftime('%H:%M') }}{% endif %}{% if s.plataforma %} · {{ s.plataforma.name }}{% endif %}</span>
+    {% if s.zerou %}<span class="tag">zerei</span>{% endif %}
+    {% if s.origem == 'steam' %}<span class="tag">importado da Steam</span>{% elif s.origem == 'csv' %}<span class="tag">importado de CSV</span>{% endif %}
+    {% if s.anotacao %}{% if s.spoiler %}<details class="spoiler"><summary>Anotação com spoiler — clique para ler</summary><p>{{ s.anotacao }}</p></details>
+    {% else %}<p>{{ s.anotacao }}</p>{% endif %}{% endif %}
+    {% if own %}{% if s.origem != 'steam' %}<a href="/sessoes/{{ s.id }}/editar">Editar</a>{% endif %}
+      <form class="inline" method="post" action="/sessoes/{{ s.id }}/apagar"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="link danger-link">Apagar</button></form>{% endif %}
+  </div>
+  {% endfor %}
+</section>
+{% else %}
+<div class="panel"><p class="mut">{% if own %}Seu diário está vazio. Abra a página de um jogo e registre uma sessão.{% else %}Nenhuma sessão registrada ainda.{% endif %}</p></div>
+{% endfor %}
+{{ pager(page) }}
+{% endblock %}

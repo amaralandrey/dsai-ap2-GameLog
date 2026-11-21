@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% from "_macros.html" import pager %}
+{% block title %}Notificações — GameLog{% endblock %}
+{% block content %}
+<h1>Notificações</h1>
+<p><form class="inline" method="post" action="/notificacoes/ler-todas"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="ghost">Marcar todas como lidas</button></form>
+  <a class="btn ghost" href="/notificacoes/preferencias">Preferências</a></p>
+{% for linha in linhas %}{% set n = linha.n %}
+<div class="panel notificacao{% if not n.lida_em %} nao-lida{% endif %}">
+  <div>
+    {% if n.tipo == 'curtida' %}<strong>{{ n.ator.display_name }}</strong>{% if linha.outros %} e mais {{ linha.outros }} {{ 'pessoa' if linha.outros == 1 else 'pessoas' }}{% endif %} {{ 'curtiram' if linha.outros else 'curtiu' }} sua avaliação de {{ n.game.title }}
+    {% elif n.tipo == 'comentario' %}<strong>{{ n.ator.display_name }}</strong> comentou sua avaliação de {{ n.game.title }}
+    {% elif n.tipo == 'seguidor' %}<strong>{{ n.ator.display_name }}</strong> começou a seguir você
+    {% elif n.tipo == 'amigo_zerou' %}<strong>{{ n.ator.display_name }}</strong> zerou {{ n.game.title }}, que está na sua wishlist
+    {% elif n.tipo == 'conquista' %}Você desbloqueou a conquista <strong>{{ n.texto }}</strong>
+    {% elif n.tipo == 'nivel' %}Você chegou ao <strong>{{ n.texto }}</strong>
+    {% else %}{{ n.texto }}{% endif %}
+    <div class="mut">{{ n.created_at.strftime('%d/%m/%Y %H:%M') }}</div>
+  </div>
+  <form method="post" action="/notificacoes/{{ n.id }}/ler"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="link">{{ 'Abrir' if n.lida_em else 'Ler' }}</button></form>
+</div>
+{% else %}<div class="panel"><p class="mut">Nenhuma notificação por enquanto.</p></div>{% endfor %}
+{{ pager(page) }}
+{% endblock %}

@@ -124,7 +124,8 @@ def test_sinc06_fonte_desconhecida_e_erro_de_uso(app):
 def test_sinc07_mesmo_external_id_em_outra_fonte_e_outro_jogo(app):
     with app.app_context():
         assert sincronizar("fonte-a", modulo=fonte(item("7"))) == (1, 0, 0, 0)
-        assert sincronizar("fonte-b", modulo=fonte(item("7"))) == (1, 0, 0, 0)
+        # título diferente: o mesmo título faria do item o mesmo jogo por semelhança (MRG-02)
+        assert sincronizar("fonte-b", modulo=fonte(item("7", title="Outro Título"))) == (1, 0, 0, 0)
         assert Game.query.count() == 2
         assert {g.source for g in Game.query.all()} == {"fonte-a", "fonte-b"}
 

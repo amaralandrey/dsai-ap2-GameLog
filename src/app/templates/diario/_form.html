@@ -1,0 +1,23 @@
+{# Campos de uma sessão do diário (DIA-01); `form` traz os valores e `erros` as mensagens por campo. #}
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<div class="row">
+  <div><label for="jogada_em">Data</label>
+    <input id="jogada_em" name="jogada_em" type="date" value="{{ form.get('jogada_em', '') }}" required>
+    {% if erros.jogada_em %}<div class="err">{{ erros.jogada_em }}</div>{% endif %}</div>
+  <div><label for="duracao">Duração</label>
+    <input id="duracao" name="duracao" value="{{ form.get('duracao', '') }}" placeholder="1h30, 90 ou 1:30" required>
+    {% if erros.duracao %}<div class="err">{{ erros.duracao }}</div>{% endif %}</div>
+  <div><label for="inicio">Início (opcional)</label>
+    <input id="inicio" name="inicio" type="time" value="{{ form.get('inicio', '') }}">
+    {% if erros.inicio %}<div class="err">{{ erros.inicio }}</div>{% endif %}</div>
+  <div><label for="plataforma_id">Plataforma</label>
+    <select id="plataforma_id" name="plataforma_id"><option value="">—</option>
+      {% for p in game.platforms %}<option value="{{ p.id }}" {{ 'selected' if form.get('plataforma_id') | string == p.id | string }}>{{ p.name }}</option>{% endfor %}
+    </select>
+    {% if erros.plataforma_id %}<div class="err">{{ erros.plataforma_id }}</div>{% endif %}</div>
+</div>
+<label for="anotacao">Anotação (opcional)</label>
+<textarea id="anotacao" name="anotacao" maxlength="1000">{{ form.get('anotacao', '') }}</textarea>
+{% if erros.anotacao %}<div class="err">{{ erros.anotacao }}</div>{% endif %}
+<label style="font-weight:400"><input type="checkbox" name="zerou" style="width:auto" {{ 'checked' if form.get('zerou') }}> Zerei nesta sessão</label>
+<label style="font-weight:400"><input type="checkbox" name="spoiler" style="width:auto" {{ 'checked' if form.get('spoiler') }}> A anotação tem spoiler</label>

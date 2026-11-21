@@ -7,6 +7,7 @@ git config core.hooksPath .githooks 2>/dev/null || true  # ativa o hook commit-m
 [ -d .venv ] || python3 -m venv .venv
 .venv/bin/pip install -q -r requirements.txt
 if [ "$1" = "test" ]; then exec .venv/bin/python -m pytest -q; fi
+[ -f .env ] && { set -a; . ./.env; set +a; }  # variáveis locais (ex.: RAWG_API_KEY), fora do Git
 export DATABASE_URL="${DATABASE_URL:-sqlite:///gamelog-dev.db}"
 export ADMIN_EMAIL="${ADMIN_EMAIL:-admin@gamelog.local}" ADMIN_PASSWORD="${ADMIN_PASSWORD:-admin12345}"  # só para dev local
 export SECRET_KEY="${SECRET_KEY:-dev-local-key}"

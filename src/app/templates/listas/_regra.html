@@ -1,0 +1,10 @@
+{# Parâmetros das regras de lista inteligente (LSA-02); `regra` é a regra atual ao editar. #}
+{% set p = regra.parametros if regra else form %}
+<div class="row">
+  <div><label for="dias">Dias sem sessão (largados)</label><input id="dias" name="dias" type="number" min="7" max="365" value="{{ p.get('dias', 30) }}"></div>
+  <div><label for="loja">Loja (wishlist)</label><select id="loja" name="loja">{% for l in lojas %}<option value="{{ l }}" {{ 'selected' if p.get('loja') == l }}>{{ nomes_lojas[l] }}</option>{% endfor %}</select></div>
+  <div><label for="ano">Ano (zerados)</label><input id="ano" name="ano" type="number" min="2000" value="{{ p.get('ano', '') }}"></div>
+  <div><label for="n">Quantos jogos (mais jogados)</label><input id="n" name="n" type="number" min="5" max="50" value="{{ p.get('n', 10) }}"></div>
+  <div><label for="genero">Gênero</label><select id="genero" name="genero"><option value="">—</option>{% for g in generos %}<option value="{{ g.slug }}" {{ 'selected' if p.get('genero') == g.slug }}>{{ g.name }}</option>{% endfor %}</select></div>
+  <div><label for="status">Status (gênero)</label><select id="status" name="status"><option value="">qualquer</option>{% for k, v in statuses.items() %}<option value="{{ k }}" {{ 'selected' if p.get('status') == k }}>{{ v }}</option>{% endfor %}</select></div>
+</div>

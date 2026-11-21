@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% from "_macros.html" import game_card, pager, progresso_lista %}
+{% block title %}{{ lista.nome }} — GameLog{% endblock %}
+{% block content %}
+<h1>{{ lista.nome }} <span class="tag">automática</span>{% if not lista.publica %} <span class="tag">privada</span>{% endif %}</h1>
+<p class="mut">por <a href="/u/{{ lista.user.username }}">@{{ lista.user.username }}</a> · {{ descricao }} ·
+  exportar <a href="/listas/inteligentes/{{ lista.id }}/exportar.json">JSON</a> ou <a href="/listas/inteligentes/{{ lista.id }}/exportar.csv">CSV</a></p>
+{{ progresso_lista(prog, statuses) }}
+{% if own %}
+<details class="panel"><summary>Editar lista</summary>
+  <form method="post" action="/listas/inteligentes/{{ lista.id }}/editar">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label for="nome">Nome</label><input id="nome" name="nome" maxlength="80" value="{{ lista.nome }}" required>
+    <label for="visibilidade">Visibilidade</label>
+    <select id="visibilidade" name="visibilidade"><option value="publica">Pública</option><option value="privada" {{ 'selected' if not lista.publica }}>Privada</option></select>
+    {% with form={} %}{% include "listas/_regra.html" %}{% endwith %}
+    <p><button>Salvar</button></p>
+  </form>
+  <form class="inline" method="post" action="/listas/inteligentes/{{ lista.id }}/congelar"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="ghost">Congelar como lista</button></form>
+  <form class="inline" method="post" action="/listas/inteligentes/{{ lista.id }}/apagar"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="danger">Apagar lista</button></form>
+</details>
+{% endif %}
+<div class="grid">{% for g in page.items %}{{ game_card(g) }}{% else %}<p class="mut">Nenhum jogo atende à regra agora.</p>{% endfor %}</div>
+{{ pager(page) }}
+{% endblock %}

@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% from "_macros.html" import conquista_tag %}
+{% block title %}Conquistas — GameLog{% endblock %}
+{% block content %}
+<h1>Conquistas</h1>
+<p class="mut">Desbloqueadas registrando sessões, avaliando, organizando listas e participando da comunidade. A porcentagem é a dos jogadores que já têm cada uma.</p>
+{% for k, nome in categorias.items() %}{% if por_categoria[k] %}
+<section class="panel"><h2>{{ nome }}</h2>
+  {% for c in por_categoria[k] %}<div class="conquista-linha">{{ conquista_tag(c, revelada=c.id in minhas) }}
+    {% if not c.secreta or c.id in minhas %}<span class="mut">{{ c.descricao }} · {{ raridades[c.raridade] }}</span>{% endif %}
+    <span class="tag">{{ pct.get(c.id, 0) | string | replace('.', ',') if pct.get(c.id) else '0' }}%</span></div>{% endfor %}
+</section>{% endif %}{% endfor %}
+{% endblock %}

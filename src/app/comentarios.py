@@ -1,6 +1,8 @@
 from flask import Blueprint, abort, flash, redirect, request
 
 from .models import Comment, Review, db
+from .gamificacao import emitir_evento
+from .notificacoes import avisar_comentario
 from .util import current_user, login_required, safe_next
 
 bp = Blueprint("comentarios", __name__)
@@ -28,7 +30,10 @@ def add(rid):
         return back(review)
     comment = Comment(review_id=review.id, user_id=current_user().id, text=text)
     db.session.add(comment)
+    db.session.flush()
+    avisar_comentario(comment)  # NTF-05
     db.session.commit()
+    emitir_evento(comment.user_id, "comentario", review_id=review.id)  # GAM-03
     return back(review, comment)
 
 

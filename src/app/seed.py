@@ -50,7 +50,7 @@ DESTAQUES = 30  # jogos reais que recebem avaliações (CRE-06)
 def run(seed=42, real=False):
     if Game.query.first():
         vincular_existentes()  # banco anterior a JogoFonte: a tabela é criada vazia por create_all (FNT-05)
-        return  # idempotente: não duplica
+        return False  # idempotente: não duplica
     rng = random.Random(seed)
     if real:
         importar("arquivo", limite=10**6)
@@ -58,6 +58,7 @@ def run(seed=42, real=False):
     else:
         games = _jogos_ficticios(rng)
     _atividade(rng, games, real)
+    return True
 
 
 def _jogos_ficticios(rng):
