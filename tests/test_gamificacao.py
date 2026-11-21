@@ -200,6 +200,17 @@ def test_gam_07_progresso_bloqueado_diminui(base):
     assert tem(base, "critico").progresso == 2
 
 
+def test_gam_07_sessao_de_jogo_removido_nao_conta(base):
+    with base.app_context():
+        g0, g1 = (Game.query.filter_by(slug=f"jogo-{i}").one() for i in (0, 1))
+        db.session.add_all([SessaoJogo(user_id=uid(base), game_id=g.id, jogada_em=date(2026, 11, d), duracao_min=120)
+                            for g, d in ((g0, 1), (g1, 2))])
+        g1.removed_at = now()
+        db.session.commit()
+        a = uid(base)
+        assert [gamificacao.sessoes(a), gamificacao.horas_registradas(a), gamificacao.dias_com_sessao(a)] == [1, 2, 1]
+
+
 # ---------- GAM-08..11 ----------
 def secreta(app):
     with app.app_context():

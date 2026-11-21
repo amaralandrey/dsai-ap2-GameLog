@@ -114,6 +114,17 @@ def test_rnk_02_cada_categoria_na_janela(base):
     assert ordem(tabela("xp")) == ["carla"]
 
 
+def test_rnk_02_horas_de_jogo_removido_nao_contam(base):
+    with base.app_context():
+        g0, g1 = Game.query.order_by(Game.id).limit(2).all()
+        db.session.add_all([SessaoJogo(user_id=uid(base, "ana"), game_id=g0.id, jogada_em=date(2026, 11, 1), duracao_min=60),
+                            SessaoJogo(user_id=uid(base, "bia"), game_id=g1.id, jogada_em=date(2026, 11, 1), duracao_min=600)])
+        g1.removed_at = datetime(2026, 11, 3)
+        db.session.commit()
+    html = cliente(base).get("/rankings?escopo=global&categoria=horas").get_data(as_text=True)
+    assert ordem(html) == ["ana"]
+
+
 def test_rnk_03_valores_desconhecidos_voltam_ao_padrao(base):
     xp(base, "ana", 10)
     html = cliente(base).get("/rankings?escopo=global&categoria=xyz&janela=nada").get_data(as_text=True)

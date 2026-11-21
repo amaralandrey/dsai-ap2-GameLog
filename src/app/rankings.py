@@ -94,7 +94,8 @@ def consulta(categoria, de, ate):
     if categoria == "horas":
         return (db.session.query(SessaoJogo.user_id.label("user_id"), func.sum(SessaoJogo.duracao_min).label("valor"),
                                  func.max(SessaoJogo.created_at).label("instante"))
-                .filter(SessaoJogo.origem.in_(COM_DATA), _entre(SessaoJogo.jogada_em, de, ate))
+                .join(Game, Game.id == SessaoJogo.game_id)
+                .filter(SessaoJogo.origem.in_(COM_DATA), Game.removed_at.is_(None), _entre(SessaoJogo.jogada_em, de, ate))
                 .group_by(SessaoJogo.user_id))
     if categoria == "curtidas":  # curtida sem data (antes da AP2) só conta em "sempre"
         return (db.session.query(Review.user_id.label("user_id"), func.count(Like.id).label("valor"),

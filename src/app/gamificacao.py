@@ -132,7 +132,8 @@ def desenvolvedoras_distintas(user_id):
 
 
 def _sessoes(user_id):
-    return SessaoJogo.query.join(Game, Game.id == SessaoJogo.game_id).filter(SessaoJogo.user_id == user_id)
+    return (SessaoJogo.query.join(Game, Game.id == SessaoJogo.game_id)
+            .filter(SessaoJogo.user_id == user_id, Game.removed_at.is_(None)))
 
 
 def sessoes(user_id):
