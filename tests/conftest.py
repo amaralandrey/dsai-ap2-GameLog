@@ -73,6 +73,25 @@ def make_game(app, title="Jogo Teste", genre="Ação", platform="PC", dev="Dev U
         return game.slug
 
 
+@pytest.fixture
+def corrida(app):
+    """Duplo envio: grava `sql` por outra conexão logo antes do primeiro flush, depois da checagem da rota."""
+    from sqlalchemy import event, text
+    from sqlalchemy.orm import Session
+
+    pendentes = []
+
+    def antes_do_flush(session, ctx, instancias):
+        while pendentes:
+            sql, params = pendentes.pop(0)
+            with db.engine.begin() as conn:
+                conn.execute(text(sql), params)
+
+    event.listen(Session, "before_flush", antes_do_flush)
+    yield lambda sql, **params: pendentes.append((sql, params))
+    event.remove(Session, "before_flush", antes_do_flush)
+
+
 class Resp(io.BytesIO):
     """Resposta falsa de urlopen: corpo JSON (ou bytes crus) usável com `with`."""
 
