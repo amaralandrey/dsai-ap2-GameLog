@@ -513,6 +513,34 @@ def test_job_11_rota_ciclo_com_token(tmp_path, tarefas):
     assert c.get("/jobs/ciclo").status_code == 405
 
 
+def test_job_11_ciclo_http_para_de_pegar_jobs_quando_o_orcamento_acaba(app, tarefas, monkeypatch):
+    import types
+
+    relogio_monotonico = [0.0]
+    monkeypatch.setattr(jobs, "time", types.SimpleNamespace(monotonic=lambda: relogio_monotonico[0]))
+
+    @jobs.tarefa("demora")
+    def demora():
+        relogio_monotonico[0] += jobs.ORCAMENTO_HTTP * 0.6
+
+    monkeypatch.setenv("JOBS_TOKEN", "s3gredo")
+    with app.app_context():
+        for _ in range(3):
+            jobs.enfileirar("demora")
+        db.session.commit()
+    r = app.test_client().post("/jobs/ciclo", headers={"Authorization": "Bearer s3gredo"})
+    assert r.get_json()["executados"] == 2  # o 2º começa dentro do orçamento e termina; o 3º fica
+    with app.app_context():
+        assert Job.query.filter_by(status="pendente").count() == 1
+
+
+def test_job_11_render_da_folga_ao_sync_no_worker():
+    from pathlib import Path
+
+    render = (Path(__file__).parents[1] / "render.yaml").read_text(encoding="utf-8")
+    assert "--timeout 600" in render
+
+
 def test_job_11_rota_ciclo_sem_token_configurado_e_404(app, monkeypatch):
     monkeypatch.delenv("JOBS_TOKEN", raising=False)
     assert app.test_client().post("/jobs/ciclo", headers={"Authorization": "Bearer x"}).status_code == 404

@@ -26,6 +26,7 @@ TAREFAS = {}
 AGENDAS_PADRAO = {}  # nome -> (cron, tipo, args, ativo), declarados por quem registra a tarefa (JOB-09)
 ESPERA_BASE, ESPERA_MAX = timedelta(seconds=30), timedelta(hours=6)
 ABANDONO = timedelta(minutes=15)
+ORCAMENTO_HTTP = 20  # segundos: depois disso o ciclo HTTP não pega o próximo job (JOB-11)
 MAX_ERRO = 2000
 
 
@@ -187,8 +188,12 @@ def enfileirar_agendados():
     return enfileirados
 
 
-def ciclo(limite=50, executor=None):
-    """Um ciclo do executor; devolve a contagem que `jobs rodar` imprime (JOB-04, JOB-08)."""
+def ciclo(limite=50, executor=None, orcamento=None):
+    """Um ciclo do executor; devolve a contagem que `jobs rodar` imprime (JOB-04, JOB-08).
+
+    Com `orcamento` (segundos), não pega o próximo job depois desse tempo; o job em andamento termina.
+    """
+    inicio = time.monotonic()
     enfileirar_agendados()
     liberar_abandonados()
     ids = [i for (i,) in db.session.query(Job.id)
@@ -196,6 +201,8 @@ def ciclo(limite=50, executor=None):
            .order_by(Job.executar_em, Job.id).limit(limite)]
     conta = {"executados": 0, "ok": 0, "falhas": 0, "mortos": 0}
     for job_id in ids:
+        if orcamento is not None and time.monotonic() - inicio >= orcamento:
+            break
         resultado = executar(job_id, executor)
         if resultado is None:
             continue
@@ -261,7 +268,7 @@ def ciclo_http():
     recebido = request.headers.get("Authorization", "")
     if not hmac.compare_digest(recebido.encode(), f"Bearer {esperado}".encode()):
         return jsonify(erro="token inválido"), 401
-    return jsonify(ciclo(limite=10))
+    return jsonify(ciclo(limite=10, orcamento=ORCAMENTO_HTTP))
 
 
 # ---------- painel do admin (JOB-10) ----------

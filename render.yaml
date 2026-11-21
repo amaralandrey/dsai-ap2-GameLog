@@ -4,7 +4,8 @@ services:
     runtime: python
     plan: free
     buildCommand: pip install -r requirements.txt
-    startCommand: cd src && flask --app app seed && flask --app app jobs agendar && gunicorn "app:create_app()" --bind 0.0.0.0:$PORT --workers 2 --timeout 60
+    # timeout de 600 s: o POST /jobs/ciclo pode rodar o sync_games (~80 chamadas HTTP de até 5 s) sem o worker ser morto
+    startCommand: cd src && flask --app app seed && flask --app app jobs agendar && gunicorn "app:create_app()" --bind 0.0.0.0:$PORT --workers 2 --timeout 600
     envVars:
       - key: PYTHON_VERSION
         value: 3.12.3
