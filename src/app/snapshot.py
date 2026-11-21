@@ -1,5 +1,6 @@
 """Enriquece o snapshot do seed com os links de GOG e Epic e o id da RAWG; roda local, com a chave (SNP-01..05)."""
 import json
+import os
 
 from .fontes import Interrompido, base, external_id_da_url, normalizar_url_loja, rawg
 
@@ -18,8 +19,15 @@ def correspondencia(j, modulo=rawg):
 
 
 def _gravar(caminho, jogos):
-    with open(caminho, "w", encoding="utf-8") as f:
-        json.dump(jogos, f, ensure_ascii=False, indent=1)  # mesmo formato de export-games
+    """Grava num temporário ao lado e troca de uma vez: uma falha no meio não corrompe o snapshot."""
+    temporario = f"{caminho}.tmp"
+    try:
+        with open(temporario, "w", encoding="utf-8") as f:
+            json.dump(jogos, f, ensure_ascii=False, indent=1)  # mesmo formato de export-games
+        os.replace(temporario, caminho)
+    finally:
+        if os.path.exists(temporario):
+            os.remove(temporario)
 
 
 def enriquecer(caminho, modulo=rawg):
