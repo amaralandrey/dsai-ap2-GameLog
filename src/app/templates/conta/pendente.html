@@ -5,12 +5,15 @@
 <h1>Sua conta aguarda um responsável</h1>
 {% if contestada %}
 <p>A idade desta conta foi contestada pela moderação. Até uma verificação confiável, ela é tratada como conta de 12 a 15 anos.</p>
-<p><a href="/conta/idade">Pedir nova verificação de idade</a></p>
 {% else %}
 <p>Pela lei (ECA Digital, art. 24), contas de 12 a 15 anos precisam estar vinculadas a um responsável: mãe, pai ou quem cuida de você.</p>
 {% endif %}
+{% if confiavel %}<p><a href="/conta/idade">Pedir nova verificação de idade</a></p>{% endif %}
 <p>Quando o responsável aceitar o vínculo, a conta é liberada. Ele poderá acompanhar sua atividade e escolher o que fica ligado.</p>
-<p class="mut">Enquanto isso, você pode navegar pelo catálogo sem entrar. Se a data informada estiver errada, <a href="/conta/idade">peça nova verificação</a>.</p>
+<p class="mut">Enquanto isso, você pode navegar pelo catálogo sem entrar.</p>
+{% if revisao_pedida %}<p class="mut">Você pediu a revisão da data. A moderação vai olhar a conta e, se for o caso, liberar para você informar a data de novo.</p>
+{% else %}<p class="mut">A data informada está errada? Peça à moderação para revisar.</p>
+<form method="post" action="/conta/pendente/revisao"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="ghost">Pedir revisão da data</button></form>{% endif %}
 <form method="post" action="/sair"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="ghost">Sair</button></form>
 </section>
 {% endblock %}

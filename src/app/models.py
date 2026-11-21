@@ -37,6 +37,7 @@ class User(db.Model):
     aguardando_responsavel = db.Column(db.Boolean, default=False, nullable=False)
     idade_contestada_em = db.Column(db.DateTime, nullable=True)
     suspensa_em = db.Column(db.DateTime, nullable=True)
+    revisao_idade_pedida_em = db.Column(db.DateTime, nullable=True)  # a conta pendente pediu revisão da data (IDA-04)
     role = db.Column(db.String(10), default="jogador", nullable=False)
     session_version = db.Column(db.Integer, default=0, nullable=False)
     created_at = db.Column(db.DateTime, default=now, nullable=False)

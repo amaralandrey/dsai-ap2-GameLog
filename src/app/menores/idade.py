@@ -188,7 +188,23 @@ def pendente():
     me = current_user()
     if not aguarda_responsavel(me):
         return redirect("/")
-    return render_template("conta/pendente.html", contestada=me.idade_contestada_em is not None)
+    confiavel = any(a.confiavel and a.disponivel() for a in ADAPTADORES.values())
+    return render_template("conta/pendente.html", contestada=me.idade_contestada_em is not None,
+                           confiavel=confiavel, revisao_pedida=me.revisao_idade_pedida_em is not None)
+
+
+@bp.route("/conta/pendente/revisao", methods=["POST"])
+@login_required
+def pedir_revisao():
+    """Data errada sem verificação confiável disponível: a moderação revê e pode pedir nova data (IDA-04, IDA-11)."""
+    me = current_user()
+    if not aguarda_responsavel(me):
+        return redirect("/")
+    if me.revisao_idade_pedida_em is None:
+        me.revisao_idade_pedida_em = now()
+        db.session.commit()
+    flash("Pedido de revisão enviado à moderação.", "ok")
+    return redirect("/conta/pendente")
 
 
 @bp.route("/conta/idade")
@@ -226,8 +242,9 @@ def verificar_de_novo(metodo):
 @bp.route("/admin/usuarios")
 @admin_required
 def usuarios():
-    """Contas com a faixa (nunca a data), suspensas e contestadas primeiro."""
-    q = User.query.order_by(User.suspensa_em.is_(None), User.idade_contestada_em.is_(None), User.username_lower)
+    """Contas com a faixa (nunca a data): suspensas, com revisão pedida e contestadas primeiro."""
+    q = User.query.order_by(User.suspensa_em.is_(None), User.revisao_idade_pedida_em.is_(None),
+                            User.idade_contestada_em.is_(None), User.username_lower)
     page = paginate(q, request.args.get("page"))
     return render_template("admin/usuarios.html", page=page, faixa=lambda u: NOMES_DAS_FAIXAS[faixa_etaria(u)],
                            aguarda=aguarda_responsavel)
@@ -282,7 +299,7 @@ def nova_data(uid):
     elif alvo.nascimento_confiavel:
         flash("A data desta conta veio de uma verificação confiável e não é apagada.", "erro")
     else:
-        alvo.nascimento, alvo.suspensa_em = None, None
+        alvo.nascimento = alvo.suspensa_em = alvo.revisao_idade_pedida_em = None
         alvo.aguardando_responsavel = alvo.idade_contestada_em is not None  # a contestação continua valendo
         _auditar("idade.nova_data", alvo)
         flash(f"@{alvo.username} informa a data de nascimento de novo no próximo acesso.", "ok")

@@ -184,6 +184,37 @@ def test_ida_04_aniversario_de_16_anos_libera_a_conta_pendente(app, client, monk
     assert "16 ou 17 anos" in html and "aguardando responsável" not in html
 
 
+def test_ida_04_data_errada_no_cadastro_pede_revisao_e_o_admin_libera(app, client, monkeypatch):
+    from conftest import login
+
+    monkeypatch.delenv("VERIFICACAO_PROVEDOR", raising=False)
+    make_user(app, "chefe", role="admin")
+    cadastrar(client, date(2012, 1, 1))  # quis digitar 2002
+    html = client.get("/conta/pendente").get_data(as_text=True)
+    assert 'href="/conta/idade"' not in html and "Pedir revisão da data" in html  # só há autodeclaração
+    client.post("/conta/pendente/revisao")
+    client.post("/conta/pendente/revisao")  # repetir não muda nada
+    assert "Você pediu a revisão da data" in client.get("/conta/pendente").get_data(as_text=True)
+    chefe = app.test_client()
+    login(chefe, "chefe")
+    html = chefe.get("/admin/usuarios").get_data(as_text=True)
+    tabela = html[html.index("<table"):]
+    assert tabela.index("@novo") < tabela.index("@chefe") and "pediu revisão da data" in tabela
+    with app.app_context():
+        nid = User.query.filter_by(username="novo").one().id
+    chefe.post(f"/admin/usuarios/{nid}/nova-data")
+    assert client.get("/listas").headers["Location"].startswith("/conta/nascimento")
+    client.post("/conta/nascimento", data={"nascimento": "2002-01-01"})
+    assert client.get("/listas").status_code == 200
+    with app.app_context():
+        assert db.session.get(User, nid).revisao_idade_pedida_em is None
+
+
+def test_ida_04_link_de_nova_verificacao_so_com_adaptador_confiavel(app, pendente_14, monkeypatch):
+    monkeypatch.setenv("VERIFICACAO_PROVEDOR", "simulado")
+    assert 'href="/conta/idade"' in pendente_14.get("/conta/pendente").get_data(as_text=True)
+
+
 # ---------- IDA-05 ----------
 def sem_data(app, nome="ana", role="jogador"):
     make_user(app, nome, role=role)
