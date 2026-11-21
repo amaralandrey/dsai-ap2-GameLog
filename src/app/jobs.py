@@ -359,11 +359,8 @@ def sync_games(fonte="steam", limite=40):
 def enriquecer_snapshot():
     if not os.environ.get("RAWG_API_KEY"):
         raise ErroPermanente("RAWG_API_KEY não configurada: o enriquecimento do snapshot usa a RAWG")
-    try:
-        from .snapshot import enriquecer
-    except ModuleNotFoundError:
-        raise ErroPermanente("o snapshot multi-loja ainda não existe nesta versão") from None
     from .fontes import arquivo
+    from .snapshot import enriquecer
 
     enriquecer(arquivo.CAMINHO)
 

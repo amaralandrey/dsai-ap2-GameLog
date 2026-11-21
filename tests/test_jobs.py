@@ -74,6 +74,32 @@ def test_job_02_chave_unica_aberta_nao_duplica(app, tarefas):
         assert c.id != a.id and Job.query.count() == 2
 
 
+def test_job_02_chave_gravada_por_outro_executor_entre_a_consulta_e_o_insert(app, tarefas, monkeypatch):
+    with app.app_context():
+        a = jobs.enfileirar("anota", chave_unica="k")
+        db.session.commit()
+        consultas, original = [], jobs._abertos
+
+        def abertos(chave):  # a 1ª consulta não vê o job: o outro executor grava logo depois dela
+            consultas.append(chave)
+            return original(chave) if len(consultas) > 1 else None
+        monkeypatch.setattr(jobs, "_abertos", abertos)
+        b = jobs.enfileirar("anota", chave_unica="k")
+        assert b.id == a.id and Job.query.count() == 1 and consultas == ["k", "k"]
+
+
+def test_job_09_enriquecer_snapshot_usa_o_arquivo_do_seed(app, monkeypatch):
+    from app import snapshot
+    from app.fontes import arquivo
+
+    chamadas = []
+    monkeypatch.setenv("RAWG_API_KEY", "x")
+    monkeypatch.setattr(snapshot, "enriquecer", chamadas.append)
+    with app.app_context():
+        jobs.enfileirar("enriquecer_snapshot")
+        assert jobs.ciclo()["ok"] == 1 and chamadas == [arquivo.CAMINHO]
+
+
 def test_job_03_registrar_duas_vezes_levanta(tarefas):
     with pytest.raises(RuntimeError, match="duas vezes"):
         jobs.tarefa("anota")(lambda: None)
