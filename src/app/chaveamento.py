@@ -13,6 +13,7 @@ Identificadores das partidas:
 """
 import math
 import random
+import re
 from dataclasses import dataclass, field
 
 MIN_PARTICIPANTES, MAX_ELIMINACAO = 2, 128
@@ -394,9 +395,25 @@ def _emparelhar_suico(participantes, anteriores, rodada):
     return jogos + partidas
 
 
+def _rodada_suica(pid):
+    """Rodada de um id `S<rodada>-<n>`; qualquer outro id é de uma partida desconhecida."""
+    if not (m := re.fullmatch(r"S([1-9]\d*)-[1-9]\d*", str(pid))):
+        raise ResultadoInvalido(f"partida desconhecida: {pid}")
+    return int(m[1])
+
+
 def _rodadas_do_suico(participantes, resultados, ate):
-    """Partidas das rodadas 1..`ate`, com os resultados aplicados; cada rodada exige a anterior completa."""
-    por_id = {r[0]: r for r in resultados}
+    """Partidas das rodadas 1..`ate`, com os resultados aplicados; cada rodada exige a anterior completa.
+
+    Resultados de rodadas depois de `ate` ficam de fora. Os das rodadas 1..`ate` precisam bater com uma
+    partida gerada, e cada partida aceita um resultado só.
+    """
+    por_id = {}
+    for r in resultados:
+        _rodada_suica(r[0])
+        if r[0] in por_id:
+            raise ResultadoInvalido(f"a partida {r[0]} já foi decidida")
+        por_id[r[0]] = r
     todas = []
     for rodada in range(1, ate + 1):
         if rodada > 1 and (faltam := [p.id for p in todas if p.rodada == rodada - 1 and p.b is not BYE
@@ -406,6 +423,9 @@ def _rodadas_do_suico(participantes, resultados, ate):
             if p.id in por_id and p.b is not BYE:
                 _aplicar(p, por_id[p.id], empate_permitido=True)
             todas.append(p)
+    jogaveis = {p.id for p in todas if p.b is not BYE}
+    if desconhecidas := [pid for pid in por_id if _rodada_suica(pid) <= ate and pid not in jogaveis]:
+        raise ResultadoInvalido(f"partida desconhecida: {', '.join(desconhecidas)}")
     return todas
 
 
@@ -436,7 +456,7 @@ def _partidas_com_resultados(formato, participantes, resultados):
     if formato in FORMATOS_DE_ELIMINACAO:
         return list(montar(formato, participantes, resultados).partidas.values())
     if formato == "suico":
-        ate = max((int(r[0][1:].split("-")[0]) for r in resultados), default=0)
+        ate = max((_rodada_suica(r[0]) for r in resultados), default=0)
         return _rodadas_do_suico(participantes, resultados, ate)
     if formato != "pontos_corridos":
         raise ValueError(f"formato desconhecido: {formato}")

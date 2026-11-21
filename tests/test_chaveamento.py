@@ -354,3 +354,21 @@ def test_chv_10_empate_aceito_so_em_pontos_corridos_e_suico():
         ch.classificacao("pontos_corridos", ps, [("L1-1", "p9", 1, 0)])
     with pytest.raises(ResultadoInvalido, match="desconhecida"):
         ch.classificacao("pontos_corridos", ps, [("L9-9", "p1", 1, 0)])
+
+
+@pytest.mark.parametrize("formato,resultados", [
+    ("pontos_corridos", [("L1-1", "p1", 1, 0), ("L1-1", "p4", 0, 1)]),
+    ("suico", [("S1-1", "p1", 1, 0), ("S1-1", "p2", 0, 1)]),
+])
+def test_chv_07_resultado_repetido_e_recusado(formato, resultados):
+    with pytest.raises(ResultadoInvalido, match="já foi decidida"):
+        ch.classificacao(formato, nomes(4), resultados)
+
+
+@pytest.mark.parametrize("pid", ["S1-9", "S1-3", "L1-1", "S0-1", "X"])
+def test_chv_05_id_desconhecido_no_suico_e_recusado(pid):
+    ps = nomes(5)  # S1-3 é o bye da 1ª rodada: não recebe resultado
+    with pytest.raises(ResultadoInvalido, match="desconhecida"):
+        ch.classificacao("suico", ps, [("S1-1", "p1", 1, 0), (pid, "p3", 1, 0)])
+    resultados = [("S1-1", "p1", 1, 0), ("S1-2", "p3", 1, 0)]
+    assert len(ch.suico(ps, resultados + [("S3-1", "p1", 1, 0)], 2)) == 3  # rodada futura fica de fora
