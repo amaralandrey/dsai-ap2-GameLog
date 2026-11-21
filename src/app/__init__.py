@@ -19,12 +19,18 @@ BLUEPRINTS = []  # preenchido por register_blueprints(); um módulo por spec
 def create_app(config=None):
     app = Flask(__name__)
     app.config.update(
-        SECRET_KEY=os.environ.get("SECRET_KEY") or secrets.token_hex(32),
+        SECRET_KEY=os.environ.get("SECRET_KEY"),
         SQLALCHEMY_DATABASE_URI=os.environ.get("DATABASE_URL", "sqlite:///gamelog.db"),
         CSRF=True,
         PRODUCAO=os.environ.get("GAMELOG_PRODUCAO") == "1",  # definida no render.yaml
+        SESSION_COOKIE_SAMESITE="Lax",
     )
     app.config.update(config or {})
+    if app.config["PRODUCAO"]:
+        if not app.config["SECRET_KEY"]:  # chave aleatória por worker derrubaria as sessões entre os 2 workers
+            raise RuntimeError("SECRET_KEY não configurada em produção")
+        app.config["SESSION_COOKIE_SECURE"] = True
+    app.config["SECRET_KEY"] = app.config["SECRET_KEY"] or secrets.token_hex(32)
     db.init_app(app)
 
     @event.listens_for(Engine, "connect")

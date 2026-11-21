@@ -120,3 +120,27 @@ def test_cookie_de_banco_anterior_nao_autentica_quem_herdou_o_id(tmp_path):
     with c2.session_transaction() as s:
         s.update(cookie)
     assert c2.get("/u/bia/editar").status_code == 302
+
+
+def test_cookie_de_sessao_seguro_em_producao(tmp_path):
+    from app import create_app
+
+    app = create_app({"TESTING": True, "PRODUCAO": True, "SECRET_KEY": "fixa",
+                      "SQLALCHEMY_DATABASE_URI": f"sqlite:///{tmp_path}/p.db"})
+    cookie = app.test_client().get("/entrar").headers["Set-Cookie"]
+    assert "Secure" in cookie and "SameSite=Lax" in cookie
+
+
+def test_cookie_de_sessao_lax_fora_de_producao(client):
+    cookie = client.get("/entrar").headers["Set-Cookie"]
+    assert "SameSite=Lax" in cookie and "Secure" not in cookie
+
+
+def test_producao_sem_secret_key_nao_sobe(tmp_path, monkeypatch):
+    import pytest
+
+    from app import create_app
+
+    monkeypatch.delenv("SECRET_KEY", raising=False)
+    with pytest.raises(RuntimeError, match="SECRET_KEY"):
+        create_app({"TESTING": True, "PRODUCAO": True, "SQLALCHEMY_DATABASE_URI": f"sqlite:///{tmp_path}/p.db"})
