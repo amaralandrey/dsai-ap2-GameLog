@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Registro das operações — Admin{% endblock %}
+{% block content %}
+<h1>Registro das operações de tratamento</h1>
+<p class="mut">Gerado do mapa de dados (LGPD art. 37, GDPR art. 30). <a href="/admin/privacidade/registro.csv">Baixar CSV</a></p>
+<table>
+  <tr><th>Finalidade</th><th>Categorias de dados</th><th>Tabelas</th><th>Base legal</th><th>Retenção</th><th>Exportado</th><th>Anonimização</th><th>Suboperadores</th></tr>
+  {% for l in linhas %}
+  <tr>
+    <td><strong>{{ l.descricao }}</strong><br><span class="mut">{{ l.finalidade }}</span></td>
+    <td>{{ l.categorias|join(", ") }}</td>
+    <td>{{ l.tabelas|join(", ") }}</td>
+    <td>{{ l.bases_legais|join(", ") }}</td>
+    <td>{{ l.retencoes|join(", ") }}</td>
+    <td>{{ l.exportado }}</td>
+    <td>{{ l.anonimizacao|join(", ") }}</td>
+    <td>{{ l.suboperadores|join(", ") }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% endblock %}

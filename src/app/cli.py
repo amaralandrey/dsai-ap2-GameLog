@@ -213,6 +213,25 @@ def register(app):
 
     app.cli.add_command(rankings_cli)
 
+    privacidade_cli = AppGroup("privacidade", help="Mapa de dados e privacidade (MAP).")
+
+    @privacidade_cli.command("verificar-mapa")
+    def verificar_mapa_cmd():
+        """Confere se toda coluna do banco está anotada no mapa de dados, e vice-versa (MAP-03)."""
+        from .models import db
+        from .privacidade.mapa import validar_mapa, verificar_mapa
+
+        faltando, sobrando = verificar_mapa()
+        invalidas = validar_mapa()
+        colunas = sum(len(t.columns) for t in db.metadata.sorted_tables)
+        click.echo(f"colunas={colunas} faltando={len(faltando)} sobrando={len(sobrando)}")
+        for linha in [*(f"faltando: {c}" for c in faltando), *(f"sobrando: {c}" for c in sobrando), *invalidas]:
+            click.echo(linha)
+        if faltando or sobrando or invalidas:
+            raise SystemExit(1)
+
+    app.cli.add_command(privacidade_cli)
+
     @app.cli.command("export-games")
     @click.option("--termos", required=True, help="nomes separados por ;, um jogo por nome")
     @click.option("--saida", required=True)
