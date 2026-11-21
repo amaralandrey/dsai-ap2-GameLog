@@ -150,6 +150,20 @@ def test_gam_05_violacao_de_unicidade_vira_ja_desbloqueada(base):
         repetida = UsuarioConquista(user_id=user.id, conquista_id=c.id, progresso=0)
         db.session.add(repetida)
         assert gamificacao._desbloquear(user, repetida, c) is False
+        db.session.commit()  # a sessão segue usável: o resto do evento não é desfeito
+        assert UsuarioConquista.query.filter_by(conquista_id=c.id).count() == 1
+
+
+def test_gam_05_linha_bloqueada_desbloqueada_por_outro_evento_avisa_uma_vez(base):
+    with base.app_context():
+        user, c = db.session.get(User, uid(base)), Conquista.query.filter_by(codigo="critico").one()
+        uc = UsuarioConquista(user_id=user.id, conquista_id=c.id, progresso=4)
+        db.session.add(uc)
+        db.session.commit()
+        UsuarioConquista.query.filter_by(id=uc.id).update({"desbloqueada_em": now()})  # o outro evento chegou antes
+        assert gamificacao._desbloquear(user, uc, c) is False
+        db.session.commit()
+        assert Notificacao.query.filter_by(tipo="conquista").count() == 0
 
 
 def test_gam_06_avisa_registra_atividade_e_emite_conquista(base):

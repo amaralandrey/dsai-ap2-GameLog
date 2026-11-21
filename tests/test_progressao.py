@@ -124,6 +124,27 @@ def test_prg_03_idempotente_e_estorno(base):
     assert [e[1] for e in extrato(base) if e[0].endswith("sessao")] == [10, -10]
 
 
+def test_prg_03_lancamento_desfeito_junto_com_o_resto_do_evento(base):
+    with base.app_context():  # sem transação aberta, como nos ouvintes logo depois do commit da ação
+        assert progressao.lancar(uid(base), "ajuste", "x1", 50, "teste") is not None
+        db.session.rollback()
+    assert extrato(base) == []
+    with base.app_context():
+        assert progressao.lancar(uid(base), "ajuste", "x1", 50, "teste") is not None  # a origem segue livre
+        db.session.commit()
+    assert extrato(base) == [("ajuste", 50, "teste")] and perfil(base).xp_total == 50
+
+
+def test_prg_03_lancamento_repetido_por_outro_evento_nao_quebra_a_sessao(base, monkeypatch):
+    with base.app_context():
+        progressao.lancar(uid(base), "ajuste", "x1", 50, "teste")
+        db.session.commit()
+        monkeypatch.setattr(progressao, "_ja_lancado", lambda *a: None)  # o outro evento gravou depois da consulta
+        assert progressao.lancar(uid(base), "ajuste", "x1", 50, "teste") is None
+        db.session.commit()  # a sessão segue usável
+    assert extrato(base) == [("ajuste", 50, "teste")] and perfil(base).xp_total == 50
+
+
 def test_prg_03_id_apagado_nao_e_reaproveitado(base):
     ana = cliente(base)
     for jogo in (0, 1):
