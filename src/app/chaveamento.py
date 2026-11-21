@@ -452,7 +452,7 @@ class Linha:
     criterio: str  # o critério que separou esta linha da de cima; None na 1ª
 
 
-def _partidas_com_resultados(formato, participantes, resultados):
+def _partidas_com_resultados(formato, participantes, resultados, ida_e_volta):
     if formato in FORMATOS_DE_ELIMINACAO:
         return list(montar(formato, participantes, resultados).partidas.values())
     if formato == "suico":
@@ -460,7 +460,7 @@ def _partidas_com_resultados(formato, participantes, resultados):
         return _rodadas_do_suico(participantes, resultados, ate)
     if formato != "pontos_corridos":
         raise ValueError(f"formato desconhecido: {formato}")
-    partidas = {p.id: p for p in pontos_corridos(participantes, ida_e_volta=True)}
+    partidas = {p.id: p for p in pontos_corridos(participantes, ida_e_volta)}
     for r in resultados:
         if r[0] not in partidas or partidas[r[0]].b is BYE:
             raise ResultadoInvalido(f"partida desconhecida: {r[0]}")
@@ -468,10 +468,13 @@ def _partidas_com_resultados(formato, participantes, resultados):
     return list(partidas.values())
 
 
-def classificacao(formato, participantes, resultados):
-    """Tabela ordenada: pontos, confronto direto, saldo, Buchholz (só no suíço) e semente, nessa ordem."""
+def classificacao(formato, participantes, resultados, ida_e_volta=False):
+    """Tabela ordenada: pontos, confronto direto, saldo, Buchholz (só no suíço) e semente, nessa ordem.
+
+    `ida_e_volta` só vale em pontos corridos e precisa ser o mesmo da geração das rodadas.
+    """
     _validar(participantes)
-    partidas = _partidas_com_resultados(formato, participantes, resultados)
+    partidas = _partidas_com_resultados(formato, participantes, resultados, ida_e_volta)
     jogadas = [p for p in partidas if p.jogada]
     pontos = {x: 0 for x in participantes} | _pontos(partidas, com_bye=formato == "suico")
     conta = {x: {"v": 0, "e": 0, "d": 0, "saldo": 0, "adversarios": []} for x in participantes}

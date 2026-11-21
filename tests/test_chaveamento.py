@@ -372,3 +372,12 @@ def test_chv_05_id_desconhecido_no_suico_e_recusado(pid):
         ch.classificacao("suico", ps, [("S1-1", "p1", 1, 0), (pid, "p3", 1, 0)])
     resultados = [("S1-1", "p1", 1, 0), ("S1-2", "p3", 1, 0)]
     assert len(ch.suico(ps, resultados + [("S3-1", "p1", 1, 0)], 2)) == 3  # rodada futura fica de fora
+
+
+def test_chv_04_classificacao_so_aceita_o_returno_com_ida_e_volta():
+    ps = nomes(4)  # só ida: rodadas L1 a L3
+    with pytest.raises(ResultadoInvalido, match="desconhecida"):
+        ch.classificacao("pontos_corridos", ps, [("L4-1", "p1", 1, 0)])
+    volta = next(p for p in ch.pontos_corridos(ps, ida_e_volta=True) if p.id == "L4-1")
+    linhas = ch.classificacao("pontos_corridos", ps, [("L4-1", volta.a, 1, 0)], ida_e_volta=True)
+    assert (linhas[0].participante, linhas[0].pontos) == (volta.a, 3)
