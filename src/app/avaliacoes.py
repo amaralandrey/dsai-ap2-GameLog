@@ -1,4 +1,5 @@
 from flask import Blueprint, abort, flash, redirect, request
+from sqlalchemy.exc import IntegrityError
 
 from .models import REPORT_REASONS, Activity, Like, Notificacao, Report, Review, Status, db, visible_games
 from .gamificacao import emitir_evento
@@ -27,6 +28,22 @@ def delete_review(review):
     db.session.delete(review)
 
 
+def salvar_avaliacao(me, game, score, text, spoiler):
+    review = Review.query.filter_by(user_id=me.id, game_id=game.id).first()
+    nova = review is None
+    if review:  # AVA-02: nova submissão edita a existente
+        review.score, review.text, review.spoiler, review.edited = score, text, spoiler, True
+    else:
+        review = Review(user_id=me.id, game_id=game.id, score=score, text=text, spoiler=spoiler)
+        db.session.add(review)
+        db.session.flush()
+        db.session.add(Activity(user_id=me.id, kind="avaliou", game_id=game.id, review_id=review.id))
+    if not Status.query.filter_by(user_id=me.id, game_id=game.id).first():  # AVA-11
+        db.session.add(Status(user_id=me.id, game_id=game.id, value="jogado"))
+    db.session.commit()
+    return review, nova
+
+
 @bp.route("/jogos/<slug>/avaliar", methods=["POST"])
 @login_required
 def rate(slug):
@@ -44,18 +61,11 @@ def rate(slug):
     if len(text) > 5000:
         flash("A resenha deve ter até 5000 caracteres.", "erro")  # AVA-03
         return back(game)
-    review = Review.query.filter_by(user_id=me.id, game_id=game.id).first()
-    nova = review is None
-    if review:  # AVA-02: nova submissão edita a existente
-        review.score, review.text, review.spoiler, review.edited = score, text, bool(f.get("spoiler")), True
-    else:
-        review = Review(user_id=me.id, game_id=game.id, score=score, text=text, spoiler=bool(f.get("spoiler")))
-        db.session.add(review)
-        db.session.flush()
-        db.session.add(Activity(user_id=me.id, kind="avaliou", game_id=game.id, review_id=review.id))
-    if not Status.query.filter_by(user_id=me.id, game_id=game.id).first():  # AVA-11
-        db.session.add(Status(user_id=me.id, game_id=game.id, value="jogado"))
-    db.session.commit()
+    try:
+        review, nova = salvar_avaliacao(me, game, score, text, bool(f.get("spoiler")))
+    except IntegrityError:  # duplo envio: a outra requisição criou a avaliação, então esta vira edição
+        db.session.rollback()
+        review, nova = salvar_avaliacao(me, game, score, text, bool(f.get("spoiler")))
     emitir_evento(me.id, "avaliacao", review_id=review.id, game_id=game.id, nova=nova)  # GAM-03
     emitir_evento(me.id, "status", game_id=game.id)
     flash("Avaliação salva.", "ok")
@@ -86,10 +96,14 @@ def like(rid):
         abort(404)
     elif not Like.query.filter_by(user_id=me.id, review_id=rid).first():
         db.session.add(Like(user_id=me.id, review_id=rid, created_at=agora_utc()))  # RNK-02
-        avisar_curtida(review, me.id)  # NTF-04
-        db.session.commit()
-        emitir_evento(me.id, "curtir", review_id=rid)
-        emitir_evento(review.user_id, "curtida", review_id=rid)
+        try:
+            avisar_curtida(review, me.id)  # NTF-04
+            db.session.commit()
+        except IntegrityError:  # duplo envio: a outra requisição já curtiu
+            db.session.rollback()
+        else:
+            emitir_evento(me.id, "curtir", review_id=rid)
+            emitir_evento(review.user_id, "curtida", review_id=rid)
     return back(review.game, review)
 
 

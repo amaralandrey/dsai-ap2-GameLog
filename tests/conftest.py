@@ -83,12 +83,11 @@ def corrida(app):
 
     def antes_do_flush(session, ctx, instancias):
         while pendentes:
-            sql, params = pendentes.pop(0)
             with db.engine.begin() as conn:
-                conn.execute(text(sql), params)
+                conn.execute(text(pendentes.pop(0)))
 
     event.listen(Session, "before_flush", antes_do_flush)
-    yield lambda sql, **params: pendentes.append((sql, params))
+    yield pendentes.append
     event.remove(Session, "before_flush", antes_do_flush)
 
 
