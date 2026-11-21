@@ -206,6 +206,14 @@ def test_rnk_07_desempate_por_instante_e_por_id(base):
     assert ordem(cliente(base).get("/rankings?escopo=global").get_data(as_text=True)) == ordem(html)
 
 
+def test_rnk_07_estorno_de_xp_nao_atrasa_o_instante(base):
+    xp(base, "ana", 10, datetime(2026, 11, 8))
+    xp(base, "bia", 15, datetime(2026, 11, 5))
+    xp(base, "bia", -5, datetime(2026, 11, 10))
+    html = cliente(base).get("/rankings?escopo=global").get_data(as_text=True)
+    assert ordem(html) == ["bia", "ana"]
+
+
 # ---------- RNK-08, RNK-09 ----------
 @pytest.fixture
 def encerravel(base):

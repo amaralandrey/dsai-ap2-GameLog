@@ -6,7 +6,7 @@ de RNK-07. Temporada encerrada é lida do `SnapshotRanking`, que não muda depoi
 from datetime import date, timedelta
 
 from flask import Blueprint, abort, flash, redirect, render_template, request
-from sqlalchemy import func
+from sqlalchemy import case, func
 
 from . import gamificacao
 from .diario import ocultos_para
@@ -100,8 +100,9 @@ def consulta(categoria, de, ate):
                 .join(Review, Review.id == Like.review_id).join(Game, Game.id == Review.game_id)
                 .filter(Review.hidden.is_(False), Game.removed_at.is_(None), _entre(Like.created_at, de, ate, False))
                 .group_by(Review.user_id))
+    ganho = func.max(case((ExtratoXP.xp > 0, ExtratoXP.created_at)))  # estorno não atrasa o desempate (RNK-07)
     return (db.session.query(ExtratoXP.user_id.label("user_id"), func.sum(ExtratoXP.xp).label("valor"),
-                             func.max(ExtratoXP.created_at).label("instante"))
+                             ganho.label("instante"))
             .filter(_entre(ExtratoXP.created_at, de, ate, False))
             .group_by(ExtratoXP.user_id))
 
