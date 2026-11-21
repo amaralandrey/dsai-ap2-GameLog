@@ -112,3 +112,8 @@ def test_csrf_bloqueia_post_sem_token(tmp_path):
 
     app = create_app({"TESTING": True, "SQLALCHEMY_DATABASE_URI": f"sqlite:///{tmp_path}/c.db"})
     assert app.test_client().post("/cadastro", data=OK).status_code == 400
+    c = app.test_client()
+    with c.session_transaction() as s:
+        s["csrf"] = "abc"
+    assert c.post("/cadastro", data={**OK, "csrf_token": "abç"}).status_code == 400
+    assert c.post("/cadastro", data={**OK, "csrf_token": "abc"}).status_code == 302
