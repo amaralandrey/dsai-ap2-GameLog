@@ -4,9 +4,10 @@ from datetime import date
 from flask import Blueprint, abort, flash, redirect, render_template, request
 from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import joinedload
 
 from . import gamificacao, rankings
-from .diario import consulta_minutos, pode_ver_perfil
+from .diario import consulta_minutos, ocultos_para
 from .menores.politica import pode
 from .models import (
     REPORT_REASONS, Activity, AuditLog, Clube, ContribuinteMeta, Genre, JogoDoMes, MembroClube, MetaClube,
@@ -248,18 +249,20 @@ def pagina(slug):
     if not modera(m):
         mural = mural.filter(PostClube.oculto.is_(False))
     mural = paginate(mural.order_by(PostClube.created_at.desc(), PostClube.id.desc()), request.args.get("page"))
-    pendentes = (MembroClube.query.filter_by(clube_id=clube.id, situacao="pendente").all() if modera(m) else [])
+    pendentes = (MembroClube.query.options(joinedload(MembroClube.user))
+                 .filter_by(clube_id=clube.id, situacao="pendente").all() if modera(m) else [])
+    ocultos = set(db.session.scalars(ocultos_para(me).where(User.id.in_(ids))))  # pode_ver_perfil de uma vez
 
     def nome_visivel(user_id):
         u = usuarios.get(user_id)
-        return u.display_name if u and pode_ver_perfil(me, u) else "membro do clube"
+        return u.display_name if u and u.id not in ocultos else "membro do clube"
 
     def autor(user_id):
         """(usuário para o avatar, ou None, e o nome); perfil privado e ex-membro ficam sem iniciais."""
         u = usuarios.get(user_id)
         if u is None:
             return None, "ex-membro"
-        return (u, u.display_name) if pode_ver_perfil(me, u) else (None, "membro do clube")
+        return (u, u.display_name) if u.id not in ocultos else (None, "membro do clube")
     return render_template(
         "clubes/clube.html", clube=clube, m=m, membros=membros, jdm=jdm, minutos_jdm=minutos_jdm, metas=metas,
         mural=mural, pendentes=pendentes, tipos=TIPOS_META, nome_visivel=nome_visivel, autor=autor,
