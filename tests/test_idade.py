@@ -313,6 +313,46 @@ def test_ida_11_admin_contesta_a_idade_com_auditoria(app, monkeypatch):
         assert db.session.get(User, aid).idade_contestada_em is None
 
 
+def test_ida_11_admin_nao_contesta_a_propria_idade_e_contestacao_de_admin_tem_volta(app):
+    from app.models import AuditLog
+    from conftest import login
+
+    make_user(app, "chefe", role="admin")
+    make_user(app, "vice", role="admin")
+    chefe, vice = app.test_client(), app.test_client()
+    login(chefe, "chefe")
+    login(vice, "vice")
+    with app.app_context():
+        cid, vid = (User.query.filter_by(username=n).one().id for n in ("chefe", "vice"))
+    r = chefe.post(f"/admin/usuarios/{cid}/contestar-idade", follow_redirects=True)
+    assert "revisada por outro admin" in r.get_data(as_text=True) and chefe.get("/admin/").status_code == 200
+    assert f"/admin/usuarios/{cid}/contestar-idade" not in chefe.get("/admin/usuarios").get_data(as_text=True)
+    chefe.post(f"/admin/usuarios/{vid}/contestar-idade")
+    assert vice.get("/admin/").headers["Location"] == "/conta/pendente"
+    assert vice.post(f"/admin/usuarios/{vid}/retirar-contestacao").headers["Location"] == "/conta/pendente"
+    assert "Retirar contestação" in chefe.get("/admin/usuarios").get_data(as_text=True)
+    chefe.post(f"/admin/usuarios/{vid}/retirar-contestacao")
+    assert vice.get("/admin/").status_code == 200
+    with app.app_context():
+        u = db.session.get(User, vid)
+        assert (u.idade_contestada_em, u.aguardando_responsavel, ida.faixa_etaria(u)) == (None, False, "adulto")
+        assert [a.action for a in AuditLog.query.order_by(AuditLog.id)] == ["idade.contestar", "idade.retirar_contestacao"]
+
+
+def test_ida_11_retirar_contestacao_de_conta_de_14_anos_mantem_a_espera(app, client):
+    from conftest import login
+
+    make_user(app, "chefe", role="admin")
+    cadastrar(client, anos_atras(14))
+    chefe = app.test_client()
+    login(chefe, "chefe")
+    with app.app_context():
+        nid = User.query.filter_by(username="novo").one().id
+    chefe.post(f"/admin/usuarios/{nid}/contestar-idade")
+    chefe.post(f"/admin/usuarios/{nid}/retirar-contestacao")
+    assert client.get("/listas").headers["Location"] == "/conta/pendente"
+
+
 # ---------- IDA-12 ----------
 def test_ida_12_nascimento_nunca_aparece_nas_respostas(app):
     from conftest import login, make_game

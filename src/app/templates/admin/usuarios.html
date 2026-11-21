@@ -8,7 +8,10 @@
 {% for u in page.items %}
 <tr><td><a href="/u/{{ u.username }}">@{{ u.username }}</a>{% if u.is_admin %} <span class="tag">admin</span>{% endif %}</td><td>{{ faixa(u) }}</td>
   <td>{% if u.suspensa_em %}<span class="tag">suspensa (menor de 12)</span>{% elif u.idade_contestada_em %}<span class="tag">idade contestada</span>{% elif aguarda(u) %}<span class="tag">aguardando responsável</span>{% elif u.nascimento is none %}<span class="tag">sem data</span>{% else %}ativa{% endif %}</td>
-  <td>{% if not u.idade_contestada_em and not u.suspensa_em %}<form class="inline" method="post" action="/admin/usuarios/{{ u.id }}/contestar-idade"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="ghost">Contestar idade</button></form>{% endif %}</td></tr>
+  <td>{% if u.id != me.id %}
+    {% if u.idade_contestada_em %}<form class="inline" method="post" action="/admin/usuarios/{{ u.id }}/retirar-contestacao"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="ghost">Retirar contestação</button></form>
+    {% elif not u.suspensa_em %}<form class="inline" method="post" action="/admin/usuarios/{{ u.id }}/contestar-idade"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="ghost">Contestar idade</button></form>{% endif %}
+  {% endif %}</td></tr>
 {% endfor %}</table>
 {{ pager(page) }}
 {% endblock %}

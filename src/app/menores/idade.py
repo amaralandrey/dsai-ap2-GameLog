@@ -11,7 +11,8 @@ from datetime import date, datetime
 from flask import Blueprint, abort, flash, redirect, render_template, request, session
 
 from .. import tempo
-from ..models import AuditLog, User, VerificacaoIdade, db, now
+from ..admin import audit
+from ..models import User, VerificacaoIdade, db, now
 from ..util import admin_required, current_user, login_required, paginate, safe_next
 
 bp = Blueprint("idade", __name__)
@@ -232,15 +233,40 @@ def usuarios():
                            aguarda=aguarda_responsavel)
 
 
+def _alvo(uid):
+    """A conta que a moderação vai mudar, ou None: o admin nunca age sobre a própria idade (IDA-11)."""
+    alvo = db.get_or_404(User, uid)
+    if alvo.id == current_user().id:
+        flash("A idade da sua conta é revisada por outro admin.", "erro")
+        return None
+    return alvo
+
+
+def _auditar(acao, alvo):
+    audit(acao, f"@{alvo.username} (id {alvo.id})")
+    db.session.commit()
+
+
 @bp.route("/admin/usuarios/<int:uid>/contestar-idade", methods=["POST"])
 @admin_required
 def contestar_idade(uid):
     """Indício de idade menor: a conta vira de 12 a 15 anos, à espera do responsável, até verificação confiável."""
-    alvo = db.get_or_404(User, uid)
-    if alvo.idade_contestada_em is None:
+    alvo = _alvo(uid)
+    if alvo is not None and alvo.idade_contestada_em is None:
         alvo.idade_contestada_em, alvo.aguardando_responsavel = now(), True
-        db.session.add(AuditLog(admin_id=current_user().id, action="idade.contestar",
-                                detail=f"@{alvo.username} (id {alvo.id})"))
-        db.session.commit()
+        _auditar("idade.contestar", alvo)
         flash(f"Idade de @{alvo.username} marcada como contestada.", "ok")
+    return redirect("/admin/usuarios")
+
+
+@bp.route("/admin/usuarios/<int:uid>/retirar-contestacao", methods=["POST"])
+@admin_required
+def retirar_contestacao(uid):
+    """Desfaz uma contestação por engano: a conta volta à faixa da data que tem."""
+    alvo = _alvo(uid)
+    if alvo is not None and alvo.idade_contestada_em is not None:
+        alvo.idade_contestada_em = None
+        alvo.aguardando_responsavel = alvo.nascimento is not None and faixa_de(alvo.nascimento) == VINCULADO
+        _auditar("idade.retirar_contestacao", alvo)
+        flash(f"Contestação da idade de @{alvo.username} retirada.", "ok")
     return redirect("/admin/usuarios")
