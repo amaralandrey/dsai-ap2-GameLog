@@ -76,6 +76,16 @@ def test_rnk_01_abrir_temporada_idempotente(app):
         assert (t.inicio, t.fim) == (date(2026, 10, 1), date(2026, 12, 31))
 
 
+def test_rnk_10_abrir_temporada_nao_sobrepoe_a_do_admin(app):
+    with app.app_context():
+        db.session.add(Temporada(nome="Natal", slug="natal", inicio=date(2026, 12, 1), fim=date(2027, 1, 15)))
+        db.session.commit()
+    r = app.test_cli_runner().invoke(args=["rankings", "abrir-temporada"])
+    assert "temporada=natal criada=0" in r.output and "aviso=" in r.output
+    with app.app_context():
+        assert [t.slug for t in Temporada.query] == ["natal"]
+
+
 @pytest.mark.parametrize("dia,slug,inicio,fim", [
     (date(2026, 1, 1), "2026-T1", date(2026, 1, 1), date(2026, 3, 31)),
     (date(2026, 6, 30), "2026-T2", date(2026, 4, 1), date(2026, 6, 30)),

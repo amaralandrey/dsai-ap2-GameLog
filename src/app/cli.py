@@ -172,10 +172,13 @@ def register(app):
     @rankings_cli.command("abrir-temporada")
     def rankings_abrir():
         """Cria a temporada do trimestre atual, se ainda não existir."""
-        from .rankings import abrir_temporada
+        from .rankings import abrir_temporada, trimestre
+        from .tempo import hoje
 
         t, criada = abrir_temporada()
         click.echo(f"temporada={t.slug} criada={int(criada)}")
+        if t.slug != trimestre(hoje())[0]:
+            click.echo(f"aviso=o trimestre se sobrepõe à temporada {t.slug}; nada foi criado")
 
     @rankings_cli.command("encerrar-temporada")
     @click.argument("slug")

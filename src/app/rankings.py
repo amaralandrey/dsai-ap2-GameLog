@@ -5,7 +5,7 @@ de RNK-07. Temporada encerrada é lida do `SnapshotRanking`, que não muda depoi
 """
 from datetime import date, timedelta
 
-from flask import Blueprint, abort, flash, redirect, render_template, request
+from flask import Blueprint, abort, current_app, flash, redirect, render_template, request
 from sqlalchemy import case, func
 
 from . import gamificacao
@@ -51,6 +51,10 @@ def abrir_temporada(dia=None):
     t = Temporada.query.filter_by(slug=slug).first()
     if t is not None:
         return t, False
+    outra = Temporada.query.filter(Temporada.inicio <= fim, Temporada.fim >= inicio).first()
+    if outra is not None:  # RNK-10: temporadas não se sobrepõem; a criada pelo admin fica
+        current_app.logger.warning("temporada %s não aberta: sobrepõe %s", slug, outra.slug)
+        return outra, False
     t = Temporada(nome=slug, slug=slug, inicio=inicio, fim=fim)
     db.session.add(t)
     db.session.commit()
