@@ -114,11 +114,11 @@ def test_gog05_chave_nao_aparece_em_erro_nem_na_saida(app, api, chave):
     api.rotas[LISTA] = HTTPError(f"https://api.rawg.io/api/games?key={chave}", 401, f"chave {chave} inválida", {}, None)
     r = app.test_cli_runner().invoke(args=["import-games", "--fonte", "rawg"])
     assert r.exit_code == 1 and "chave *** inválida" in r.output and chave not in r.output
-    api.rotas[LISTA] = http(404)
-    api.rotas[LISTA].filename = f"https://api.rawg.io/api/games?key={chave}"
+    api.rotas[LISTA] = HTTPError(f"https://api.rawg.io/api/games?key={chave}", 404, "erro", {}, None)
     with pytest.raises(HTTPError) as exc:
         rawg.buscar("x")
     assert chave not in str(exc.value) and chave not in exc.value.filename and exc.value.code == 404
+    assert chave not in exc.value.url and chave not in exc.value.geturl()
 
 
 def test_gog05_chave_nao_aparece_nas_telas(app, client, loja):

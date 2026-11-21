@@ -1,7 +1,9 @@
 """Seed reproduzível. `real=True` (comando seed): jogos do snapshot; `real=False`: jogos fictícios, só para testes (CRE-09)."""
 import random
+import secrets
 from datetime import date, datetime, timedelta
 
+from flask import current_app
 from werkzeug.security import generate_password_hash
 
 from .models import (
@@ -54,6 +56,10 @@ def run(seed=42, real=False):
     rng = random.Random(seed)
     if real:
         importar("arquivo", limite=10**6)
+        from .fontes import arquivo
+        from .precos import importar_do_snapshot
+
+        importar_do_snapshot(arquivo.CAMINHO)  # PRC-11
         games = Game.query.order_by(Game.id).all()
     else:
         games = _jogos_ficticios(rng)
@@ -87,7 +93,8 @@ def _jogos_ficticios(rng):
 
 
 def _atividade(rng, games, real):
-    pw = generate_password_hash(SEED_PASSWORD)
+    # em produção ninguém entra nas contas fictícias: a senha pública fica só para dev e testes
+    pw = generate_password_hash(secrets.token_urlsafe(16) if current_app.config["PRODUCAO"] else SEED_PASSWORD)
     users = [User(username=f"jogador{i:02d}", username_lower=f"jogador{i:02d}", email=f"jogador{i:02d}@example.com",
                   password_hash=pw, display_name=f"Jogador {i:02d}", bio=rng.choice(["", "Fã de RPG.", "Platina é vida.", "Casual."]),
                   nascimento=date(1970 + i, 1 + i % 12, 1 + i % 28),  # adultos (IDA-05), sem gastar o rng do resto do seed
@@ -131,7 +138,7 @@ def _atividade(rng, games, real):
         for i in range(rng.randint(1, 3)):
             pub = rng.random() < .75
             gl = GameList(user_id=u.id, name=rng.choice(["Favoritos", "Para jogar com amigos", "Clássicos", "Jogos curtos", "Platinas"]) + f" {i + 1}",
-                          description="Lista fictícia.", public=pub, created_at=BASE - timedelta(days=rng.randint(1, 100)))
+                          description="Lista de exemplo.", public=pub, created_at=BASE - timedelta(days=rng.randint(1, 100)))
             db.session.add(gl)
             db.session.flush()
             for pos, g in enumerate(rng.sample(games, rng.randint(3, 12))):

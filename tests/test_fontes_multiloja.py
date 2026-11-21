@@ -75,6 +75,31 @@ def test_fnt05_seed_em_banco_existente_cria_vinculo_que_falta(app):
         assert Game.query.count() == 1
 
 
+def test_fnt05_vincular_existentes_sem_consulta_por_jogo(app):
+    from sqlalchemy import event
+
+    from app.fontes import vincular_existentes
+
+    def consultas(de, ate):
+        for i in range(de, ate):
+            make_game(app, f"Vinculado {i}")
+        with app.app_context():
+            for g in Game.query.filter(Game.source.is_(None)):
+                g.source, g.external_id = "steam", str(g.id)
+                vincular(g, "steam", str(g.id))
+            db.session.commit()
+            db.session.expire_all()
+            contadas = []
+
+            def conta(*a):
+                contadas.append(1)
+            event.listen(db.engine, "before_cursor_execute", conta)
+            vincular_existentes()
+            event.remove(db.engine, "before_cursor_execute", conta)
+            return len(contadas)
+    assert consultas(0, 2) == consultas(2, 8)
+
+
 def test_fnt06_importar_procura_por_jogofonte_e_nao_duplica(app):
     with app.app_context():
         g = jogo(app)  # jogo manual, sem source, mas já vinculado à Steam

@@ -7,22 +7,31 @@ import sqlite3
 from flask import Flask, abort, render_template, request, session
 
 from sqlalchemy import event
+from sqlalchemy.dialects.sqlite import insert
 from sqlalchemy.engine import Engine
 
-from .models import db
+from .models import Instancia, db
 from .util import avatar_style, current_user, fold
 
 BLUEPRINTS = []  # preenchido por register_blueprints(); um módulo por spec
+CSRF_ISENTAS = {"/jobs/ciclo"}  # autenticadas por Bearer, sem cookie (JOB-11)
 
 
 def create_app(config=None):
     app = Flask(__name__)
     app.config.update(
-        SECRET_KEY=os.environ.get("SECRET_KEY") or secrets.token_hex(32),
+        SECRET_KEY=os.environ.get("SECRET_KEY"),
         SQLALCHEMY_DATABASE_URI=os.environ.get("DATABASE_URL", "sqlite:///gamelog.db"),
         CSRF=True,
+        PRODUCAO=os.environ.get("GAMELOG_PRODUCAO") == "1",  # definida no render.yaml
+        SESSION_COOKIE_SAMESITE="Lax",
     )
     app.config.update(config or {})
+    if app.config["PRODUCAO"]:
+        if not app.config["SECRET_KEY"]:  # chave aleatória por worker derrubaria as sessões entre os 2 workers
+            raise RuntimeError("SECRET_KEY não configurada em produção")
+        app.config["SESSION_COOKIE_SECURE"] = True
+    app.config["SECRET_KEY"] = app.config["SECRET_KEY"] or secrets.token_hex(32)
     db.init_app(app)
 
     @event.listens_for(Engine, "connect")
@@ -30,12 +39,15 @@ def create_app(config=None):
         if isinstance(conn, sqlite3.Connection):
             conn.create_function("fold", 1, fold, deterministic=True)
             conn.execute("PRAGMA foreign_keys=ON")  # ON DELETE CASCADE dos comentários (COM-06)
+            conn.execute("PRAGMA busy_timeout=5000")  # 2 workers do gunicorn escrevem no mesmo arquivo
+            if conn.execute("PRAGMA database_list").fetchone()[2]:  # vazio em :memory:
+                conn.execute("PRAGMA journal_mode=WAL")
 
     @app.before_request
     def csrf_protect():
-        if request.method == "POST" and app.config["CSRF"]:
+        if request.method == "POST" and app.config["CSRF"] and request.path not in CSRF_ISENTAS:
             token = session.get("csrf")
-            if not token or token != request.form.get("csrf_token"):
+            if not token or not secrets.compare_digest(token.encode(), request.form.get("csrf_token", "").encode()):
                 abort(400, "Token CSRF inválido")
 
     app.jinja_env.globals["avatar_style"] = avatar_style
@@ -51,6 +63,10 @@ def create_app(config=None):
     app.jinja_env.filters["horas"] = formatar_minutos  # "12h 30min" (DIA-06, DIA-09)
     app.jinja_env.filters["selo_horas"] = selo_horas
     app.jinja_env.filters["zip"] = lambda a, *outros: list(zip(a, *outros))
+    from .precos import dia, reais
+
+    app.jinja_env.filters["reais"] = reais  # "R$ 1.234,56" (PRC-08)
+    app.jinja_env.filters["dia"] = dia
 
     @app.context_processor
     def inject():
@@ -84,4 +100,8 @@ def create_app(config=None):
     cli.register(app)
     with app.app_context():
         db.create_all()
+        # os 2 workers e o `flask seed` disputam a criação: quem chegar depois lê o token gravado
+        db.session.execute(insert(Instancia).values(id=1, token=secrets.token_hex(16)).on_conflict_do_nothing())
+        db.session.commit()
+        app.config["INSTANCIA"] = db.session.get(Instancia, 1).token
     return app

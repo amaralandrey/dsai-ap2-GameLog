@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% from "_macros.html" import pager %}
+{% block title %}Jobs — Admin{% endblock %}
+{% block content %}
+<h1>Jobs</h1>
+<section class="panel"><h2>Agendamentos</h2>
+{% if agendamentos %}
+<table><tr><th>Nome</th><th>Cron (Belém)</th><th>Tarefa</th><th>Próxima</th><th>Estado</th><th></th></tr>
+{% for a in agendamentos %}
+<tr><td>{{ a.nome }}</td><td><code>{{ a.cron }}</code></td><td>{{ a.tipo }}</td>
+  <td>{{ proximas[a.id].strftime('%d/%m/%Y %H:%M') if a.ativo else '—' }}</td><td>{{ 'ligado' if a.ativo else 'desligado' }}</td>
+  <td><form class="inline" method="post" action="/admin/jobs/agendamentos/{{ a.id }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="ghost">{{ 'Desligar' if a.ativo else 'Ligar' }}</button></form></td></tr>
+{% endfor %}</table>
+{% else %}<p class="mut">Nenhum agendamento. Rode <code>flask --app app jobs agendar</code>.</p>{% endif %}
+</section>
+<form method="get" class="row">
+  <div><label for="status">Status</label><select id="status" name="status"><option value="">todos</option>{% for s in todos_status %}<option value="{{ s }}" {{ 'selected' if s == status }}>{{ s }}</option>{% endfor %}</select></div>
+  <div><label for="tipo">Tipo</label><select id="tipo" name="tipo"><option value="">todos</option>{% for t in tipos %}<option value="{{ t }}" {{ 'selected' if t == tipo }}>{{ t }}</option>{% endfor %}</select></div>
+  <div style="align-self:end"><button class="ghost">Filtrar</button></div>
+</form>
+<table><tr><th>#</th><th>Tipo</th><th>Status</th><th>Tentativas</th><th>Próximo horário</th><th>Último erro</th><th></th></tr>
+{% for j in page.items %}
+<tr><td>{{ j.id }}</td><td>{{ j.tipo }}</td><td><span class="tag">{{ j.status }}</span></td><td>{{ j.tentativas }}/{{ j.max_tentativas }}</td>
+  <td>{{ belem(j.executar_em).strftime('%d/%m/%Y %H:%M') if j.status == 'pendente' else '—' }}</td><td class="mut">{{ j.ultimo_erro or '' }}</td>
+  <td>{% if j.status in ('morto', 'falhou') %}<form class="inline" method="post" action="/admin/jobs/{{ j.id }}/retentar"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="ghost">Tentar de novo</button></form>
+  {% elif j.status == 'pendente' %}<form class="inline" method="post" action="/admin/jobs/{{ j.id }}/cancelar"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="ghost">Cancelar</button></form>{% endif %}</td></tr>
+{% else %}<tr><td colspan="7" class="mut">Nenhum job{{ ' ' ~ status if status }}.</td></tr>{% endfor %}
+</table>
+{{ pager(page) }}
+{% endblock %}

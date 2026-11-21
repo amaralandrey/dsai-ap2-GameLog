@@ -2,6 +2,8 @@ import re
 from contextlib import contextmanager
 from urllib.parse import urlsplit
 
+from sqlalchemy.orm import selectinload
+
 from ..models import Developer, Game, Genre, JogoFonte, Platform, db
 from ..util import slugify
 from . import arquivo, base, gog, rawg, steam
@@ -134,7 +136,7 @@ def lancamento(j):
 
 def vincular_existentes():
     """Todo jogo com `source` ganha o vínculo dela; idempotente, roda no seed (FNT-05)."""
-    for game in Game.query.filter(Game.source.in_(list(FONTES))):
+    for game in Game.query.filter(Game.source.in_(list(FONTES))).options(selectinload(Game.fontes)):
         if not any(v.fonte == game.source for v in game.fontes):
             vincular_origem(game, game.source, {"external_id": game.external_id})
     db.session.commit()
@@ -215,8 +217,15 @@ def importar(fonte, limite=40, termo=None, modulo=None):
                 if "erro" in j:
                     erro += 1
                     continue
-                status, _ = importar_item(fonte, j)
-                db.session.commit()
+                try:
+                    status, _ = importar_item(fonte, j)
+                    db.session.commit()
+                except Exception as exc:  # IMP-05: item problemático é pulado sem sujar a sessão
+                    db.session.rollback()
+                    if base.limitado(exc):
+                        raise
+                    erro += 1
+                    continue
                 novo = status in ("ok", "vinculado")
                 ok, ign = ok + novo, ign + (not novo)
         except Exception as exc:

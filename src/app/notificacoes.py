@@ -106,20 +106,16 @@ def avisar_seguidor(seguido_id, seguidor):
 
 def avisar_amigo_zerou(quem, game):
     """Quem segue `quem`, pode ver o perfil dele e tem o jogo planejado; até 200 (NTF-06)."""
-    from .diario import pode_ver_perfil
-
     seguidores = (
         User.query.join(Follow, Follow.follower_id == User.id)
         .join(Status, (Status.user_id == User.id) & (Status.game_id == game.id) & (Status.value == "planejado"))
         .filter(Follow.followed_id == quem.id)
-        .order_by(User.id)
     )
+    if quem.perfil_privado:  # DIA-12 (pode_ver_perfil): só admins e quem o dono segue
+        seguidos = db.session.query(Follow.followed_id).filter(Follow.follower_id == quem.id)
+        seguidores = seguidores.filter((User.role == "admin") | User.id.in_(seguidos))
     criadas = []
-    for destinatario in seguidores:
-        if len(criadas) >= MAX_AMIGO_ZEROU:
-            break
-        if not pode_ver_perfil(destinatario, quem):  # DIA-12, a regra única
-            continue
+    for destinatario in seguidores.order_by(User.id).limit(MAX_AMIGO_ZEROU):
         n = notificar(destinatario.id, "amigo_zerou", ator_id=quem.id, game_id=game.id,
                       alvo_url=f"/jogos/{game.slug}")
         if n:

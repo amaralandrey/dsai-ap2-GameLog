@@ -99,7 +99,7 @@ def comparacao(dono, ano, meus_meses):
         db.session.query(Follow.followed_id)
         .join(SessaoJogo, SessaoJogo.user_id == Follow.followed_id)
         .filter(Follow.follower_id == dono.id, Follow.followed_id.not_in(ocultos_para(dono)),
-                SessaoJogo.jogada_em.between(date(ano, 1, 1), date(ano, 12, 31)))
+                SessaoJogo.origem.in_(COM_DATA), SessaoJogo.jogada_em.between(date(ano, 1, 1), date(ano, 12, 31)))
         .distinct()
         .all()
     )

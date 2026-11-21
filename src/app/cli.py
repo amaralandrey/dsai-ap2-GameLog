@@ -25,14 +25,15 @@ def create_admin(email, password, username="admin"):
     return True
 
 
-def _nomes_das_fontes(fonte):
-    """`todas` roda cada fonte registrada, menos o snapshot `arquivo` (GOG-10)."""
+def _nomes_das_fontes(fonte, permitidas=None):
+    """`todas` roda cada fonte registrada, menos o snapshot `arquivo` (GOG-10), ou só as `permitidas`."""
     from .fontes import FONTES
 
+    permitidas = list(permitidas or FONTES)
     if fonte == "todas":
-        return [n for n in FONTES if n != "arquivo"]
-    if fonte not in FONTES:
-        raise click.UsageError(f"fonte desconhecida; use uma de {sorted(FONTES)} ou todas")
+        return [n for n in permitidas if n != "arquivo"]
+    if fonte not in permitidas:
+        raise click.UsageError(f"fonte desconhecida; use uma de {sorted(permitidas)} ou todas")
     return [fonte]
 
 
@@ -52,7 +53,7 @@ def _rodar_uma(nome, executar, campos):
     return " ".join(f"{c}={n}" for c, n in zip(campos, contagens)) + extra, False
 
 
-def rodar(fonte, executar, campos):
+def rodar(fonte, executar, campos, permitidas=None):
     """Roda uma fonte ou todas, em sequência; a falha de uma não impede as seguintes (GOG-04, GOG-10).
 
     Com uma fonte só, falha ou falta de chave termina com código 1; em `todas`, a fonte sem chave fica
@@ -60,7 +61,7 @@ def rodar(fonte, executar, campos):
     """
     from .fontes import FONTES, indisponivel
 
-    nomes, todas, falhou = _nomes_das_fontes(fonte), fonte == "todas", False
+    nomes, todas, falhou = _nomes_das_fontes(fonte, permitidas), fonte == "todas", False
     for nome in nomes:
         linha, erro = _rodar_uma(nome, executar, campos)
         click.echo(f"{nome}: {linha}" if todas else linha)
@@ -73,7 +74,7 @@ def register(app):
     @app.cli.command("seed")
     @click.option("--seed", default=42)
     def seed_cmd(seed):
-        """Popula o banco com dados fictícios reproduzíveis."""
+        """Popula o banco com o catálogo real do snapshot e usuários de exemplo, de forma reproduzível."""
         from .seed import run
 
         populou = run(seed, real=True)
@@ -118,6 +119,17 @@ def register(app):
 
         rodar(fonte, lambda nome: sincronizar(nome, limite, termo), ("novos", "atualizados", "ignorados", "falhas"))
 
+    @app.cli.command("atualizar-precos")
+    @click.option("--fonte", default="todas", help="steam, gog ou `todas`")
+    @click.option("--limite", default=100)
+    @click.option("--jogo", "slug", default=None, help="slug de um jogo só")
+    def atualizar_precos_cmd(fonte, limite, slug):
+        """Coleta o preço atual de cada jogo nas lojas vinculadas, planejados primeiro (PRC-06)."""
+        from .precos import COLETORES, coletar
+
+        rodar(fonte, lambda nome: coletar(nome, limite, slug), ("jogos", "novos", "sem_mudanca", "sem_preco", "falhas"),
+              permitidas=COLETORES)
+
     @app.cli.command("sugerir-duplicatas")
     def sugerir_duplicatas_cmd():
         """Registra pendências de mesclagem entre jogos parecidos do catálogo, sem mesclar nada (MRG-04)."""
@@ -127,12 +139,16 @@ def register(app):
 
     @app.cli.command("enriquecer-snapshot")
     @click.option("--arquivo", default=None, help="padrão: o snapshot do seed (src/app/dados/jogos.json)")
-    def enriquecer_snapshot_cmd(arquivo):
+    @click.option("--precos", is_flag=True, help="grava só os preços atuais da Steam e da GOG (PRC-11), sem chave")
+    def enriquecer_snapshot_cmd(arquivo, precos):
         """Grava no snapshot os links de GOG e Epic e o id da RAWG de cada jogo (SNP-01; exige RAWG_API_KEY)."""
         from .fontes import arquivo as snapshot_padrao
-        from .snapshot import enriquecer
+        from .snapshot import enriquecer, enriquecer_precos
 
         caminho = arquivo or snapshot_padrao.CAMINHO
+        if precos:
+            rodar("steam", lambda _: enriquecer_precos(caminho), ("jogos", "com_preco", "sem_preco", "falhas"))
+            return
         rodar("rawg", lambda _: enriquecer(caminho), ("jogos", "vinculados", "sem_correspondencia", "falhas"))
 
     conquistas_cli = AppGroup("conquistas", help="Catálogo e recálculo das conquistas (GAM-02, GAM-13).")
@@ -172,10 +188,13 @@ def register(app):
     @rankings_cli.command("abrir-temporada")
     def rankings_abrir():
         """Cria a temporada do trimestre atual, se ainda não existir."""
-        from .rankings import abrir_temporada
+        from .rankings import abrir_temporada, trimestre
+        from .tempo import hoje
 
         t, criada = abrir_temporada()
         click.echo(f"temporada={t.slug} criada={int(criada)}")
+        if t.slug != trimestre(hoje())[0]:
+            click.echo(f"aviso=o trimestre se sobrepõe à temporada {t.slug}; nada foi criado")
 
     @rankings_cli.command("encerrar-temporada")
     @click.argument("slug")
@@ -193,6 +212,25 @@ def register(app):
             raise click.exceptions.Exit(1)
 
     app.cli.add_command(rankings_cli)
+
+    privacidade_cli = AppGroup("privacidade", help="Mapa de dados e privacidade (MAP).")
+
+    @privacidade_cli.command("verificar-mapa")
+    def verificar_mapa_cmd():
+        """Confere se toda coluna do banco está anotada no mapa de dados, e vice-versa (MAP-03)."""
+        from .models import db
+        from .privacidade.mapa import validar_mapa, verificar_mapa
+
+        faltando, sobrando = verificar_mapa()
+        invalidas = validar_mapa()
+        colunas = sum(len(t.columns) for t in db.metadata.sorted_tables)
+        click.echo(f"colunas={colunas} faltando={len(faltando)} sobrando={len(sobrando)}")
+        for linha in [*(f"faltando: {c}" for c in faltando), *(f"sobrando: {c}" for c in sobrando), *invalidas]:
+            click.echo(linha)
+        if faltando or sobrando or invalidas:
+            raise SystemExit(1)
+
+    app.cli.add_command(privacidade_cli)
 
     @app.cli.command("export-games")
     @click.option("--termos", required=True, help="nomes separados por ;, um jogo por nome")

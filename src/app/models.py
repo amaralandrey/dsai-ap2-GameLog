@@ -63,6 +63,10 @@ class VerificacaoIdade(db.Model):
 @db.event.listens_for(VerificacaoIdade, "before_update")
 def _historico_imutavel(*_):
     raise ValueError("o histórico de verificações de idade é só de inserção")
+class Instancia(db.Model):
+    """Uma linha por banco: muda quando o banco é recriado e invalida cookies da cópia anterior."""
+    id = db.Column(db.Integer, primary_key=True)
+    token = db.Column(db.String(32), nullable=False)
 
 
 class LoginAttempt(db.Model):
@@ -152,6 +156,40 @@ class JogoFonte(db.Model):
         if fonte not in FONTES and fonte not in SO_VINCULADAS:
             raise ValueError(f"fonte desconhecida: {fonte}")
         return fonte
+
+
+LOJAS_COM_PRECO = ("steam", "gog")  # Epic e RAWG não têm preço (PRC-04)
+
+
+class PrecoLoja(db.Model):
+    """Preço em BRL de um jogo numa loja; uma linha por mudança, valores em centavos (PRC-01, PRC-05)."""
+    __table_args__ = (db.Index("ix_preco_loja_jogo", "game_id", "fonte", "coletado_em"),
+                      db.CheckConstraint("moeda = 'BRL'"), db.CheckConstraint("fonte IN ('steam', 'gog')"))
+    id = db.Column(db.Integer, primary_key=True)
+    game_id = db.Column(db.ForeignKey("game.id"), nullable=False)
+    fonte = db.Column(db.String(20), nullable=False)
+    moeda = db.Column(db.String(3), default="BRL", nullable=False)
+    preco_centavos = db.Column(db.Integer, nullable=False)
+    preco_base_centavos = db.Column(db.Integer, nullable=False)
+    desconto_pct = db.Column(db.Integer, default=0, nullable=False)
+    coletado_em = db.Column(db.DateTime, nullable=False)
+    verificado_em = db.Column(db.DateTime, nullable=False)
+
+    @validates("fonte")
+    def _loja_com_preco(self, _, fonte):
+        if fonte not in LOJAS_COM_PRECO:
+            raise ValueError(f"loja sem preço: {fonte}")
+        return fonte
+
+    @validates("moeda")
+    def _so_real(self, _, moeda):
+        if moeda != "BRL":
+            raise ValueError(f"moeda não aceita: {moeda}")
+        return moeda
+
+    @property
+    def valores(self):
+        return self.preco_centavos, self.preco_base_centavos, self.desconto_pct
 
 
 PENDENCIA_STATUS = ("pendente", "mesclada", "ignorada")
@@ -543,6 +581,50 @@ class AuditLog(db.Model):
     detail = db.Column(db.String(300), default="", nullable=False)
     created_at = db.Column(db.DateTime, default=now, nullable=False)
     admin = db.relationship(User)
+
+
+JOB_STATUS = ("pendente", "rodando", "ok", "falhou", "morto")
+
+
+class Job(db.Model):
+    """Tarefa da fila (JOB-01); `chave_unica` não se repete entre os jobs pendentes e rodando (JOB-02)."""
+    __table_args__ = (
+        db.Index("ix_job_chave_aberta", "chave_unica", unique=True,
+                 sqlite_where=db.text("status IN ('pendente', 'rodando')")),
+        db.Index("ix_job_fila", "status", "executar_em"),
+    )
+    id = db.Column(db.Integer, primary_key=True)
+    tipo = db.Column(db.String(60), nullable=False)
+    args = db.Column(db.Text, default="{}", nullable=False)
+    status = db.Column(db.String(10), default="pendente", nullable=False)
+    tentativas = db.Column(db.Integer, default=0, nullable=False)
+    max_tentativas = db.Column(db.Integer, default=5, nullable=False)
+    executar_em = db.Column(db.DateTime, nullable=False)
+    travado_por = db.Column(db.String(120), nullable=True)
+    travado_em = db.Column(db.DateTime, nullable=True)
+    ultimo_erro = db.Column(db.String(2000), nullable=True)
+    chave_unica = db.Column(db.String(200), nullable=True)
+    criado_em = db.Column(db.DateTime, nullable=False)
+    concluido_em = db.Column(db.DateTime, nullable=True)
+
+
+class Agendamento(db.Model):
+    """Execução periódica de uma tarefa por expressão cron no fuso de Belém (JOB-07)."""
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(60), unique=True, nullable=False)
+    cron = db.Column(db.String(100), nullable=False)
+    tipo = db.Column(db.String(60), nullable=False)
+    args = db.Column(db.Text, default="{}", nullable=False)
+    ativo = db.Column(db.Boolean, default=True, nullable=False)
+    ultima_execucao = db.Column(db.DateTime, nullable=True)
+
+    @validates("cron")
+    def _cron_valido(self, _, cron):
+        from .cron import CronInvalido, validar
+
+        if problema := validar(cron):
+            raise CronInvalido(f"cron: {problema}")
+        return cron
 
 
 def visible_games():
