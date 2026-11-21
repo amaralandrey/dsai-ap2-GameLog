@@ -2,6 +2,7 @@ from flask import Blueprint, abort, redirect, render_template, request
 from sqlalchemy import func
 from sqlalchemy.orm import joinedload, selectinload
 
+from .bloqueios import com_bloqueio
 from .catalogo_merge import principal_do_mesclado
 from .diario import minutos_por_usuario, ocultos_para
 from .models import (
@@ -71,4 +72,5 @@ def game_page(slug):
         "jogo/pagina.html", game=game, stats=stats, page=page, sort=sort, mine=mine, status=status, liked=liked,
         my_lists=my_lists, statuses=STATUSES, reasons=REPORT_REASONS, related=related_games(game),
         hist_max=max(stats["hist"].values()) or 1, nomes_lojas=NOMES_DAS_LOJAS, horas=horas,
+        com_bloqueio=com_bloqueio(me.id) if me else set(),
     )

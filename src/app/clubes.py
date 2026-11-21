@@ -6,6 +6,7 @@ from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 
 from . import gamificacao, rankings
+from .bloqueios import sql_com_bloqueio
 from .diario import consulta_minutos, pode_ver_perfil
 from .menores.politica import pode
 from .models import (
@@ -240,6 +241,8 @@ def pagina(slug):
     mural = PostClube.query.filter_by(clube_id=clube.id)
     if not modera(m):
         mural = mural.filter(PostClube.oculto.is_(False))
+    if me is not None:
+        mural = mural.filter(PostClube.user_id.not_in(sql_com_bloqueio(me.id)))  # BLQ-06
     mural = paginate(mural.order_by(PostClube.created_at.desc(), PostClube.id.desc()), request.args.get("page"))
     pendentes = (MembroClube.query.filter_by(clube_id=clube.id, situacao="pendente").all() if modera(m) else [])
 

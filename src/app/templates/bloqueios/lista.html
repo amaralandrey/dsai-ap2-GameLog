@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% from "_macros.html" import pager, avatar %}
+{% block title %}Bloqueios e silenciados — GameLog{% endblock %}
+{% block content %}
+<h1>Bloqueios e silenciados</h1>
+<nav class="row" aria-label="Abas">
+  <a class="btn{{ ' ghost' if aba != 'bloqueados' }}" href="/conta/bloqueios">Bloqueados</a>
+  <a class="btn{{ ' ghost' if aba != 'silenciados' }}" href="/conta/bloqueios?aba=silenciados">Silenciados</a>
+</nav>
+<p class="mut">{% if aba == 'bloqueados' %}Quem você bloqueou não vê seu perfil nem seu conteúdo, e você não vê o dele.
+{% else %}Quem você silenciou sai do seu feed e das suas notificações, sem ser avisado.{% endif %}</p>
+{% for item in page.items %}
+  {% set p = item.bloqueado if aba == 'bloqueados' else item.silenciado %}
+  <div class="panel">{{ avatar(p) }} {{ p.display_name }} <span class="mut">@{{ p.username }}</span>
+  {% if aba == 'bloqueados' %}
+    {% if item.criado_por and item.criado_por != me.id %}<span class="mut">· bloqueado pelo seu responsável</span>
+    {% else %}<form class="inline" method="post" action="/u/{{ p.username }}/desbloquear">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="ghost">Desbloquear</button></form>{% endif %}
+  {% else %}
+    <form class="inline" method="post" action="/u/{{ p.username }}/dessilenciar">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="next" value="conta">
+      <button class="ghost">Dessilenciar</button></form>
+  {% endif %}</div>
+{% else %}<p class="mut">Ninguém por aqui.</p>{% endfor %}
+{{ pager(page) }}
+{% endblock %}

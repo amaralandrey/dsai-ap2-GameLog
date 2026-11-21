@@ -1,5 +1,6 @@
 from flask import Blueprint, abort, flash, redirect, request
 
+from .bloqueios import bloqueado_entre
 from .models import REPORT_REASONS, Activity, Like, Notificacao, Report, Review, Status, db, visible_games
 from .gamificacao import emitir_evento
 from .notificacoes import avisar_curtida
@@ -82,7 +83,7 @@ def like(rid):
     me = current_user()
     if review.user_id == me.id:
         flash("Você não pode curtir a própria resenha.", "erro")  # AVA-06
-    elif review.hidden:
+    elif review.hidden or bloqueado_entre(me, review.user_id):  # BLQ-05
         abort(404)
     elif not Like.query.filter_by(user_id=me.id, review_id=rid).first():
         db.session.add(Like(user_id=me.id, review_id=rid, created_at=agora_utc()))  # RNK-02
