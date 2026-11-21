@@ -85,6 +85,10 @@ def test_clb_01_limite_de_5_clubes(base):
         criar(ana, f"Clube {i}")
     r = criar(ana, "Sexto")
     assert r.status_code == 400 and "máximo permitido" in r.get_data(as_text=True)
+    with base.app_context():
+        Clube.query.filter_by(nome="Clube 0").one().removido_em = datetime(2026, 11, 10)
+        db.session.commit()
+    assert criar(ana, "Sexto").status_code == 302  # clube removido pelo admin não conta
 
 
 def test_clb_02_lista_busca_privado_e_removido(base):
@@ -270,7 +274,7 @@ def test_clb_08_meta_de_zerados_em_clube_privado_sem_atividade(base):
 def test_clb_09_ranking_do_clube(clube):
     sessao(clube, "carla", "hades", date(2026, 11, 3), 120)
     sessao(clube, "eva", "hades", date(2026, 11, 3), 999)  # fora do clube
-    html = cliente(clube).get("/rankings?escopo=clube&clube=roguelikes&categoria=horas").get_data(as_text=True)
+    html = cliente(clube, "eva").get("/rankings?escopo=clube&clube=roguelikes&categoria=horas").get_data(as_text=True)
     assert ">carla</a>" in html and ">eva</a>" not in html
     assert "1. carla · 2h" in cliente(clube, "ana").get("/clubes/roguelikes").get_data(as_text=True)
     ana = cliente(clube, "ana")
@@ -336,6 +340,35 @@ def test_clb_10_autor_privado_no_mural_sem_nome_nem_iniciais(clube):
         return html[html.index('class="post-clube"'):html.index("segredo")]
     assert "membro do clube" in autor() and "anonimo" in autor() and "ZU" not in autor("ana")
     assert "Zuleica" in autor("chefe") and "ZU" in autor("chefe")  # admin vê o perfil privado (DIA-12)
+
+
+def test_clb_10_pagina_sem_consulta_por_membro_privado(clube):
+    def consultas():
+        n = []
+
+        def conta(*a):
+            n.append(1)
+        with clube.app_context():
+            event.listen(db.engine, "before_cursor_execute", conta)
+            assert eva.get("/clubes/roguelikes").status_code == 200
+            event.remove(db.engine, "before_cursor_execute", conta)
+        return len(n)
+
+    def privado_que_posta(nome):
+        make_user(clube, nome)
+        c = cliente(clube, nome)
+        c.post("/clubes/roguelikes/entrar")
+        c.post("/clubes/roguelikes/mural", data={"texto": f"oi de {nome}"})
+        with clube.app_context():
+            User.query.filter_by(username=nome).one().perfil_privado = True
+            db.session.commit()
+
+    eva = cliente(clube, "eva")
+    privado_que_posta("p0")
+    poucos = consultas()
+    for i in range(1, 6):
+        privado_que_posta(f"p{i}")
+    assert consultas() == poucos
 
 
 def test_clb_11_moderacao_com_post_invalido_responde_404(clube):

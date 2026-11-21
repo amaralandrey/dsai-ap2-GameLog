@@ -15,12 +15,12 @@ from sqlalchemy.orm import joinedload, selectinload
 from . import serializadores
 from .diario import pode_ver_perfil
 from .diario_import import sem_formula
-from .listas import MAX_ITEMS, get_list
+from .listas import MAX_ITEMS, MAX_LISTS, get_list
 from .models import (
     LOJAS, NOMES_DAS_LOJAS, STATUSES, Game, GameList, Genre, JogoFonte, ListaInteligente, ListItem, Review,
     SessaoJogo, Status, db, game_genres,
 )
-from .tempo import hoje
+from .tempo import agora, hoje
 from .util import current_user, login_required, paginate
 
 bp = Blueprint("listas_inteligentes", __name__)
@@ -64,11 +64,12 @@ def largados(user_id, p):
               .filter(SessaoJogo.user_id == user_id).group_by(SessaoJogo.game_id).subquery())
     limite = hoje() - timedelta(days=p["dias"])
     st = _status_do_dono(user_id)
+    horas = int(agora().utcoffset().total_seconds() // 3600)
+    parado = func.coalesce(ultima.c.dia, func.date(st.c.updated_at, f"{horas} hours"))  # dia em Belém
     return (
         _jogos_visiveis().join(st, st.c.game_id == Game.id).outerjoin(ultima, ultima.c.game_id == Game.id)
-        .filter((st.c.value == "abandonado")
-                | ((st.c.value == "jogando") & (func.coalesce(ultima.c.dia, func.date(st.c.updated_at)) <= limite)))
-        .order_by(func.coalesce(ultima.c.dia, func.date(st.c.updated_at)), Game.title)
+        .filter((st.c.value == "abandonado") | ((st.c.value == "jogando") & (parado <= limite)))
+        .order_by(parado, Game.title)
     )
 
 
@@ -332,6 +333,9 @@ def apagar(lid):
 def congelar(lid):
     """Copia os jogos atuais numa lista comum, cortando em 200 itens (LSA-07)."""
     lista, _ = inteligente_ou_404(lid, dono=True)
+    if GameList.query.filter_by(user_id=lista.user_id).count() >= MAX_LISTS:  # LIS-10
+        flash(f"Limite de {MAX_LISTS} listas atingido.", "erro")
+        return redirect(f"/listas/inteligentes/{lid}")
     jogos = jogos_da_regra(lista).limit(MAX_ITEMS + 1).all()
     gl = GameList(user_id=lista.user_id, name=lista.nome[:80], description=descricao(json.loads(lista.regra))[:500],
                   public=lista.publica)

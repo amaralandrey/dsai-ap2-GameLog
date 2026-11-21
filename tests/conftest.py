@@ -34,6 +34,8 @@ def client(app):
 
 
 def make_user(app, username="ana", email=None, password="senha1234", role="jogador"):
+    from datetime import date
+
     from werkzeug.security import generate_password_hash
 
     from app.models import User
@@ -46,6 +48,7 @@ def make_user(app, username="ana", email=None, password="senha1234", role="jogad
             password_hash=generate_password_hash(password),
             display_name=username,
             role=role,
+            nascimento=date(1990, 1, 1),  # adulto: sem data, todo login cairia em /conta/nascimento (IDA-05)
         )
         db.session.add(u)
         db.session.commit()
@@ -71,6 +74,24 @@ def make_game(app, title="Jogo Teste", genre="Ação", platform="PC", dev="Dev U
         db.session.add(game)
         db.session.commit()
         return game.slug
+
+
+@pytest.fixture
+def corrida(app):
+    """Duplo envio: grava `sql` por outra conexão logo antes do primeiro flush, depois da checagem da rota."""
+    from sqlalchemy import event, text
+    from sqlalchemy.orm import Session
+
+    pendentes = []
+
+    def antes_do_flush(session, ctx, instancias):
+        while pendentes:
+            with db.engine.begin() as conn:
+                conn.execute(text(pendentes.pop(0)))
+
+    event.listen(Session, "before_flush", antes_do_flush)
+    yield pendentes.append
+    event.remove(Session, "before_flush", antes_do_flush)
 
 
 class Resp(io.BytesIO):

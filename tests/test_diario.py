@@ -65,6 +65,7 @@ def test_dia_01_formatos_de_duracao(app, ana, texto, minutos):
     ({"duracao": "0"}, "duração"), ({"duracao": "1441"}, "duração"), ({"duracao": "abc"}, "duração"),
     ({"jogada_em": "31/02/2026"}, "data válida"), ({"plataforma_id": "999"}, "plataformas do jogo"),
     ({"inicio": "25:00"}, "HH:MM"), ({"anotacao": "x" * 1001}, "1000 caracteres"),
+    ({"jogada_em": "0001-01-01"}, "a partir de 01/01/2000"), ({"jogada_em": "31/12/1999"}, "a partir de 01/01/2000"),
 ])
 def test_dia_01_validacao_por_campo_sem_gravar(app, ana, campos, campo_erro):
     r = sessao(ana, **campos)

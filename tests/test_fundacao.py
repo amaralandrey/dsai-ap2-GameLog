@@ -17,3 +17,25 @@ def test_paginate_fora_do_intervalo_cai_na_ultima(app):
         p = paginate(Genre.query.order_by(Genre.id), 99)
         assert (p.page, p.pages, len(p.items)) == (3, 3, 5)
         assert paginate(Genre.query, "abc").page == 1
+
+
+def test_sqlite_em_arquivo_usa_wal_e_espera_trava(app):
+    from sqlalchemy import text
+
+    from app.models import db
+
+    with app.app_context():
+        assert db.session.execute(text("PRAGMA journal_mode")).scalar() == "wal"
+        assert db.session.execute(text("PRAGMA busy_timeout")).scalar() == 5000
+
+
+def test_sqlite_em_memoria_sobe_sem_wal():
+    from sqlalchemy import text
+
+    from app import create_app
+    from app.models import db
+
+    app = create_app({"TESTING": True, "SQLALCHEMY_DATABASE_URI": "sqlite://"})
+    with app.app_context():
+        assert db.session.execute(text("PRAGMA journal_mode")).scalar() == "memory"
+        assert db.session.execute(text("PRAGMA busy_timeout")).scalar() == 5000

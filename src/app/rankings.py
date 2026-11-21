@@ -3,10 +3,11 @@
 Cada categoria é uma consulta agregada no banco, (usuário, valor, instante), com o desempate determinístico
 de RNK-07. Temporada encerrada é lida do `SnapshotRanking`, que não muda depois de gravado (RNK-09).
 """
+import logging
 from datetime import date, timedelta
 
-from flask import Blueprint, abort, flash, redirect, render_template, request
-from sqlalchemy import func
+from flask import Blueprint, abort, current_app, flash, redirect, render_template, request
+from sqlalchemy import case, func
 
 from . import gamificacao
 from .bloqueios import com_bloqueio
@@ -19,6 +20,7 @@ from .models import (
 from .tempo import hoje, inicio_do_dia_utc
 from .util import admin_required, current_user, slugify
 
+log = logging.getLogger(__name__)
 bp = Blueprint("rankings", __name__)
 CATEGORIAS = {"xp": "XP", "zerados": "Jogos zerados", "horas": "Horas registradas", "curtidas": "Curtidas recebidas"}
 CATEGORIA_PADRAO, JANELA_PADRAO = "xp", "atual"
@@ -52,6 +54,10 @@ def abrir_temporada(dia=None):
     t = Temporada.query.filter_by(slug=slug).first()
     if t is not None:
         return t, False
+    outra = Temporada.query.filter(Temporada.inicio <= fim, Temporada.fim >= inicio).first()
+    if outra is not None:  # RNK-10: temporadas não se sobrepõem; a criada pelo admin fica
+        current_app.logger.warning("temporada %s não aberta: sobrepõe %s", slug, outra.slug)
+        return outra, False
     t = Temporada(nome=slug, slug=slug, inicio=inicio, fim=fim)
     db.session.add(t)
     db.session.commit()
@@ -93,7 +99,8 @@ def consulta(categoria, de, ate):
     if categoria == "horas":
         return (db.session.query(SessaoJogo.user_id.label("user_id"), func.sum(SessaoJogo.duracao_min).label("valor"),
                                  func.max(SessaoJogo.created_at).label("instante"))
-                .filter(SessaoJogo.origem.in_(COM_DATA), _entre(SessaoJogo.jogada_em, de, ate))
+                .join(Game, Game.id == SessaoJogo.game_id)
+                .filter(SessaoJogo.origem.in_(COM_DATA), Game.removed_at.is_(None), _entre(SessaoJogo.jogada_em, de, ate))
                 .group_by(SessaoJogo.user_id))
     if categoria == "curtidas":  # curtida sem data (antes da AP2) só conta em "sempre"
         return (db.session.query(Review.user_id.label("user_id"), func.count(Like.id).label("valor"),
@@ -101,8 +108,9 @@ def consulta(categoria, de, ate):
                 .join(Review, Review.id == Like.review_id).join(Game, Game.id == Review.game_id)
                 .filter(Review.hidden.is_(False), Game.removed_at.is_(None), _entre(Like.created_at, de, ate, False))
                 .group_by(Review.user_id))
+    ganho = func.max(case((ExtratoXP.xp > 0, ExtratoXP.created_at)))  # estorno não atrasa o desempate (RNK-07)
     return (db.session.query(ExtratoXP.user_id.label("user_id"), func.sum(ExtratoXP.xp).label("valor"),
-                             func.max(ExtratoXP.created_at).label("instante"))
+                             ganho.label("instante"))
             .filter(_entre(ExtratoXP.created_at, de, ate, False))
             .group_by(ExtratoXP.user_id))
 
@@ -143,7 +151,7 @@ def pagina():
     escopo = request.args.get("escopo")
     if escopo not in ESCOPOS:
         escopo = "seguindo" if me else "global"
-    if escopo == "seguindo" and me is None:
+    if escopo != "global" and me is None:  # RNK-04: o visitante vê só o global
         return redirect(f"/entrar?next={request.full_path.rstrip('?')}")  # GLOBAL-02
     temporada, de, ate = janela(request.args.get("janela", JANELA_PADRAO), temporadas)
     sel_janela = "sempre" if request.args.get("janela") == "sempre" else (temporada.slug if temporada else "atual")
@@ -181,7 +189,7 @@ def retrato(temporada, categoria, ids=None, visitante=None):
     q = (db.session.query(User, SnapshotRanking.valor).join(User, User.id == SnapshotRanking.user_id)
          .filter(SnapshotRanking.temporada_id == temporada.id, SnapshotRanking.categoria == categoria))
     if ids is not None:
-        q = q.filter(User.id.in_(ids))
+        q = q.filter(User.id.in_(ids), User.id.not_in(ocultos_para(visitante)))  # RNK-05
     fora = bloqueados_com(visitante) if visitante is not None else set()
     return [(u, v) for u, v in q.order_by(SnapshotRanking.posicao) if u.id not in fora]
 
@@ -207,14 +215,27 @@ class TemporadaEmAndamento(Exception):
     pass
 
 
+def premiar_podio(t):
+    """Concede o pódio lido do retrato; idempotente, e a falha de um premiado não impede os outros."""
+    podio = SnapshotRanking.query.filter(SnapshotRanking.temporada_id == t.id, SnapshotRanking.posicao <= 3)
+    for linha in podio.order_by(SnapshotRanking.categoria, SnapshotRanking.posicao).all():
+        try:
+            gamificacao.conceder(linha.user_id, f"podio-{linha.categoria}")
+        except Exception:
+            log.exception("pódio %s de %s falhou para o usuário %s", linha.categoria, t.slug, linha.user_id)
+            db.session.rollback()
+
+
 def encerrar(slug):
-    """Grava o retrato dos 100 primeiros do global por categoria e premia o pódio; devolve False se já encerrada."""
+    """Grava o retrato dos 100 primeiros do global por categoria e premia o pódio; devolve False se já encerrada,
+    depois de conceder o pódio que tenha faltado."""
     from .notificacoes import notificar
 
     t = Temporada.query.filter_by(slug=slug).first()
     if t is None:
         raise LookupError(slug)
     if t.encerrada_em is not None:
+        premiar_podio(t)
         return False
     if t.fim >= hoje():
         raise TemporadaEmAndamento(slug)
@@ -231,8 +252,7 @@ def encerrar(slug):
         notificar(user.id, "sistema", texto=f"Você ficou em {pos}º lugar em {CATEGORIAS[categoria]} na temporada {t.nome}",
                   alvo_url="/rankings/hall-da-fama")
     db.session.commit()
-    for user, categoria, _ in premiados:
-        gamificacao.conceder(user.id, f"podio-{categoria}")
+    premiar_podio(t)
     return True
 
 

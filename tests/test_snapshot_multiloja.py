@@ -109,6 +109,20 @@ def test_snp05_429_persistente_para_e_grava_o_que_ja_foi_feito(app, snapshot, ra
     assert not any("search=Outro" in u for u in rawg_falsa.urls())
 
 
+def test_snp05_falha_ao_gravar_nao_corrompe_o_snapshot(app, snapshot, rawg_falsa, monkeypatch):
+    from app import snapshot as modulo
+
+    def dump_quebrado(dados, f, **kw):
+        f.write("[{")
+        raise OSError("disco cheio")
+
+    antes = snapshot.read_bytes()
+    monkeypatch.setattr(modulo.json, "dump", dump_quebrado)
+    with pytest.raises(OSError):
+        modulo.enriquecer(str(snapshot))
+    assert snapshot.read_bytes() == antes and not list(snapshot.parent.glob("jogos.json.*"))
+
+
 # ---------- SNP-06, SNP-07 ----------
 def vinculos(game):
     return sorted(v.fonte for v in game.fontes)

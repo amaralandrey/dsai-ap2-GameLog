@@ -4,10 +4,11 @@ from datetime import date
 from flask import Blueprint, abort, flash, redirect, render_template, request
 from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import joinedload
 
 from . import gamificacao, rankings
 from .bloqueios import sql_com_bloqueio
-from .diario import consulta_minutos, pode_ver_perfil
+from .diario import consulta_minutos, ocultos_para
 from .menores.politica import pode
 from .models import (
     REPORT_REASONS, Activity, AuditLog, Clube, ContribuinteMeta, Genre, JogoDoMes, MembroClube, MetaClube,
@@ -39,6 +40,13 @@ def ativo(m):
 
 def modera(m):
     return ativo(m) and m.papel in ("dono", "moderador")
+
+
+def clubes_como_dono(user_id):
+    """Clubes ativos de que `user_id` é dono; removidos pelo admin não contam no limite (CLB-01)."""
+    return (MembroClube.query.join(Clube, Clube.id == MembroClube.clube_id)
+            .filter(MembroClube.user_id == user_id, MembroClube.papel == "dono", MembroClube.situacao == "ativo",
+                    Clube.removido_em.is_(None)).count())
 
 
 def clube_ou_404(slug):
@@ -108,7 +116,7 @@ def novo():
     if request.method == "GET":
         return render_template("clubes/novo.html", erros={}, form={}, generos=generos)
     dados, erros = validar_clube(request.form)
-    if MembroClube.query.filter_by(user_id=me.id, papel="dono", situacao="ativo").count() >= MAX_DONO:
+    if clubes_como_dono(me.id) >= MAX_DONO:
         erros["nome"] = f"Você já é dono de {MAX_DONO} clubes, o máximo permitido."
     if erros:
         return render_template("clubes/novo.html", erros=erros, form=request.form, generos=generos), 400
@@ -244,18 +252,20 @@ def pagina(slug):
     if me is not None:
         mural = mural.filter(PostClube.user_id.not_in(sql_com_bloqueio(me.id)))  # BLQ-06
     mural = paginate(mural.order_by(PostClube.created_at.desc(), PostClube.id.desc()), request.args.get("page"))
-    pendentes = (MembroClube.query.filter_by(clube_id=clube.id, situacao="pendente").all() if modera(m) else [])
+    pendentes = (MembroClube.query.options(joinedload(MembroClube.user))
+                 .filter_by(clube_id=clube.id, situacao="pendente").all() if modera(m) else [])
+    ocultos = set(db.session.scalars(ocultos_para(me).where(User.id.in_(ids))))  # pode_ver_perfil de uma vez
 
     def nome_visivel(user_id):
         u = usuarios.get(user_id)
-        return u.display_name if u and pode_ver_perfil(me, u) else "membro do clube"
+        return u.display_name if u and u.id not in ocultos else "membro do clube"
 
     def autor(user_id):
         """(usuário para o avatar, ou None, e o nome); perfil privado e ex-membro ficam sem iniciais."""
         u = usuarios.get(user_id)
         if u is None:
             return None, "ex-membro"
-        return (u, u.display_name) if pode_ver_perfil(me, u) else (None, "membro do clube")
+        return (u, u.display_name) if u.id not in ocultos else (None, "membro do clube")
     return render_template(
         "clubes/clube.html", clube=clube, m=m, membros=membros, jdm=jdm, minutos_jdm=minutos_jdm, metas=metas,
         mural=mural, pendentes=pendentes, tipos=TIPOS_META, nome_visivel=nome_visivel, autor=autor,
@@ -343,7 +353,7 @@ def papel(slug, user_id, acao):
         alvo.papel = "moderador" if acao == "promover" else "membro"
     elif acao == "transferir":
         exigir(ativo(m) and m.papel == "dono")
-        if MembroClube.query.filter_by(user_id=alvo.user_id, papel="dono", situacao="ativo").count() >= MAX_DONO:
+        if clubes_como_dono(alvo.user_id) >= MAX_DONO:
             flash(f"Esse membro já é dono de {MAX_DONO} clubes, o máximo permitido.", "erro")
             return redirect(f"/clubes/{slug}")
         alvo.papel, m.papel = "dono", "moderador"

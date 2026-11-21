@@ -4,7 +4,7 @@
 regra em SQL, para as listagens filtrarem no banco sem uma consulta por linha.
 """
 import re
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
 from flask import Blueprint, abort, flash, redirect, render_template, request
 from sqlalchemy import func, select
@@ -19,6 +19,8 @@ from .util import current_user, login_required, paginate
 bp = Blueprint("diario", __name__)
 MAX_MIN = 1440
 MAX_ANOTACAO = 1000
+DATA_MINIMA = date(2000, 1, 1)  # o mesmo piso de ANO_MINIMO da retrospectiva
+ANTES_DA_DATA_MINIMA = "A data deve ser a partir de 01/01/2000"
 DURACAO_RE = re.compile(r"^(?:(\d+)\s*h\s*(?:(\d+)\s*(?:min|m)?)?|(\d+)\s*(?:min|m)?|(\d+):([0-5]\d))$")
 
 
@@ -167,6 +169,8 @@ def problema_entre(jogada_em, duracao_min, inicio, outras):
         return "duração fora do intervalo de 1 minuto a 24 horas"
     if jogada_em > hoje():
         return "A data não pode estar no futuro"
+    if jogada_em < DATA_MINIMA:
+        return ANTES_DA_DATA_MINIMA
     if sum(d for dia, d, _ in outras if dia == jogada_em) + duracao_min > MAX_MIN:
         return "a soma das sessões do dia passaria de 24 horas"
     if inicio is not None:
@@ -188,6 +192,8 @@ def validar_campos(game, form, user_id=None, ignorar_id=None):
         erros["jogada_em"] = "Informe uma data válida."
     elif dados["jogada_em"] > hoje():
         erros["jogada_em"] = "A data não pode estar no futuro"
+    elif dados["jogada_em"] < DATA_MINIMA:
+        erros["jogada_em"] = ANTES_DA_DATA_MINIMA + "."
     dur = ler_duracao(form.get("duracao"))
     if dur is None or not 1 <= dur <= MAX_MIN:
         erros["duracao"] = "A duração deve ficar entre 1 minuto e 24 horas (ex.: 90, 1h30 ou 1:30)."
