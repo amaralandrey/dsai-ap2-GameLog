@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Importar para o diário — GameLog{% endblock %}
+{% block content %}
+<h1>Importar para o diário</h1>
+{% if erro %}<div class="flash erro" role="alert">{{ erro }}</div>{% endif %}
+<div class="row">
+<section class="panel"><h2>Horas da Steam</h2>
+  {% if steam %}
+    {% if me.steam_id %}<p class="mut">Traz o tempo jogado de cada jogo da sua biblioteca que está no catálogo. O perfil da Steam precisa ser público.</p>
+      <form method="post" action="/diario/importar/steam"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button>Importar da Steam</button></form>
+    {% else %}<p><a href="/u/{{ me.username }}/editar">Vincule sua conta da Steam</a> para importar as horas.</p>{% endif %}
+  {% else %}<p class="mut">Importação da Steam indisponível neste servidor.</p>{% endif %}
+</section>
+<section class="panel"><h2>Arquivo CSV</h2>
+  <p class="mut">Colunas obrigatórias: <code>data</code>, <code>jogo</code> (slug ou título) e <code>duracao</code>; opcionais: <code>inicio</code>, <code>plataforma</code>, <code>zerei</code> e <code>anotacao</code>. Até 1 MB e 5.000 linhas, separado por vírgula ou ponto e vírgula. Nada é gravado antes da sua confirmação.</p>
+  <form method="post" enctype="multipart/form-data"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label for="arquivo">Arquivo</label><input id="arquivo" type="file" name="arquivo" accept=".csv,text/csv" required>
+    <p><button>Ver prévia</button></p></form>
+</section>
+</div>
+<p><a href="/diario/exportar.csv">Exportar meu diário em CSV</a> · <a href="/diario">Voltar ao diário</a></p>
+{% endblock %}

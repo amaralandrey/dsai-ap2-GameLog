@@ -9,6 +9,10 @@
   {% if a.kind == 'avaliou' %}avaliou <a href="/jogos/{{ a.game.slug }}">{{ a.game.title }}</a> — {{ stars(a.review.score) }}
   {% elif a.kind == 'jogado' %}marcou <a href="/jogos/{{ a.game.slug }}">{{ a.game.title }}</a> como jogado
   {% elif a.kind == 'lista' %}criou a lista <a href="/listas/{{ a.list.id }}">{{ a.list.name }}</a>
+  {% elif a.kind == 'sessao' %}jogou <a href="/jogos/{{ a.game.slug }}">{{ a.game.title }}</a> por {{ a.valor | horas }}
+  {% elif a.kind == 'importacao' %}importou {{ a.valor }} {{ 'sessão' if a.valor == 1 else 'sessões' }} para o diário
+  {% elif a.kind == 'conquista' %}desbloqueou a conquista <strong>{{ a.texto }}</strong>
+  {% elif a.kind == 'clube' %}{{ a.texto }}
   {% elif a.kind == 'lista_jogo' %}adicionou <a href="/jogos/{{ a.game.slug }}">{{ a.game.title }}</a> à lista <a href="/listas/{{ a.list.id }}">{{ a.list.name }}</a>{% endif %}
   <div class="mut">{{ a.created_at.strftime('%d/%m/%Y %H:%M') }}</div>
   {% if a.kind == 'avaliou' and a.review %}<div id="av-{{ a.review.id }}">{{ comments(a.review, page_url(page.page)) }}</div>{% endif %}

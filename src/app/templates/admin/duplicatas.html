@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% from "_macros.html" import pager %}
+{% block title %}Duplicatas — Admin{% endblock %}
+{% macro lado(p, g) %}
+<div class="dup-jogo">
+  <img src="{{ g.cover }}" alt="Capa de {{ g.title }}" loading="lazy">
+  <div>
+    <strong><a href="/jogos/{{ g.slug }}">{{ g.title }}</a></strong>
+    <p class="mut">{{ g.release_date.year }} · {{ g.developer.name }}{% if g.removed_at %} · removido{% endif %}</p>
+    <p>{% for v in g.lojas %}<span class="tag">{{ v.fonte }}</span>{% else %}<span class="mut">sem lojas vinculadas</span>{% endfor %}</p>
+    <p class="mut">{{ avaliacoes.get(g.id, 0) }} avaliaç{{ 'ões' if avaliacoes.get(g.id, 0) != 1 else 'ão' }}</p>
+    <form method="post" action="/admin/catalogo/mesclar">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="pendencia_id" value="{{ p.id }}"><input type="hidden" name="principal_id" value="{{ g.id }}">
+      <button>Manter este como principal</button>
+    </form>
+  </div>
+</div>
+{% endmacro %}
+{% block content %}
+<h1>Duplicatas do catálogo</h1>
+<p class="mut">Pares de jogos parecidos, do mais antigo para o mais novo. Ao mesclar, avaliações, status, listas e lojas do outro jogo passam para o principal; o que já existe no principal fica no jogo mesclado, que sai do catálogo.</p>
+{% for p in page.items %}
+<section class="panel" id="pendencia-{{ p.id }}">
+  <p class="mut">Semelhança {{ p.semelhanca }} · sugerida em {{ p.created_at.strftime('%d/%m/%Y %H:%M') }}</p>
+  <div class="row">{{ lado(p, p.jogo_a) }}{{ lado(p, p.jogo_b) }}</div>
+  <form method="post" action="/admin/catalogo/ignorar-merge">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="pendencia_id" value="{{ p.id }}">
+    <button class="ghost">Não são o mesmo jogo</button>
+  </form>
+</section>
+{% else %}<p class="mut">Nenhuma duplicata pendente. Rode <code>flask --app app sugerir-duplicatas</code> para comparar o catálogo.</p>{% endfor %}
+{{ pager(page) }}
+{% endblock %}

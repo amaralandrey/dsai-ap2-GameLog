@@ -1,10 +1,12 @@
 {% extends "base.html" %}
-{% from "_macros.html" import game_card %}
+{% from "_macros.html" import game_card, progresso_lista %}
 {% block title %}{{ gl.name }} — GameLog{% endblock %}
 {% block content %}
 <h1>{{ gl.name }} {% if not gl.public %}<span class="tag">privada</span>{% endif %}</h1>
 <p class="mut">por <a href="/u/{{ gl.user.username }}">@{{ gl.user.username }}</a> · {{ items | length }} jogos</p>
 {% if gl.description %}<p>{{ gl.description }}</p>{% endif %}
+<p class="mut">Exportar <a href="/listas/{{ gl.id }}/exportar.json">JSON</a> ou <a href="/listas/{{ gl.id }}/exportar.csv">CSV</a></p>
+{{ progresso_lista(prog, statuses) }}
 {% if own %}
 <details class="panel"><summary>Editar lista</summary>
   <form method="post" action="/listas/{{ gl.id }}/editar">
@@ -18,8 +20,9 @@
   <form method="post" action="/listas/{{ gl.id }}/apagar"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="danger">Apagar lista</button></form>
 </details>
 {% endif %}
+<div{% if own %} class="ordenavel" data-ordem="/listas/{{ gl.id }}/ordem" data-csrf="{{ csrf_token() }}"{% endif %}>
 {% for it in items %}
-<div class="panel" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+<div class="panel item-lista" data-jogo="{{ it.game_id }}"{% if own %} draggable="true"{% endif %} style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
   <span class="mut">{{ loop.index }}.</span>
   {% if it.game.removed_at %}<strong>{{ it.game.title }}</strong> <span class="tag">removido do catálogo</span>
   {% else %}<a href="/jogos/{{ it.game.slug }}"><strong>{{ it.game.title }}</strong></a>{% endif %}
@@ -28,4 +31,6 @@
     <form class="inline" method="post" action="/listas/{{ gl.id }}/jogos/{{ it.game_id }}/remover"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="ghost">Remover</button></form></span>{% endif %}
 </div>
 {% else %}<p class="mut">Lista vazia.</p>{% endfor %}
+</div>
+{% if own %}<script src="{{ url_for('static', filename='ordem.js') }}" defer></script>{% endif %}
 {% endblock %}

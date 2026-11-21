@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Hall da fama — GameLog{% endblock %}
+{% block content %}
+<h1>Hall da fama</h1>
+{% for t in encerradas %}
+<section class="panel"><h2>{{ t.nome }} <span class="mut">({{ t.inicio.strftime('%d/%m/%Y') }} a {{ t.fim.strftime('%d/%m/%Y') }})</span></h2>
+  <div class="row">{% for k, nome in categorias.items() %}<div><h3>{{ nome }}</h3>
+    {% for linha, u in podios.get((t.id, k), []) %}<p>{{ ['🥇', '🥈', '🥉'][linha.posicao - 1] }} {% if u.username.startswith('removido-') %}usuário removido{% else %}<a href="/u/{{ u.username }}">{{ u.display_name }}</a>{% endif %} · {{ mostrar(k, linha.valor) }}</p>
+    {% else %}<p class="mut">Sem pódio.</p>{% endfor %}</div>{% endfor %}</div>
+</section>
+{% else %}<p class="mut">Nenhuma temporada encerrada ainda.</p>{% endfor %}
+{% endblock %}

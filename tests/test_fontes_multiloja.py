@@ -55,8 +55,8 @@ def test_fnt05_seed_vincula_origem_e_loja_steam(app):
     with app.app_context():
         run(42, real=True)
         g = Game.query.first()
-        assert {v.fonte for v in g.fontes} == {"arquivo", "steam"}
-        assert all({v.fonte for v in x.fontes} == {"arquivo", "steam"} for x in Game.query)
+        # o snapshot enriquecido também traz gog, epic e rawg (SNP-06); arquivo e steam estão em todos
+        assert all({"arquivo", "steam"} <= {v.fonte for v in x.fontes} for x in Game.query)
         steam = next(v for v in g.fontes if v.fonte == "steam")
         assert steam.external_id == g.external_id
         assert steam.url_loja == f"https://store.steampowered.com/app/{g.external_id}"

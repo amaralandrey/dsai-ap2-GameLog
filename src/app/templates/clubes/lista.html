@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% from "_macros.html" import pager %}
+{% block title %}Clubes — GameLog{% endblock %}
+{% block content %}
+<h1>Clubes</h1>
+<form method="get" class="panel row"><div><label for="q">Buscar clube</label><input id="q" name="q" value="{{ q }}"></div>
+  <div style="align-self:end"><button class="ghost">Buscar</button>{% if me %} <a class="btn" href="/clubes/novo">Criar clube</a>{% endif %}</div></form>
+{% for c in page.items %}
+<div class="panel"><a href="/clubes/{{ c.slug }}"><strong>{{ c.nome }}</strong></a>{% if not c.publico %} <span class="tag">privado</span>{% endif %}
+  {% if c.genero %}<span class="tag">{{ c.genero.name }}</span>{% endif %}
+  {% if c.descricao %}<p class="mut">{{ c.descricao }}</p>{% endif %}</div>
+{% else %}<p class="mut">Nenhum clube encontrado.</p>{% endfor %}
+{{ pager(page) }}
+{% endblock %}
