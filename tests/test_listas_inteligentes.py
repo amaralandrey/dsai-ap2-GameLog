@@ -108,6 +108,13 @@ def test_lsa_02_largados_respeita_n_dias(app, ana):
     assert "Jogando sem sessão há 30 dias ou abandonados" in html
 
 
+def test_lsa_02_largados_conta_o_dia_da_parada_em_belem(app, ana):
+    status(app, "alfa", "jogando", atualizado=datetime(2026, 10, 17, 1, 0))  # 16/10 às 22h em Belém
+    status(app, "beta", "jogando", atualizado=datetime(2026, 10, 17, 4, 0))  # 17/10 à 1h em Belém
+    criar(ana, "largados", dias="31")
+    assert jogos(ana, ultima(app))[0] == ["Alfa"]
+
+
 def test_lsa_02_wishlist_na_loja_certa(app, ana):
     status(app, "alfa", "planejado")
     status(app, "beta", "planejado")
@@ -249,6 +256,18 @@ def test_lsa_07_congelar_com_corte_em_200(app, ana):
         gl = GameList.query.one()
         assert len(gl.items) == 200 and gl.items[0].game.title == "Extra 000"
         assert db.session.get(ListaInteligente, lid) is not None
+
+
+def test_lsa_07_congelar_respeita_o_limite_de_50_listas(app, ana):
+    with app.app_context():
+        db.session.add_all(GameList(user_id=uid(app), name=f"L{i}") for i in range(50))
+        db.session.commit()
+    criar(ana, "jogados_sem_avaliacao", nome="Cheia")
+    lid = ultima(app)
+    r = ana.post(f"/listas/inteligentes/{lid}/congelar", follow_redirects=True)
+    assert "Limite de 50 listas atingido" in r.get_data(as_text=True)
+    with app.app_context():
+        assert GameList.query.count() == 50
 
 
 # ---------- LSA-08 ----------

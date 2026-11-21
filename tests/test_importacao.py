@@ -43,6 +43,23 @@ def test_imp05_imp06_falha_e_dados_invalidos_nao_abortam(app):
         assert r == (1, 2, 1) and Game.query.count() == 1
 
 
+def test_imp05_excecao_num_item_nao_aborta_nem_suja_a_sessao(app, monkeypatch):
+    import app.fontes as fontes
+
+    original = fontes.importar_item
+
+    def quebra_no_2(fonte_, j):
+        if j["external_id"] == "2":
+            db.session.add(Game(title="meio gravado"))  # sem slug: o próximo commit falharia
+            raise ValueError("dado inesperado")
+        return original(fonte_, j)
+
+    monkeypatch.setattr(fontes, "importar_item", quebra_no_2)
+    with app.app_context():
+        assert importar("falsa", modulo=fonte(item("1"), item("2"), item("3"))) == (2, 0, 1)
+        assert sorted(g.external_id for g in Game.query) == ["1", "3"]
+
+
 def test_imp07_capa_real_ou_svg(app, client):
     with app.app_context():
         importar("falsa", modulo=fonte(item("1")))

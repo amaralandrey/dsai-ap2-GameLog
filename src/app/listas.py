@@ -2,6 +2,8 @@ import json
 
 from flask import Blueprint, abort, flash, redirect, render_template, request
 from sqlalchemy import case
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import joinedload
 
 from .models import STATUSES, Activity, Game, GameList, ListaInteligente, ListItem, Status, db, now, visible_games
 from .gamificacao import emitir_evento
@@ -31,11 +33,19 @@ def set_status(slug):
             changed = True
             db.session.add(Status(user_id=me.id, game_id=game.id, value=value))
         if value == "jogado" and changed:
-            db.session.add(Activity(user_id=me.id, kind="jogado", game_id=game.id))
+            ja = Activity.query.filter_by(user_id=me.id, kind="jogado", game_id=game.id).first()
+            if ja is None:  # SOC-05/DIA-04: uma vez só
+                db.session.add(Activity(user_id=me.id, kind="jogado", game_id=game.id))
     else:
         flash("Status inválido.", "erro")
         return back(f"/jogos/{slug}")
-    db.session.commit()
+    try:
+        db.session.commit()
+    except IntegrityError:  # duplo envio: a outra requisição criou o status, então esta só troca o valor
+        db.session.rollback()
+        cur = Status.query.filter_by(user_id=me.id, game_id=game.id).one()
+        cur.value, cur.updated_at = value, now()
+        db.session.commit()
     emitir_evento(me.id, "status", game_id=game.id)  # GAM-03
     return back(f"/jogos/{slug}")
 
@@ -99,7 +109,8 @@ def view_list(lid):
     from .listas_inteligentes import progresso_comum
 
     gl, own = get_list(lid)
-    items = [i for i in gl.items if own or i.game.removed_at is None]  # LIS-09
+    todos = ListItem.query.options(joinedload(ListItem.game)).filter_by(list_id=gl.id).order_by(ListItem.position)
+    items = [i for i in todos if own or i.game.removed_at is None]  # LIS-09
     return render_template("listas/lista.html", gl=gl, own=own, items=items, prog=progresso_comum(gl, own),
                            statuses=STATUSES)
 
@@ -162,6 +173,7 @@ def add_to_list(slug):
 def remove_item(lid, gid):
     gl, _ = get_list(lid, owner_only=True)
     ListItem.query.filter_by(list_id=lid, game_id=gid).delete()
+    Activity.query.filter_by(kind="lista_jogo", list_id=lid, game_id=gid).delete()  # SOC-05
     db.session.flush()
     db.session.refresh(gl)
     renumber(gl)

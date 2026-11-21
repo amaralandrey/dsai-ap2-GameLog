@@ -365,6 +365,8 @@ def reports():
 
 def decide(rid, new_status, hide):
     rep = db.get_or_404(Report, rid)
+    if rep.alvo_tipo != "avaliacao":  # post de clube é decidido na fila do clube (CLB-11)
+        abort(404)
     if rep.status != "pendente":
         flash("Esta denúncia já foi decidida.", "erro")
         return redirect("/admin/denuncias")

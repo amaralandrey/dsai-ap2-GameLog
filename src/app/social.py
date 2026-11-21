@@ -1,5 +1,6 @@
 from flask import Blueprint, flash, redirect, render_template, request
 from sqlalchemy import func
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 
 from .models import Activity, Comment, Follow, Game, GameList, Review, User, db
@@ -23,10 +24,14 @@ def follow(username):
         flash("Você não pode seguir a si mesmo.", "erro")
     elif not Follow.query.filter_by(follower_id=me.id, followed_id=target.id).first():  # SOC-02
         db.session.add(Follow(follower_id=me.id, followed_id=target.id))
-        avisar_seguidor(target.id, me)  # NTF-05
-        db.session.commit()
-        emitir_evento(me.id, "seguir")  # GAM-03
-        emitir_evento(target.id, "seguidor")
+        try:
+            avisar_seguidor(target.id, me)  # NTF-05
+            db.session.commit()
+        except IntegrityError:  # duplo envio: a outra requisição já gravou o mesmo par
+            db.session.rollback()
+        else:
+            emitir_evento(me.id, "seguir")  # GAM-03
+            emitir_evento(target.id, "seguidor")
     return redirect(f"/u/{target.username}")
 
 
@@ -90,6 +95,8 @@ def suggestions(me, limit=5):
 @login_required
 def feed():
     me = current_user()
-    q = feed_query(me.id, me).options(selectinload(Activity.review).selectinload(Review.comments).joinedload(Comment.user))
+    q = feed_query(me.id, me).options(
+        selectinload(Activity.review).selectinload(Review.comments).joinedload(Comment.user),
+        selectinload(Activity.user), selectinload(Activity.game), selectinload(Activity.list))
     page = paginate(q, request.args.get("page"))
     return render_template("social/feed.html", page=page, suggestions=suggestions(me) if not page.items else [])

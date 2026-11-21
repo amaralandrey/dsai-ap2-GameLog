@@ -217,6 +217,30 @@ def test_ntf_06_limite_de_200(app, gente):
     assert len(notifs(app, tipo="amigo_zerou")) == 200
 
 
+def test_ntf_06_perfil_privado_confere_visibilidade_sem_consulta_por_seguidor(app, gente):
+    def consultas(n_seguidores):
+        with app.app_context():
+            g, ana = Game.query.one(), User.query.filter_by(username="ana").one()
+            ana.perfil_privado = True
+            for i in range(n_seguidores):
+                u = User(username=f"s{n_seguidores}x{i}", username_lower=f"s{n_seguidores}x{i}",
+                         email=f"s{n_seguidores}x{i}@x.com", password_hash="x", display_name="s")
+                db.session.add(u)
+                db.session.flush()
+                db.session.add_all([Follow(follower_id=u.id, followed_id=ana.id),
+                                    Status(user_id=u.id, game_id=g.id, value="planejado")])
+            db.session.commit()
+            contadas = []
+
+            def conta(*a):
+                contadas.append(1)
+            event.listen(db.engine, "before_cursor_execute", conta)
+            assert notificacoes.avisar_amigo_zerou(ana, g) == []
+            event.remove(db.engine, "before_cursor_execute", conta)
+            return len(contadas)
+    assert consultas(1) == consultas(10)
+
+
 # ---------- NTF-07..10 ----------
 def test_ntf_07_lista_paginada_e_esconde_oculta_e_removida(app, gente):
     with app.app_context():

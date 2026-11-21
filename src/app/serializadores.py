@@ -4,6 +4,9 @@ Por enquanto só `jogo` e `lista`, que a exportação das listas usa (LSA-09); a
 """
 from flask import has_request_context, request
 
+from .models import LOJAS_COM_PRECO
+from .precos import atual, atuais, menor_preco
+
 
 def absoluta(url):
     if url.startswith("/") and has_request_context():
@@ -11,7 +14,24 @@ def absoluta(url):
     return url
 
 
-def jogo(game):
+def reais(centavos):
+    return round(centavos / 100, 2)
+
+
+def precos(game_id):
+    """Preços atuais de cada loja e o menor preço já visto, em reais (PRC-12)."""
+    vigentes, menor = atuais(game_id), menor_preco(game_id)
+    return {
+        "precos": [{"loja": p.fonte, "preco": reais(p.preco_centavos), "preco_base": reais(p.preco_base_centavos),
+                    "desconto": p.desconto_pct, "verificado_em": p.verificado_em.isoformat()}
+                   for p in (vigentes.get(f) for f in LOJAS_COM_PRECO) if p and atual(p)],
+        "menor_preco": {"preco": reais(menor.preco_centavos), "loja": menor.fonte,
+                        "data": menor.coletado_em.isoformat()} if menor else None,
+    }
+
+
+def jogo(game, com_precos=False):
+    """`com_precos` acrescenta `precos` e `menor_preco` (detalhe do jogo, API-05)."""
     return {
         "slug": game.slug,
         "titulo": game.title,
@@ -21,6 +41,7 @@ def jogo(game):
         "plataformas": sorted(p.name for p in game.platforms),
         "capa": absoluta(game.cover),
         "url": absoluta(f"/jogos/{game.slug}"),
+        **(precos(game.id) if com_precos else {}),
     }
 
 

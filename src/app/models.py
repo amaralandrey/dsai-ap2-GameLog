@@ -42,6 +42,12 @@ class User(db.Model):
         return self.role == "admin"
 
 
+class Instancia(db.Model):
+    """Uma linha por banco: muda quando o banco é recriado e invalida cookies da cópia anterior."""
+    id = db.Column(db.Integer, primary_key=True)
+    token = db.Column(db.String(32), nullable=False)
+
+
 class LoginAttempt(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(200), index=True, nullable=False)
@@ -129,6 +135,40 @@ class JogoFonte(db.Model):
         if fonte not in FONTES and fonte not in SO_VINCULADAS:
             raise ValueError(f"fonte desconhecida: {fonte}")
         return fonte
+
+
+LOJAS_COM_PRECO = ("steam", "gog")  # Epic e RAWG não têm preço (PRC-04)
+
+
+class PrecoLoja(db.Model):
+    """Preço em BRL de um jogo numa loja; uma linha por mudança, valores em centavos (PRC-01, PRC-05)."""
+    __table_args__ = (db.Index("ix_preco_loja_jogo", "game_id", "fonte", "coletado_em"),
+                      db.CheckConstraint("moeda = 'BRL'"), db.CheckConstraint("fonte IN ('steam', 'gog')"))
+    id = db.Column(db.Integer, primary_key=True)
+    game_id = db.Column(db.ForeignKey("game.id"), nullable=False)
+    fonte = db.Column(db.String(20), nullable=False)
+    moeda = db.Column(db.String(3), default="BRL", nullable=False)
+    preco_centavos = db.Column(db.Integer, nullable=False)
+    preco_base_centavos = db.Column(db.Integer, nullable=False)
+    desconto_pct = db.Column(db.Integer, default=0, nullable=False)
+    coletado_em = db.Column(db.DateTime, nullable=False)
+    verificado_em = db.Column(db.DateTime, nullable=False)
+
+    @validates("fonte")
+    def _loja_com_preco(self, _, fonte):
+        if fonte not in LOJAS_COM_PRECO:
+            raise ValueError(f"loja sem preço: {fonte}")
+        return fonte
+
+    @validates("moeda")
+    def _so_real(self, _, moeda):
+        if moeda != "BRL":
+            raise ValueError(f"moeda não aceita: {moeda}")
+        return moeda
+
+    @property
+    def valores(self):
+        return self.preco_centavos, self.preco_base_centavos, self.desconto_pct
 
 
 PENDENCIA_STATUS = ("pendente", "mesclada", "ignorada")

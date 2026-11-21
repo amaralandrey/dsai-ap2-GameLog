@@ -7,6 +7,8 @@ A mesma entrada sempre gera a mesma string.
 from html import escape
 from math import floor, log10
 
+from .chaveamento import BYE
+
 LARGURA, ALTURA = 640, 260
 MARGEM_ESQ, MARGEM_DIR, MARGEM_TOPO, MARGEM_BASE = 48, 12, 28, 40
 MAX_SERIES_LINHA = 4
@@ -131,5 +133,59 @@ def sparkline(valores, titulo, largura=160, altura=36):
     else:
         caminho = " ".join(f"{x:.1f},{y:.1f}" for x, y in pontos)
         partes.append(f'<polyline class="serie-0" fill="none" points="{caminho}"/>')
+    partes.append("</svg>")
+    return "".join(partes)
+
+
+CAIXA_L, CAIXA_A, COLUNA_L, LINHA_TOPO = 150, 40, 180, 30
+NOMES_DAS_CHAVES = {"eliminacao": "Rodada", "vencedores": "Vencedores", "perdedores": "Perdedores"}
+
+
+def _colunas_da_chave(chave):
+    """As partidas agrupadas por rodada de cada chave, na ordem em que a chave as criou."""
+    colunas = {}
+    for p in chave.partidas.values():
+        colunas.setdefault((p.chave, p.rodada), []).append(p)
+    return list(colunas.values())
+
+
+def _rotulo_da_coluna(p):
+    if p.chave == "final":
+        return "Reset" if p.dispensada_se else "Final"
+    return f"{NOMES_DAS_CHAVES[p.chave]} {p.rodada}"
+
+
+def chave(chave, titulo="Chave do torneio", nomes=None):
+    """Uma coluna por rodada e uma caixa por partida, com o vencedor em destaque (CHV-13).
+
+    `nomes` traduz o id do participante para o nome exibido; sem ele, aparece o próprio id.
+    """
+    def nome(x):
+        if x is None:
+            return "a definir"
+        return "bye" if x is BYE else str((nomes or {}).get(x, x))
+    colunas = _colunas_da_chave(chave)
+    largura, altura = COLUNA_L * len(colunas), LINHA_TOPO + max(len(c) for c in colunas) * (CAIXA_A + 16)
+    partes = _abrir(titulo, largura, altura, "grafico chave")
+    for c, partidas in enumerate(colunas):
+        x = c * COLUNA_L + 8
+        rotulo = escape(_rotulo_da_coluna(partidas[0]))
+        partes.append(f'<text class="rotulo" x="{x}" y="16" fill="currentColor">{rotulo}</text>')
+        faixa = (altura - LINHA_TOPO) / len(partidas)
+        for i, p in enumerate(partidas):
+            y = LINHA_TOPO + faixa * i + (faixa - CAIXA_A) / 2
+            placar = f" ({p.placar_a} × {p.placar_b})" if p.jogada else ""
+            dica = escape(f"{p.id}: {nome(p.a)} × {nome(p.b)}{placar}")
+            partes.append(f'<g class="partida"><title>{dica}</title><rect x="{x}" y="{y:.1f}" width="{CAIXA_L}" '
+                          f'height="{CAIXA_A}" fill="none" stroke="currentColor"/>')
+            for lado, deslocamento in ((p.a, 0), (p.b, CAIXA_A / 2)):
+                venceu = p.decidida and lado == p.vencedor
+                if venceu:
+                    partes.append(f'<rect class="serie-0" x="{x}" y="{y + deslocamento:.1f}" width="4" '
+                                  f'height="{CAIXA_A / 2:.1f}"/>')
+                peso = ' class="vencedor" font-weight="bold"' if venceu else ""
+                partes.append(f'<text x="{x + 10}" y="{y + deslocamento + 14:.1f}" fill="currentColor"{peso}>'
+                              f"{escape(nome(lado))}</text>")
+            partes.append("</g>")
     partes.append("</svg>")
     return "".join(partes)
