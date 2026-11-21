@@ -38,6 +38,9 @@ def create_app(config=None):
         if isinstance(conn, sqlite3.Connection):
             conn.create_function("fold", 1, fold, deterministic=True)
             conn.execute("PRAGMA foreign_keys=ON")  # ON DELETE CASCADE dos comentários (COM-06)
+            conn.execute("PRAGMA busy_timeout=5000")  # 2 workers do gunicorn escrevem no mesmo arquivo
+            if conn.execute("PRAGMA database_list").fetchone()[2]:  # vazio em :memory:
+                conn.execute("PRAGMA journal_mode=WAL")
 
     @app.before_request
     def csrf_protect():
