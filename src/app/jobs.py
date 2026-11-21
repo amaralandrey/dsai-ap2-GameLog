@@ -17,7 +17,7 @@ from sqlalchemy.dialects.sqlite import insert
 
 from . import tempo
 from .admin import audit
-from .cron import proxima_execucao
+from .cron import execucao_anterior, proxima_execucao
 from .models import JOB_STATUS, Agendamento, Job, db
 from .util import admin_required, current_user, paginate
 
@@ -173,14 +173,14 @@ def _marcar(ag, antes):
 
 def enfileirar_agendados():
     """Um job por agendamento vencido; execuções perdidas viram um job só. Devolve quantos enfileirou."""
-    enfileirados = 0
+    enfileirados, agora = 0, tempo.agora()
     for ag in Agendamento.query.filter_by(ativo=True).order_by(Agendamento.id).all():
         antes = ag.ultima_execucao
-        if antes is None:  # recém-criado: conta a partir de agora
-            _marcar(ag, None)
-            continue
-        prevista = proxima_execucao(ag.cron, tempo.para_belem(antes))
-        if prevista > tempo.agora() or ag.tipo not in TAREFAS or not _marcar(ag, antes):
+        if antes is None:  # recém-criado: a última prevista, para um restart depois do horário não pular o dia
+            prevista = execucao_anterior(ag.cron, agora)
+        else:
+            prevista = proxima_execucao(ag.cron, tempo.para_belem(antes))
+        if prevista > agora or ag.tipo not in TAREFAS or not _marcar(ag, antes):
             continue
         enfileirar(ag.tipo, chave_unica=f"agenda:{ag.nome}:{prevista.isoformat()}", **json.loads(ag.args))
         db.session.commit()
@@ -331,7 +331,7 @@ def alternar_agendamento(aid):
     ag = db.get_or_404(Agendamento, aid)
     ag.ativo = not ag.ativo
     if ag.ativo:
-        ag.ultima_execucao = None  # religado: conta a partir de agora, sem cobrar o tempo desligado
+        ag.ultima_execucao = tempo.agora_utc()  # religado: conta a partir de agora, sem cobrar o tempo desligado
     _auditar("jobs.agendamento", f"{ag.nome} {'ligado' if ag.ativo else 'desligado'}")
     flash(f"Agendamento {ag.nome} {'ligado' if ag.ativo else 'desligado'}.", "ok")
     return redirect("/admin/jobs")

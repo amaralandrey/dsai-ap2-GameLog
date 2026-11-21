@@ -275,14 +275,44 @@ def agendamento(app, cron="0 4 * * *", ativo=True, tipo="anota"):
 def test_job_08_agendamento_vencido_vira_um_job_sem_duplicar(app, tarefas, relogio):
     agendamento(app)
     with app.app_context():
-        assert jobs.enfileirar_agendados() == 0  # recém-criado: conta a partir de agora (16/11 12:00)
+        # recém-criado às 12:00 (um restart no Render recria o banco): a execução das 04:00 de hoje não se perde
+        assert jobs.enfileirar_agendados() == 1 and jobs.enfileirar_agendados() == 0
         relogio.andar(hours=16)  # 17/11 04:00 em Belém
         assert jobs.enfileirar_agendados() == 1 and jobs.enfileirar_agendados() == 0
-        j = Job.query.one()
-        assert j.chave_unica == "agenda:diario:2026-11-17T04:00:00-03:00" and j.args == '{"n": 7}'
+        chaves = [j.chave_unica for j in Job.query.order_by(Job.id)]
+        assert chaves == ["agenda:diario:2026-11-16T04:00:00-03:00", "agenda:diario:2026-11-17T04:00:00-03:00"]
+        assert {j.args for j in Job.query} == {'{"n": 7}'}
         relogio.andar(days=3)  # três execuções perdidas viram uma só
-        assert jobs.ciclo()["executados"] == 2 and Job.query.count() == 2
-        assert tarefas == [{"n": 7}, {"n": 7}]
+        assert jobs.ciclo()["executados"] == 3 and Job.query.count() == 3
+        assert tarefas == [{"n": 7}] * 3
+
+
+def test_job_08_religar_conta_a_partir_de_agora(app, chefe, tarefas, relogio):
+    from app.models import Agendamento
+
+    agendamento(app)
+    with app.app_context():
+        jobs.enfileirar_agendados()
+        aid = Agendamento.query.one().id
+    chefe.post(f"/admin/jobs/agendamentos/{aid}")  # desliga
+    relogio.andar(days=2)
+    chefe.post(f"/admin/jobs/agendamentos/{aid}")  # religa: os dois dias desligado não viram job
+    with app.app_context():
+        assert jobs.enfileirar_agendados() == 0 and Job.query.count() == 1
+
+
+@pytest.mark.parametrize("expressao,ate,esperado", [
+    ("0 4 * * *", (2026, 11, 16, 4, 10), (2026, 11, 16, 4, 0)),
+    ("0 4 * * *", (2026, 11, 16, 4, 0), (2026, 11, 16, 4, 0)),  # o próprio instante conta
+    ("0 4 * * *", (2026, 11, 16, 3, 59), (2026, 11, 15, 4, 0)),
+    ("*/15 * * * *", (2026, 11, 16, 10, 7), (2026, 11, 16, 10, 0)),
+    ("0 5 * * 1", (2026, 11, 15, 0, 0), (2026, 11, 9, 5, 0)),  # semanal
+    ("0 0 29 2 *", (2026, 11, 16, 0, 0), (2024, 2, 29, 0, 0)),  # janela de anos
+])
+def test_job_08_execucao_anterior(expressao, ate, esperado):
+    from app.cron import execucao_anterior
+
+    assert execucao_anterior(expressao, datetime(*ate)) == datetime(*esperado)
 
 
 def test_job_08_agendamento_desligado_nao_enfileira(app, tarefas, relogio):

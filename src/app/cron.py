@@ -78,6 +78,18 @@ def proxima_execucao(expressao, depois_de):
     raise CronInvalido("a expressão nunca acontece (ex.: 31 de fevereiro)")
 
 
+def execucao_anterior(expressao, ate):
+    """Última execução em `ate` ou antes dele, com o mesmo fuso; procura em janelas cada vez maiores."""
+    janela = timedelta(hours=1)
+    while True:  # 1 h, 1 dia, 24 dias, 576 dias...: uma expressão válida sempre acontece em algum momento
+        t, ultima = ate - janela, None
+        while (t := proxima_execucao(expressao, t)) <= ate:
+            ultima = t
+        if ultima is not None:
+            return ultima
+        janela *= 24
+
+
 def validar(expressao):
     """Mensagem do problema, ou None; inclui a data que nunca acontece."""
     try:
