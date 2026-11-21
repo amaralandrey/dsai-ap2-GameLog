@@ -200,6 +200,17 @@ def test_gam_07_progresso_bloqueado_diminui(base):
     assert tem(base, "critico").progresso == 2
 
 
+def test_gam_07_sessao_de_jogo_removido_nao_conta(base):
+    with base.app_context():
+        g0, g1 = (Game.query.filter_by(slug=f"jogo-{i}").one() for i in (0, 1))
+        db.session.add_all([SessaoJogo(user_id=uid(base), game_id=g.id, jogada_em=date(2026, 11, d), duracao_min=120)
+                            for g, d in ((g0, 1), (g1, 2))])
+        g1.removed_at = now()
+        db.session.commit()
+        a = uid(base)
+        assert [gamificacao.sessoes(a), gamificacao.horas_registradas(a), gamificacao.dias_com_sessao(a)] == [1, 2, 1]
+
+
 # ---------- GAM-08..11 ----------
 def secreta(app):
     with app.app_context():
@@ -333,7 +344,7 @@ def test_gam_13_recalcular_sem_aviso_para_antigas(base):
     assert r.output.strip() == "usuarios=3 desbloqueadas=0"
 
 
-def test_gam_13_recalcular_da_o_xp_das_conquistas_uma_vez(base):
+def test_gam_13_recalcular_nao_da_xp_das_conquistas_retroativas(base):
     from app.models import ExtratoXP
 
     with base.app_context():
@@ -346,8 +357,7 @@ def test_gam_13_recalcular_da_o_xp_das_conquistas_uma_vez(base):
     with base.app_context():
         desbloqueadas = UsuarioConquista.query.filter(UsuarioConquista.user_id == a,
                                                       UsuarioConquista.desbloqueada_em.isnot(None)).count()
-        lancadas = ExtratoXP.query.filter_by(user_id=a, origem_tipo="conquista").count()
-        assert desbloqueadas >= 2 and lancadas == desbloqueadas
+        assert desbloqueadas >= 2 and ExtratoXP.query.filter_by(user_id=a, origem_tipo="conquista").count() == 0
 
 
 def test_gam_13_seed_so_recalcula_com_historico_ou_conquista_novos(base, monkeypatch):

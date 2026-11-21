@@ -3,7 +3,8 @@ import secrets
 from datetime import timedelta
 from functools import cache
 
-from flask import Blueprint, abort, flash, redirect, render_template, request, session
+from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, session
+from sqlalchemy.exc import IntegrityError
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from .models import Activity, Follow, GameList, LoginAttempt, Review, User, db, now
@@ -46,6 +47,7 @@ def validate_signup(username, email, password):
 def start_session(user):
     session.clear()
     session["uid"], session["sv"] = user.id, user.session_version
+    session["inst"] = current_app.config["INSTANCIA"]
 
 
 @bp.route("/cadastro", methods=["GET", "POST"])
@@ -65,7 +67,12 @@ def signup():
             role="jogador",  # CAD-10: todo cadastro novo é jogador
         )
         db.session.add(user)
-        db.session.commit()
+        try:
+            db.session.commit()
+        except IntegrityError:  # cadastro simultâneo: a outra requisição gravou o mesmo usuário ou e-mail
+            db.session.rollback()
+            errors = validate_signup(username, email, password) or {"email": "E-mail já cadastrado."}
+            return render_template("auth/cadastro.html", errors=errors, form=f), 400
         start_session(user)
         flash("Conta criada! Bem-vindo ao GameLog.", "ok")
         return redirect(safe_next(request.args.get("next")))

@@ -72,3 +72,25 @@ def test_cre06_cre07_destaques_na_home(app, client):
     destaque = html.split("Em destaque")[1].split("Lançamentos recentes")[0]
     assert "avaliações" in destaque and "★" in destaque
     assert titulo_sem not in destaque and titulo_alvo not in destaque
+
+
+def test_seed_em_producao_nao_usa_senha_publica(tmp_path):
+    from werkzeug.security import check_password_hash
+
+    from app import create_app
+    from app.seed import SEED_PASSWORD
+    a = create_app({"TESTING": True, "PRODUCAO": True, "SECRET_KEY": "fixa", "SQLALCHEMY_DATABASE_URI": f"sqlite:///{tmp_path}/p.db"})
+    with a.app_context():
+        run(42, real=True)
+        assert not check_password_hash(User.query.filter_by(username="jogador01").one().password_hash, SEED_PASSWORD)
+        db.session.remove()
+        db.engine.dispose()
+
+
+def test_seed_fora_de_producao_mantem_senha_conhecida(app):
+    from werkzeug.security import check_password_hash
+
+    from app.seed import SEED_PASSWORD
+    with app.app_context():
+        run(42, real=True)
+        assert check_password_hash(User.query.filter_by(username="jogador01").one().password_hash, SEED_PASSWORD)

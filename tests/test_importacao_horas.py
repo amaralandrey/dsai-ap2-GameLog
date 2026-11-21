@@ -221,6 +221,13 @@ def test_hrs_07_cada_erro_com_motivo(app, ana, linha, motivo):
     assert sessoes(app) == []
 
 
+def test_hrs_07_data_antes_de_2000_vira_erro_e_nao_500(app, ana):
+    pid, linhas = previa(app, ana, "data,jogo,duracao\n0001-01-01,hades,90\n2026-11-01,hades,90\n")
+    assert linhas[0]["classe"] == "erro" and "a partir de 01/01/2000" in linhas[0]["motivo"]
+    assert ana.post(f"/diario/importar/{pid}/confirmar").status_code == 302
+    assert [s.jogada_em.year for s in sessoes(app)] == [2026]
+
+
 def test_hrs_07_previa_nao_grava_e_so_o_dono_confirma(app, ana):
     pid, _ = previa(app, ana, "data,jogo,duracao\n2026-11-01,hades,90\n2026-11-02,celeste,30\n")
     assert sessoes(app) == []

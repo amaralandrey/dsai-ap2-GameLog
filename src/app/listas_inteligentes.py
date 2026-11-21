@@ -15,7 +15,7 @@ from sqlalchemy.orm import joinedload, selectinload
 from . import serializadores
 from .diario import pode_ver_perfil
 from .diario_import import sem_formula
-from .listas import MAX_ITEMS, get_list
+from .listas import MAX_ITEMS, MAX_LISTS, get_list
 from .models import (
     LOJAS, NOMES_DAS_LOJAS, STATUSES, Game, GameList, Genre, JogoFonte, ListaInteligente, ListItem, Review,
     SessaoJogo, Status, db, game_genres,
@@ -333,6 +333,9 @@ def apagar(lid):
 def congelar(lid):
     """Copia os jogos atuais numa lista comum, cortando em 200 itens (LSA-07)."""
     lista, _ = inteligente_ou_404(lid, dono=True)
+    if GameList.query.filter_by(user_id=lista.user_id).count() >= MAX_LISTS:  # LIS-10
+        flash(f"Limite de {MAX_LISTS} listas atingido.", "erro")
+        return redirect(f"/listas/inteligentes/{lid}")
     jogos = jogos_da_regra(lista).limit(MAX_ITEMS + 1).all()
     gl = GameList(user_id=lista.user_id, name=lista.nome[:80], description=descricao(json.loads(lista.regra))[:500],
                   public=lista.publica)

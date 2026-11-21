@@ -8,6 +8,8 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: 3.12.3
+      - key: GAMELOG_PRODUCAO  # senha aleatória no seed, cookie Secure e SECRET_KEY obrigatória
+        value: "1"
       - key: SECRET_KEY
         generateValue: true
       - key: ADMIN_EMAIL

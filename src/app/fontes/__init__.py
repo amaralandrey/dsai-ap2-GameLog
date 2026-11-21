@@ -217,8 +217,15 @@ def importar(fonte, limite=40, termo=None, modulo=None):
                 if "erro" in j:
                     erro += 1
                     continue
-                status, _ = importar_item(fonte, j)
-                db.session.commit()
+                try:
+                    status, _ = importar_item(fonte, j)
+                    db.session.commit()
+                except Exception as exc:  # IMP-05: item problemático é pulado sem sujar a sessão
+                    db.session.rollback()
+                    if base.limitado(exc):
+                        raise
+                    erro += 1
+                    continue
                 novo = status in ("ok", "vinculado")
                 ok, ign = ok + novo, ign + (not novo)
         except Exception as exc:

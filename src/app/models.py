@@ -42,6 +42,12 @@ class User(db.Model):
         return self.role == "admin"
 
 
+class Instancia(db.Model):
+    """Uma linha por banco: muda quando o banco é recriado e invalida cookies da cópia anterior."""
+    id = db.Column(db.Integer, primary_key=True)
+    token = db.Column(db.String(32), nullable=False)
+
+
 class LoginAttempt(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(200), index=True, nullable=False)

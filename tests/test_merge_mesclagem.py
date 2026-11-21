@@ -6,8 +6,8 @@ import pytest
 
 from app import create_app
 from app.models import (
-    Activity, AuditLog, Comment, Dismissed, Game, GameList, JogoFonte, Like, ListItem, PendenciaMerge, Report, Review,
-    Status, User, db, game_stats,
+    Activity, AuditLog, Clube, Comment, Dismissed, Game, GameList, JogoDoMes, JogoFonte, Like, ListItem, MetaClube,
+    Notificacao, PendenciaMerge, Report, Review, SessaoJogo, Status, User, db, game_stats,
 )
 from app.recomendacoes import recommend
 from app.sync import sincronizar
@@ -123,6 +123,29 @@ def test_mrg06_leva_vinculos_avaliacoes_status_listas_feed_e_dispensas(mundo):
         assert ListItem.query.filter_by(list_id=i["l1"]).one().game_id == i["p"]
         assert {a.kind for a in de(Activity, i["p"], user_id=i["ana"])} == {"avaliou", "jogado"}
         assert de(Dismissed, i["p"], user_id=i["caio"]).count() == 1
+
+
+def test_mrg06_leva_sessoes_jogo_do_mes_metas_e_notificacoes(mundo):
+    i = mundo.ids
+    with mundo.app.app_context():
+        clube = Clube(nome="Rogue", nome_lower="rogue", slug="rogue")
+        db.session.add(clube)
+        db.session.flush()
+        db.session.add_all([
+            SessaoJogo(user_id=i["ana"], game_id=i["s"], jogada_em=date(2026, 1, 5), duracao_min=60),
+            SessaoJogo(user_id=i["ana"], game_id=i["p"], jogada_em=date(2026, 1, 6), duracao_min=30),
+            JogoDoMes(clube_id=clube.id, mes="2026-01", game_id=i["s"]),
+            MetaClube(clube_id=clube.id, tipo="horas_jogo", alvo=10, inicio=date(2026, 1, 1), fim=date(2026, 1, 31),
+                      game_id=i["s"]),
+            Notificacao(user_id=i["ana"], tipo="jogo", game_id=i["s"]),
+        ])
+        db.session.commit()
+    assert mesclar(mundo).status_code == 302
+    with mundo.app.app_context():
+        for modelo in (SessaoJogo, JogoDoMes, MetaClube, Notificacao):
+            assert de(modelo, i["s"]).count() == 0, modelo.__name__
+        assert sum(x.duracao_min for x in de(SessaoJogo, i["p"])) == 90
+        assert [de(m, i["p"]).count() for m in (JogoDoMes, MetaClube, Notificacao)] == [1, 1, 1]
 
 
 def test_mrg07_conflitos_mais_recente_no_principal_e_nada_apagado(mundo):

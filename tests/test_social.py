@@ -39,6 +39,14 @@ def test_soc02_sem_duplicata(app, duo):
         assert Follow.query.count() == 1
 
 
+def test_soc02_duplo_envio_simultaneo_nao_da_500(app, duo, corrida):
+    ca, _ = duo
+    corrida("INSERT INTO follow (follower_id, followed_id) VALUES (1, 2)")
+    assert ca.post("/u/bia/seguir").status_code == 302
+    with app.app_context():
+        assert Follow.query.count() == 1
+
+
 def test_soc03_contagens_e_listas_paginadas(app, duo):
     ca, cb = duo
     ca.post("/u/bia/seguir")
