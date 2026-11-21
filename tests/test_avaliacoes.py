@@ -44,6 +44,16 @@ def test_ava02_uma_por_jogo_edita_existente(app, ctx):
             db.session.commit()
 
 
+def test_ava02_duplo_envio_simultaneo_edita_em_vez_de_500(app, ctx, corrida):
+    client, slug = ctx
+    corrida("INSERT INTO review (user_id, game_id, score, text, spoiler, edited, hidden, created_at) "
+            "VALUES (1, 1, 3, '', 0, 0, 0, '2026-01-01')")
+    assert client.post(f"/jogos/{slug}/avaliar", data={"score": 8}).status_code == 302
+    with app.app_context():
+        assert Review.query.one().score == 8
+        assert Status.query.one().value == "jogado"
+
+
 def test_ava03_resenha_opcional_ate_5000(app, ctx):
     client, slug = ctx
     rate(client, slug, score=5)  # sem texto
@@ -103,6 +113,18 @@ def test_ava06_ava07_curtidas(app, ctx):
         assert Like.query.count() == 0
 
 
+def test_ava06_curtir_duplo_envio_simultaneo_nao_da_500(app, ctx, corrida):
+    client, slug = ctx
+    make_user(app, "bia")
+    rate(client, slug, score=7)
+    c2 = app.test_client()
+    login(c2, "bia")
+    corrida("INSERT INTO \"like\" (user_id, review_id) VALUES (2, 1)")
+    assert c2.post("/avaliacoes/1/curtir").status_code == 302
+    with app.app_context():
+        assert Like.query.count() == 1
+
+
 def test_ava08_denuncia(app, ctx):
     client, slug = ctx
     make_user(app, "bia")
@@ -155,3 +177,4 @@ def test_ava11_avaliar_marca_jogado_se_sem_status(app, ctx):
     with app.app_context():
         assert Status.query.one().value == "jogando"  # não sobrescreve
         assert Activity.query.filter_by(kind="avaliou").count() == 1
+

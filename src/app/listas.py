@@ -2,6 +2,7 @@ import json
 
 from flask import Blueprint, abort, flash, redirect, render_template, request
 from sqlalchemy import case
+from sqlalchemy.exc import IntegrityError
 
 from .models import STATUSES, Activity, Game, GameList, ListaInteligente, ListItem, Status, db, now, visible_games
 from .gamificacao import emitir_evento
@@ -35,7 +36,13 @@ def set_status(slug):
     else:
         flash("Status inválido.", "erro")
         return back(f"/jogos/{slug}")
-    db.session.commit()
+    try:
+        db.session.commit()
+    except IntegrityError:  # duplo envio: a outra requisição criou o status, então esta só troca o valor
+        db.session.rollback()
+        cur = Status.query.filter_by(user_id=me.id, game_id=game.id).one()
+        cur.value, cur.updated_at = value, now()
+        db.session.commit()
     emitir_evento(me.id, "status", game_id=game.id)  # GAM-03
     return back(f"/jogos/{slug}")
 

@@ -18,6 +18,18 @@ def test_cad01_validacoes(client, app):
     assert signup(client, username="bia", email="ANA@ex.com").status_code == 400  # e-mail único
 
 
+def test_cad01_cadastro_simultaneo_mostra_erro_e_nao_500(client, app, corrida):
+    corrida("INSERT INTO user (username, username_lower, email, password_hash, display_name, bio, role, "
+            "session_version, created_at, perfil_privado) "
+            "VALUES ('Ana', 'ana', 'ana@ex.com', 'x', 'Ana', '', 'jogador', 0, '2026-01-01', 0)")
+    r = signup(client)
+    assert r.status_code == 400
+    html = r.get_data(as_text=True)
+    assert "Nome de usuário já em uso." in html and "E-mail já cadastrado." in html
+    with app.app_context():
+        assert User.query.count() == 1
+
+
 def test_cad02_hash_com_salt(client, app):
     signup(client)
     with app.app_context():
@@ -64,6 +76,30 @@ def test_cad06_volta_a_acao_apos_login(client, app):
     # open redirect bloqueado
     c2 = app.test_client()
     r = c2.post("/entrar?next=//evil.com", data={"email": "ana@ex.com", "password": "senha1234"})
+    assert r.headers["Location"] == "/"
+
+
+def test_cad06_safe_next_recusa_barra_invertida_e_controle():
+    from app.util import safe_next
+
+    for ruim in ["/\\evil.com", "/\tevil.com", "/\t/evil.com", "/\n/evil.com", "//evil.com",
+                 "https://evil.com", "/x\\y", "\\evil.com"]:
+        assert safe_next(ruim) == "/", ruim
+    for bom in ["/u/ana/editar", "/jogos/x?aba=2#c1", "/"]:
+        assert safe_next(bom) == bom
+
+
+def test_cad06_post_sem_login_volta_a_pagina_de_origem(client, app):
+    make_user(app)
+    make_user(app, "bia")
+    r = client.post("/u/bia/seguir", headers={"Referer": "http://localhost/u/bia?aba=listas"})
+    assert r.status_code == 302
+    r = client.post(r.headers["Location"], data={"email": "ana@ex.com", "password": "senha1234"})
+    assert r.headers["Location"] == "/u/bia?aba=listas"
+    # referrer de outro host não vira destino
+    c2 = app.test_client()
+    r = c2.post("/u/bia/seguir", headers={"Referer": "http://evil.com/u/bia"})
+    r = c2.post(r.headers["Location"], data={"email": "ana@ex.com", "password": "senha1234"})
     assert r.headers["Location"] == "/"
 
 
