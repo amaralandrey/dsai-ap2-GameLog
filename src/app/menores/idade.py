@@ -196,7 +196,7 @@ def pendente():
 @bp.route("/conta/pendente/revisao", methods=["POST"])
 @login_required
 def pedir_revisao():
-    """Data errada sem verificação confiável disponível: a moderação revê e pode pedir nova data (IDA-04, IDA-11)."""
+    """Data errada sem verificação confiável disponível: a moderação revê e pede nova data (IDA-04, IDA-11)."""
     me = current_user()
     if not aguarda_responsavel(me):
         return redirect("/")
@@ -295,11 +295,9 @@ def retirar_contestacao(uid):
 def nova_data(uid):
     """Data autodeclarada errada (até a que suspendeu a conta): apaga a data, e a conta a informa de novo (IDA-05)."""
     alvo = _alvo(uid)
-    if alvo is None:
-        pass
-    elif alvo.nascimento_confiavel:
+    if alvo is not None and alvo.nascimento_confiavel:
         flash("A data desta conta veio de uma verificação confiável e não é apagada.", "erro")
-    else:
+    elif alvo is not None:
         alvo.nascimento = alvo.suspensa_em = alvo.revisao_idade_pedida_em = None
         alvo.aguardando_responsavel = alvo.idade_contestada_em is not None  # a contestação continua valendo
         _auditar("idade.nova_data", alvo)

@@ -210,6 +210,16 @@ def test_ida_04_data_errada_no_cadastro_pede_revisao_e_o_admin_libera(app, clien
         assert db.session.get(User, nid).revisao_idade_pedida_em is None
 
 
+def test_ida_04_so_conta_pendente_pede_revisao(app, client):
+    from conftest import login
+
+    make_user(app)
+    login(client)
+    assert client.post("/conta/pendente/revisao").headers["Location"] == "/"
+    with app.app_context():
+        assert User.query.one().revisao_idade_pedida_em is None
+
+
 def test_ida_04_link_de_nova_verificacao_so_com_adaptador_confiavel(app, pendente_14, monkeypatch):
     monkeypatch.setenv("VERIFICACAO_PROVEDOR", "simulado")
     assert 'href="/conta/idade"' in pendente_14.get("/conta/pendente").get_data(as_text=True)
@@ -280,7 +290,8 @@ def test_ida_05_suspensa_por_data_errada_volta_com_nova_data_pelo_admin(app, cli
     with app.app_context():
         aid = User.query.filter_by(username="ana").one().id
     chefe.post(f"/admin/usuarios/{aid}/nova-data")
-    assert login(client).status_code == 302 and client.get("/listas").headers["Location"].startswith("/conta/nascimento")
+    assert login(client).status_code == 302
+    assert client.get("/listas").headers["Location"].startswith("/conta/nascimento")
     client.post("/conta/nascimento", data={"nascimento": "1990-01-01"})
     assert client.get("/listas").status_code == 200
     with app.app_context():
@@ -408,8 +419,9 @@ def test_ida_11_admin_nao_contesta_a_propria_idade_e_contestacao_de_admin_tem_vo
     login(vice, "vice")
     with app.app_context():
         cid, vid = (User.query.filter_by(username=n).one().id for n in ("chefe", "vice"))
-    r = chefe.post(f"/admin/usuarios/{cid}/contestar-idade", follow_redirects=True)
-    assert "revisada por outro admin" in r.get_data(as_text=True) and chefe.get("/admin/").status_code == 200
+    for acao in ("contestar-idade", "nova-data"):
+        r = chefe.post(f"/admin/usuarios/{cid}/{acao}", follow_redirects=True)
+        assert "revisada por outro admin" in r.get_data(as_text=True) and chefe.get("/admin/").status_code == 200
     assert f"/admin/usuarios/{cid}/contestar-idade" not in chefe.get("/admin/usuarios").get_data(as_text=True)
     chefe.post(f"/admin/usuarios/{vid}/contestar-idade")
     assert vice.get("/admin/").headers["Location"] == "/conta/pendente"
@@ -420,7 +432,8 @@ def test_ida_11_admin_nao_contesta_a_propria_idade_e_contestacao_de_admin_tem_vo
     with app.app_context():
         u = db.session.get(User, vid)
         assert (u.idade_contestada_em, u.aguardando_responsavel, ida.faixa_etaria(u)) == (None, False, "adulto")
-        assert [a.action for a in AuditLog.query.order_by(AuditLog.id)] == ["idade.contestar", "idade.retirar_contestacao"]
+        acoes = [a.action for a in AuditLog.query.order_by(AuditLog.id)]
+        assert acoes == ["idade.contestar", "idade.retirar_contestacao"]
 
 
 def test_ida_11_retirar_contestacao_de_conta_de_14_anos_mantem_a_espera(app, client):
