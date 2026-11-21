@@ -69,7 +69,7 @@ def signup():
         db.session.commit()
         start_session(user)
         flash("Conta criada! Bem-vindo ao GameLog.", "ok")
-        if user.aguardando_responsavel:  # IDA-04
+        if idade.aguarda_responsavel(user):  # IDA-04
             return redirect("/conta/pendente")
         return redirect(safe_next(request.args.get("next")))
     return render_template("auth/cadastro.html", errors={}, form={})

@@ -169,6 +169,21 @@ def test_ida_04_conta_pendente_so_acessa_rotas_livres_e_publicas(app, client):
     assert client.post("/sair").status_code == 302
 
 
+def test_ida_04_aniversario_de_16_anos_libera_a_conta_pendente(app, client, monkeypatch):
+    from conftest import login
+
+    make_user(app, "chefe", role="admin")
+    cadastrar(client, anos_atras(16, dias=1))  # 15 anos hoje, 16 amanhã
+    assert client.get("/listas").headers["Location"] == "/conta/pendente"
+    monkeypatch.setattr(tempo, "agora", lambda: datetime(2026, 11, 17, 0, 1, tzinfo=tempo.FUSO))
+    assert client.get("/listas").status_code == 200
+    assert client.get("/conta/pendente").headers["Location"] == "/"
+    chefe = app.test_client()
+    login(chefe, "chefe")
+    html = chefe.get("/admin/usuarios").get_data(as_text=True)
+    assert "16 ou 17 anos" in html and "aguardando responsável" not in html
+
+
 # ---------- IDA-05 ----------
 def sem_data(app, nome="ana", role="jogador"):
     make_user(app, nome, role=role)

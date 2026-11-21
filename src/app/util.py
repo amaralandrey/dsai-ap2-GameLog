@@ -54,7 +54,9 @@ def _pendencia_de_idade(u):
         return None
     if u.nascimento is None:
         return redirect("/conta/nascimento")
-    if u.aguardando_responsavel or u.idade_contestada_em is not None:
+    from .menores.idade import aguarda_responsavel  # menores.idade importa util
+
+    if aguarda_responsavel(u):
         return redirect("/conta/pendente")
     return None
 

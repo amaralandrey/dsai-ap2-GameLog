@@ -44,6 +44,15 @@ def faixa_etaria(user):
     return faixa_de(user.nascimento)
 
 
+def aguarda_responsavel(user):
+    """A conta espera o vínculo enquanto a faixa for a de 12 a 15 anos: o aniversário de 16 anos a libera sozinho.
+
+    A coluna `aguardando_responsavel` diz que a conta nasceu (ou foi contestada) nessa espera; a faixa diz se
+    ela ainda vale (IDA-03, IDA-04, IDA-11).
+    """
+    return user.aguardando_responsavel and faixa_etaria(user) == VINCULADO
+
+
 def ler_nascimento(texto):
     """Data válida e plausível (IDA-01) ou IdadeInvalida; menor de 12 é checado à parte (IDA-02)."""
     texto = (texto or "").strip()
@@ -148,7 +157,7 @@ def _suspender_sessao(me):
 
 
 def _seguir(user):
-    return redirect("/conta/pendente" if user.aguardando_responsavel else safe_next(request.args.get("next")))
+    return redirect("/conta/pendente" if aguarda_responsavel(user) else safe_next(request.args.get("next")))
 
 
 @bp.route("/conta/nascimento", methods=["GET", "POST"])
@@ -176,7 +185,7 @@ def nascimento():
 def pendente():
     """Conta de 12 a 15 anos, ou com idade contestada, espera o vínculo com um responsável (IDA-04, IDA-11)."""
     me = current_user()
-    if not (me.aguardando_responsavel or me.idade_contestada_em is not None):
+    if not aguarda_responsavel(me):
         return redirect("/")
     return render_template("conta/pendente.html", contestada=me.idade_contestada_em is not None)
 
@@ -209,7 +218,7 @@ def verificar_de_novo(metodo):
         return _suspender_sessao(me)
     db.session.commit()
     flash(f"Verificação registrada. Faixa da conta: {NOMES_DAS_FAIXAS[faixa]}.", "ok")
-    return redirect("/conta/pendente" if me.aguardando_responsavel else "/conta/idade")
+    return redirect("/conta/pendente" if aguarda_responsavel(me) else "/conta/idade")
 
 
 # ---------- moderação (IDA-11) ----------
@@ -219,7 +228,8 @@ def usuarios():
     """Contas com a faixa (nunca a data), suspensas e contestadas primeiro."""
     q = User.query.order_by(User.suspensa_em.is_(None), User.idade_contestada_em.is_(None), User.username_lower)
     page = paginate(q, request.args.get("page"))
-    return render_template("admin/usuarios.html", page=page, faixa=lambda u: NOMES_DAS_FAIXAS[faixa_etaria(u)])
+    return render_template("admin/usuarios.html", page=page, faixa=lambda u: NOMES_DAS_FAIXAS[faixa_etaria(u)],
+                           aguarda=aguarda_responsavel)
 
 
 @bp.route("/admin/usuarios/<int:uid>/contestar-idade", methods=["POST"])
