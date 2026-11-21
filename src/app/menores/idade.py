@@ -207,14 +207,17 @@ def pedir_revisao():
     return redirect("/conta/pendente")
 
 
+def _tela_idade(me, erro=None):
+    disponiveis = [a for a in ADAPTADORES.values() if a.disponivel()]
+    return render_template("conta/idade.html", faixa=NOMES_DAS_FAIXAS[faixa_etaria(me)], adaptadores=disponiveis,
+                           contestada=me.idade_contestada_em is not None, erro=erro)
+
+
 @bp.route("/conta/idade")
 @login_required
 def contestar():
     """Contestar o resultado e pedir nova verificação com um adaptador disponível (IDA-10)."""
-    me = current_user()
-    disponiveis = [a for a in ADAPTADORES.values() if a.disponivel()]
-    return render_template("conta/idade.html", faixa=NOMES_DAS_FAIXAS[faixa_etaria(me)], adaptadores=disponiveis,
-                           contestada=me.idade_contestada_em is not None, erro=None)
+    return _tela_idade(current_user())
 
 
 @bp.route("/conta/idade/<metodo>", methods=["POST"])
@@ -227,9 +230,7 @@ def verificar_de_novo(metodo):
     try:
         resultado = adaptador.verificar(me, request.form)
     except IdadeInvalida as exc:
-        disponiveis = [a for a in ADAPTADORES.values() if a.disponivel()]
-        return render_template("conta/idade.html", faixa=NOMES_DAS_FAIXAS[faixa_etaria(me)], adaptadores=disponiveis,
-                               contestada=me.idade_contestada_em is not None, erro=str(exc)), 400
+        return _tela_idade(me, str(exc)), 400
     faixa = registrar(me, resultado)
     if me.suspensa_em is not None:
         return _suspender_sessao(me)
