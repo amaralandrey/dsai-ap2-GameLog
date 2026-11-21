@@ -130,7 +130,7 @@ def _atividade(rng, games, real):
         for i in range(rng.randint(1, 3)):
             pub = rng.random() < .75
             gl = GameList(user_id=u.id, name=rng.choice(["Favoritos", "Para jogar com amigos", "Clássicos", "Jogos curtos", "Platinas"]) + f" {i + 1}",
-                          description="Lista fictícia.", public=pub, created_at=BASE - timedelta(days=rng.randint(1, 100)))
+                          description="Lista de exemplo.", public=pub, created_at=BASE - timedelta(days=rng.randint(1, 100)))
             db.session.add(gl)
             db.session.flush()
             for pos, g in enumerate(rng.sample(games, rng.randint(3, 12))):

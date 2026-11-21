@@ -73,7 +73,7 @@ def register(app):
     @app.cli.command("seed")
     @click.option("--seed", default=42)
     def seed_cmd(seed):
-        """Popula o banco com dados fictícios reproduzíveis."""
+        """Popula o banco com o catálogo real do snapshot e usuários de exemplo, de forma reproduzível."""
         from .seed import run
 
         populou = run(seed, real=True)
