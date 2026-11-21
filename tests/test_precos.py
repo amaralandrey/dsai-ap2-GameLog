@@ -199,3 +199,25 @@ def test_prc_06_planejados_primeiro_falha_nao_para_e_429_interrompe(app, jogo, a
     assert exc.value.parcial == (1, 1, 0, 0, 0)
     with app.app_context():
         assert PrecoLoja.query.count() == 2
+
+
+def atualizar(app, *args):
+    return app.test_cli_runner().invoke(args=["atualizar-precos", *args])
+
+
+def test_prc_06_comando_resume_por_fonte(app, jogo, api, relogio):
+    api.rotas[STEAM] = steam(preco_steam(5999, 9999, 40))
+    api.rotas[GOG] = http(429)
+    r = atualizar(app)
+    assert r.exit_code == 0
+    assert r.output == ("steam: jogos=1 novos=1 sem_mudanca=0 sem_preco=0 falhas=0\n"
+                        "gog: jogos=0 novos=0 sem_mudanca=0 sem_preco=0 falhas=0 interrompido=rate-limit\n")
+    r = atualizar(app, "--fonte", "steam", "--jogo", "hades", "--limite", "5")
+    assert r.output == "jogos=1 novos=0 sem_mudanca=1 sem_preco=0 falhas=0\n"
+    assert not any("epic" in u for u in api.urls())
+
+
+@pytest.mark.parametrize("fonte", ["epic", "rawg", "arquivo", "xyz"])
+def test_prc_06_fonte_desconhecida_e_erro_de_uso(app, fonte):
+    r = atualizar(app, "--fonte", fonte)
+    assert r.exit_code != 0 and "fonte desconhecida" in r.output
