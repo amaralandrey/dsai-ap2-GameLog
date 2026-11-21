@@ -1,8 +1,10 @@
+import csv
+import io
 import time
 from datetime import date
 from urllib.parse import urlencode
 
-from flask import Blueprint, abort, flash, redirect, render_template, request
+from flask import Blueprint, Response, abort, flash, redirect, render_template, request
 
 from sqlalchemy import func
 from sqlalchemy.orm import joinedload, selectinload
@@ -10,6 +12,7 @@ from sqlalchemy.orm import joinedload, selectinload
 from .catalogo_merge import MesclagemRecusada, ignorar, mesclar
 from .fontes import FONTES, importar_item, indisponivel, jogo_por_fonte
 from .models import AuditLog, Developer, Game, Genre, JogoFonte, PendenciaMerge, Platform, Report, Review, db, now
+from .privacidade.mapa import registro_operacoes
 from .util import admin_required, current_user, paginate, slugify
 
 bp = Blueprint("admin", __name__, url_prefix="/admin")
@@ -401,3 +404,23 @@ def revert(rid):
 def audit_log():
     q = AuditLog.query.order_by(AuditLog.created_at.desc(), AuditLog.id.desc())
     return render_template("admin/auditoria.html", page=paginate(q, request.args.get("page")))
+
+
+# ---------- registro das operações de tratamento (MAP-08) ----------
+@bp.route("/privacidade/registro")
+def registro_privacidade():
+    return render_template("admin/registro_privacidade.html", linhas=registro_operacoes())
+
+
+@bp.route("/privacidade/registro.csv")
+def registro_privacidade_csv():
+    saida = io.StringIO()
+    escritor = csv.writer(saida)
+    escritor.writerow(["finalidade", "descricao", "categorias", "tabelas", "bases_legais", "retencao", "exportado",
+                       "anonimizacao", "suboperadores"])
+    for linha in registro_operacoes():
+        escritor.writerow([linha["finalidade"], linha["descricao"], *("; ".join(linha[k]) for k in (
+            "categorias", "tabelas", "bases_legais", "retencoes")), linha["exportado"],
+            "; ".join(linha["anonimizacao"]), "; ".join(linha["suboperadores"])])
+    return Response(saida.getvalue(), mimetype="text/csv; charset=utf-8",
+                    headers={"Content-Disposition": 'attachment; filename="registro-de-operacoes.csv"'})
