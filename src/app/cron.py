@@ -2,7 +2,7 @@
 
 Campos: minuto, hora, dia do mês, mês e dia da semana (0 ou 7 = domingo). Cada campo aceita `*`, números,
 listas (`1,15`), intervalos (`1-5`) e passos (`*/15`, `1-30/5`). Como no cron do Unix, quando dia do mês e
-dia da semana são os dois restritos, basta um deles bater.
+dia da semana são os dois restritos (não começam com `*`), basta um deles bater; senão, os dois precisam bater.
 """
 from datetime import datetime, timedelta
 
@@ -47,7 +47,8 @@ def ler(expressao):
         raise CronInvalido("use 5 campos: minuto hora dia-do-mês mês dia-da-semana")
     conjuntos = [_campo(p, *c) for p, c in zip(partes, CAMPOS)]
     semana = {0 if d == 7 else d for d in conjuntos[4]}
-    return (*conjuntos[:4], semana, partes[2] != "*", partes[4] != "*")
+    # como no Vixie cron, um campo que começa com `*` (inclusive `*/2`) não conta como restrito
+    return (*conjuntos[:4], semana, not partes[2].startswith("*"), not partes[4].startswith("*"))
 
 
 def _dia_bate(dia, dias, semana, dia_restrito, semana_restrita):

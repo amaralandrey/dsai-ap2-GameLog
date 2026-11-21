@@ -245,6 +245,8 @@ def test_job_07_cron_invalido_com_mensagem_do_campo(expressao, trecho):
     ("0 0 29 2 *", (2026, 3, 1, 0, 0), (2028, 2, 29, 0, 0)),  # só em ano bissexto
     ("0 9 * * 1", (2026, 11, 16, 9, 0), (2026, 11, 23, 9, 0)),  # segunda-feira
     ("0 9 13 * 5", (2026, 11, 1, 0, 0), (2026, 11, 6, 9, 0)),  # dia 13 OU sexta, como no cron do Unix
+    ("0 0 */2 * 1", (2026, 11, 16, 0, 0), (2026, 11, 23, 0, 0)),  # `*/2` não restringe: segunda E dia ímpar
+    ("0 0 1 * */2", (2026, 11, 1, 0, 0), (2026, 12, 1, 0, 0)),  # dia 1 E dia da semana par (01/12 é terça)
 ])
 def test_job_07_proxima_execucao_nas_viradas(expressao, depois_de, esperado):
     from app.cron import proxima_execucao
