@@ -410,6 +410,18 @@ def test_job_10_acoes_com_auditoria(app, chefe, tarefas):
     assert "Ligar" in chefe.get("/admin/jobs").get_data(as_text=True)
 
 
+def test_job_10_retentar_com_a_chave_ja_aberta_em_outro_job(app, chefe, tarefas):
+    with app.app_context():
+        morto = jobs.enfileirar("permanente", chave_unica="k").id
+        jobs.ciclo()
+        jobs.enfileirar("anota", chave_unica="k")
+        db.session.commit()
+    r = chefe.post(f"/admin/jobs/{morto}/retentar", follow_redirects=True)
+    assert r.status_code == 200 and "Já existe um job aberto com a chave k" in r.get_data(as_text=True)
+    with app.app_context():
+        assert db.session.get(Job, morto).status == "morto"
+
+
 # ---------- JOB-11 ----------
 def test_job_11_criar_o_app_nao_inicia_agendador_nem_thread(tmp_path):
     import sys

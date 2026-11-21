@@ -288,6 +288,8 @@ def retentar(jid):
     job = db.get_or_404(Job, jid)
     if job.status not in ("morto", "falhou"):
         flash("Só um job morto ou que falhou pode ser tentado de novo.", "erro")
+    elif job.chave_unica and _abertos(job.chave_unica):
+        flash(f"Já existe um job aberto com a chave {job.chave_unica}.", "erro")
     else:
         job.status, job.tentativas, job.executar_em, job.concluido_em = "pendente", 0, tempo.agora_utc(), None
         _auditar("jobs.retentar", f"job {job.id} ({job.tipo})")
