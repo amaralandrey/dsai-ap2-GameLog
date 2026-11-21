@@ -92,3 +92,4 @@ O `./dev.sh` ativa o hook; sem ele, rode `git config core.hooksPath .githooks` u
 | niveis-xp-sequencias (PRG-01..12) | `progressao.py`, `models.py` (`PerfilProgressao`, `ExtratoXP`), `templates/progressao/` | `tests/test_progressao.py` |
 | rankings-temporadas (RNK-01..12) | `rankings.py`, `models.py` (`Temporada`, `SnapshotRanking`, `Desclassificacao`, `Like.created_at`), `templates/rankings/` | `tests/test_rankings.py` |
 | clubes (CLB-01..14) | `clubes.py`, `models.py` (`Clube`, `MembroClube`, `MetaClube`, `PostClube`, `Report.alvo_tipo`), `templates/clubes/` | `tests/test_clubes.py` |
+| chaveamento (CHV-01..14) | `chaveamento.py`, `graficos_svg.py` (`chave`) | `tests/test_chaveamento.py` |
