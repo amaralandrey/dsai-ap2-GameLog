@@ -7,9 +7,10 @@ import sqlite3
 from flask import Flask, abort, render_template, request, session
 
 from sqlalchemy import event
+from sqlalchemy.dialects.sqlite import insert
 from sqlalchemy.engine import Engine
 
-from .models import db
+from .models import Instancia, db
 from .util import avatar_style, current_user, fold
 
 BLUEPRINTS = []  # preenchido por register_blueprints(); um módulo por spec
@@ -84,4 +85,8 @@ def create_app(config=None):
     cli.register(app)
     with app.app_context():
         db.create_all()
+        # os 2 workers e o `flask seed` disputam a criação: quem chegar depois lê o token gravado
+        db.session.execute(insert(Instancia).values(id=1, token=secrets.token_hex(16)).on_conflict_do_nothing())
+        db.session.commit()
+        app.config["INSTANCIA"] = db.session.get(Instancia, 1).token
     return app

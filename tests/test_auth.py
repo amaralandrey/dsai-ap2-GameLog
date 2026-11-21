@@ -102,3 +102,21 @@ def test_csrf_bloqueia_post_sem_token(tmp_path):
 
     app = create_app({"TESTING": True, "SQLALCHEMY_DATABASE_URI": f"sqlite:///{tmp_path}/c.db"})
     assert app.test_client().post("/cadastro", data=OK).status_code == 400
+
+
+def test_cookie_de_banco_anterior_nao_autentica_quem_herdou_o_id(tmp_path):
+    from app import create_app
+
+    cfg = {"TESTING": True, "CSRF": False, "SECRET_KEY": "fixa"}
+    antigo = create_app({**cfg, "SQLALCHEMY_DATABASE_URI": f"sqlite:///{tmp_path}/a.db"})
+    make_user(antigo, "ana")
+    c = antigo.test_client()
+    login(c, "ana")
+    with c.session_transaction() as s:
+        cookie = dict(s)
+    novo = create_app({**cfg, "SQLALCHEMY_DATABASE_URI": f"sqlite:///{tmp_path}/b.db"})  # banco recriado no boot
+    make_user(novo, "bia")  # herda o id 1 e o session_version 0 da ana
+    c2 = novo.test_client()
+    with c2.session_transaction() as s:
+        s.update(cookie)
+    assert c2.get("/u/bia/editar").status_code == 302
