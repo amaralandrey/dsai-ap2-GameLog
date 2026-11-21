@@ -36,6 +36,16 @@ def test_cad03_login_generico(client, app):
     assert "E-mail ou senha incorretos" in b.get_data(as_text=True)
 
 
+def test_cad03_email_inexistente_tambem_confere_hash(client, app, monkeypatch):
+    from app import auth
+
+    conferidos = []
+    original = auth.check_password_hash
+    monkeypatch.setattr(auth, "check_password_hash", lambda h, s: conferidos.append(h) or original(h, s))
+    assert client.post("/entrar", data={"email": "nao@existe.com", "password": "senha1234"}).status_code == 401
+    assert conferidos == [auth.hash_ficticio()]
+
+
 def test_cad04_bloqueio_apos_5_falhas(client, app):
     make_user(app)
     for _ in range(5):
