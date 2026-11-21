@@ -344,7 +344,7 @@ def test_gam_13_recalcular_sem_aviso_para_antigas(base):
     assert r.output.strip() == "usuarios=3 desbloqueadas=0"
 
 
-def test_gam_13_recalcular_da_o_xp_das_conquistas_uma_vez(base):
+def test_gam_13_recalcular_nao_da_xp_das_conquistas_retroativas(base):
     from app.models import ExtratoXP
 
     with base.app_context():
@@ -357,8 +357,7 @@ def test_gam_13_recalcular_da_o_xp_das_conquistas_uma_vez(base):
     with base.app_context():
         desbloqueadas = UsuarioConquista.query.filter(UsuarioConquista.user_id == a,
                                                       UsuarioConquista.desbloqueada_em.isnot(None)).count()
-        lancadas = ExtratoXP.query.filter_by(user_id=a, origem_tipo="conquista").count()
-        assert desbloqueadas >= 2 and lancadas == desbloqueadas
+        assert desbloqueadas >= 2 and ExtratoXP.query.filter_by(user_id=a, origem_tipo="conquista").count() == 0
 
 
 def test_gam_13_seed_so_recalcula_com_historico_ou_conquista_novos(base, monkeypatch):
