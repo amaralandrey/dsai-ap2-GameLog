@@ -2,6 +2,7 @@ import json
 
 from flask import Blueprint, abort, flash, redirect, render_template, request
 from sqlalchemy import case
+from sqlalchemy.orm import joinedload
 
 from .models import STATUSES, Activity, Game, GameList, ListaInteligente, ListItem, Status, db, now, visible_games
 from .gamificacao import emitir_evento
@@ -101,7 +102,8 @@ def view_list(lid):
     from .listas_inteligentes import progresso_comum
 
     gl, own = get_list(lid)
-    items = [i for i in gl.items if own or i.game.removed_at is None]  # LIS-09
+    todos = ListItem.query.options(joinedload(ListItem.game)).filter_by(list_id=gl.id).order_by(ListItem.position)
+    items = [i for i in todos if own or i.game.removed_at is None]  # LIS-09
     return render_template("listas/lista.html", gl=gl, own=own, items=items, prog=progresso_comum(gl, own),
                            statuses=STATUSES)
 

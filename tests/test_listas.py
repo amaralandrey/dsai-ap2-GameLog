@@ -148,6 +148,30 @@ def test_soc05_trocar_para_jogado_de_novo_nao_duplica_atividade(app, ctx):
         assert Activity.query.filter_by(kind="jogado").count() == 1
 
 
+def test_lis08_pagina_da_lista_sem_consulta_por_jogo(app, ctx):
+    from sqlalchemy import event
+
+    lid = new_list(ctx)
+
+    def consultas():
+        n = []
+
+        def conta(*a):
+            n.append(1)
+        with app.app_context():
+            event.listen(db.engine, "before_cursor_execute", conta)
+            assert ctx.get(f"/listas/{lid}").status_code == 200
+            event.remove(db.engine, "before_cursor_execute", conta)
+        return len(n)
+
+    for i in range(2):
+        add(ctx, make_game(app, f"G{i}"), lid)
+    poucos = consultas()
+    for i in range(2, 8):
+        add(ctx, make_game(app, f"G{i}"), lid)
+    assert consultas() == poucos
+
+
 def test_soc05_remover_jogo_da_lista_apaga_a_atividade(app, ctx):
     from app.models import Activity
 
