@@ -167,6 +167,23 @@ def test_job_06_tarefa_que_sumiu_do_codigo_morre(app, tarefas, monkeypatch):
         assert db.session.get(Job, jid).status == "morto"
 
 
+@pytest.mark.parametrize("args,trecho", [('{"x": 1}', "unexpected keyword"), ("{quebrado", "Expecting"),
+                                        ("[1]", "mapping")])
+def test_job_06_args_que_nao_batem_com_a_tarefa_morrem_sem_novas_tentativas(app, tarefas, args, trecho):
+    @jobs.tarefa("sem_args")
+    def sem_args():
+        pass
+
+    with app.app_context():
+        jid = jobs.enfileirar("sem_args").id
+        db.session.get(Job, jid).args = args
+        db.session.commit()
+        assert jobs.ciclo()["mortos"] == 1
+        j = db.session.get(Job, jid)
+        assert (j.tentativas, j.ultimo_erro.startswith("ErroPermanente: args inválidos para sem_args")) == (1, True)
+        assert trecho in j.ultimo_erro
+
+
 def test_job_05_dois_executores_nunca_rodam_o_mesmo_job(app, tarefas):
     with app.app_context():
         ids = [jobs.enfileirar("anota", n=i).id for i in range(10)]

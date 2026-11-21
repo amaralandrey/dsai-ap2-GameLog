@@ -4,6 +4,7 @@ Quem executa é `flask jobs rodar` ou `POST /jobs/ciclo`, chamados de fora; a tr
 garante que dois executores (ou os 2 workers do gunicorn) nunca rodem o mesmo job ao mesmo tempo.
 """
 import hmac
+import inspect
 import json
 import os
 import signal
@@ -138,7 +139,13 @@ def executar(job_id, executor=None):
     try:
         if job.tipo not in TAREFAS:  # tarefa removida do código depois de enfileirada
             raise ErroPermanente(f"tarefa desconhecida: {job.tipo}")
-        TAREFAS[job.tipo](**json.loads(job.args))
+        funcao = TAREFAS[job.tipo]
+        try:
+            args = json.loads(job.args)
+            inspect.signature(funcao).bind(**args)
+        except (TypeError, ValueError) as exc:  # JSON inválido ou args que não batem: repetir não resolve
+            raise ErroPermanente(f"args inválidos para {job.tipo}: {exc}") from None
+        funcao(**args)
         ok = {"status": "ok", "concluido_em": tempo.agora_utc(), "travado_por": None, "travado_em": None}
         if not _gravar_se_travado(job_id, executor, ok):  # o que a tarefa gravou e o "ok" entram juntos
             db.session.rollback()
