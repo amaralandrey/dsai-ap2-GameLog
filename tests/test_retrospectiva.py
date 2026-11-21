@@ -204,6 +204,21 @@ def test_ret_10_media_dos_seguidos_ignora_quem_nao_pode_ver(base):
     assert "Você e quem você segue" not in outro.get("/u/ana/retrospectiva/2026").get_data(as_text=True)
 
 
+def test_ret_10_seguido_so_com_saldo_da_steam_fica_fora_da_media(base):
+    for n in ("bia", "carla"):
+        make_user(base, n)
+    sessao(base, "ana", "hades", date(2026, 1, 5), 60)
+    sessao(base, "bia", "hades", date(2026, 1, 5), 120)
+    sessao(base, "carla", "celeste", date(2026, 3, 1), 6000, origem="steam")
+    with base.app_context():
+        for n in ("bia", "carla"):
+            db.session.add(Follow(follower_id=uid(base, "ana"), followed_id=uid(base, n)))
+        db.session.commit()
+    ana = base.test_client()
+    login(ana, "ana")
+    assert "<title>Média de quem você segue — jan: 2</title>" in ana.get("/u/ana/retrospectiva/2026").get_data(as_text=True)
+
+
 def test_ret_10_sem_seguidos(base):
     sessao(base, "ana", "hades", date(2026, 1, 5), 60)
     ana = base.test_client()

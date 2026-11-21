@@ -34,6 +34,14 @@ def test_lis01_lis02_um_status_trocar_remover(app, ctx):
         assert Status.query.count() == 0
 
 
+def test_lis01_duplo_envio_simultaneo_nao_da_500(app, ctx, corrida):
+    slug = make_game(app)
+    corrida("INSERT INTO status (user_id, game_id, value, updated_at) VALUES (1, 1, 'planejado', '2026-01-01')")
+    assert ctx.post(f"/jogos/{slug}/status", data={"status": "jogando"}).status_code == 302
+    with app.app_context():
+        assert [s.value for s in Status.query] == ["jogando"]
+
+
 def test_lis03_meus_jogos_agrupa_filtra_pagina(app, ctx):
     slugs = [make_game(app, f"J{i:02d}") for i in range(25)]
     for i, s in enumerate(slugs):
@@ -136,3 +144,51 @@ def test_lis11_apagar_lista_nao_afeta_status_nem_avaliacoes(app, ctx):
     ctx.post(f"/listas/{lid}/apagar")
     with app.app_context():
         assert Status.query.count() == 1 and Review.query.count() == 1 and GameList.query.count() == 0
+
+
+def test_soc05_trocar_para_jogado_de_novo_nao_duplica_atividade(app, ctx):
+    from app.models import Activity
+
+    slug = make_game(app)
+    for v in ("jogado", "jogando", "jogado", "abandonado", "jogado"):
+        ctx.post(f"/jogos/{slug}/status", data={"status": v})
+    with app.app_context():
+        assert Activity.query.filter_by(kind="jogado").count() == 1
+
+
+def test_lis08_pagina_da_lista_sem_consulta_por_jogo(app, ctx):
+    from sqlalchemy import event
+
+    lid = new_list(ctx)
+
+    def consultas():
+        n = []
+
+        def conta(*a):
+            n.append(1)
+        with app.app_context():
+            event.listen(db.engine, "before_cursor_execute", conta)
+            assert ctx.get(f"/listas/{lid}").status_code == 200
+            event.remove(db.engine, "before_cursor_execute", conta)
+        return len(n)
+
+    for i in range(2):
+        add(ctx, make_game(app, f"G{i}"), lid)
+    poucos = consultas()
+    for i in range(2, 8):
+        add(ctx, make_game(app, f"G{i}"), lid)
+    assert consultas() == poucos
+
+
+def test_soc05_remover_jogo_da_lista_apaga_a_atividade(app, ctx):
+    from app.models import Activity
+
+    slug, outro = make_game(app), make_game(app, "Outro")
+    lid = new_list(ctx)
+    add(ctx, slug, lid)
+    add(ctx, outro, lid)
+    with app.app_context():
+        gid = Game.query.filter_by(slug=slug).one().id
+    ctx.post(f"/listas/{lid}/jogos/{gid}/remover")
+    with app.app_context():
+        assert [a.game.slug for a in Activity.query.filter_by(kind="lista_jogo")] == [outro]

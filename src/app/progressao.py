@@ -9,7 +9,7 @@ from datetime import timedelta
 
 from flask import Blueprint, abort, flash, redirect, render_template, request
 from sqlalchemy import func
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.dialects.sqlite import insert
 
 from . import gamificacao
 from .menores.politica import pode
@@ -77,16 +77,17 @@ def lancar(user_id, origem_tipo, origem_id, xp, motivo):
         return None
     if origem_tipo in REPETIVEIS and xp > 0 and _xp_repetivel_hoje(user_id) + xp > TETO_DIARIO:
         xp, motivo = 0, "teto diário"
-    item = ExtratoXP(user_id=user_id, origem_tipo=origem_tipo, origem_id=str(origem_id), xp=xp, motivo=motivo,
-                     created_at=agora_utc())
-    try:
-        with db.session.begin_nested():
-            db.session.add(item)
-            db.session.flush()
-    except IntegrityError:
+    # DO NOTHING segura dois eventos simultâneos com a mesma origem. Um savepoint não serve: no pysqlite, sem
+    # transação aberta (o caso dos ouvintes, logo depois do commit da ação), ele vira a transação de fora e o
+    # RELEASE grava o lançamento sozinho, mesmo que o resto do evento seja desfeito.
+    resultado = db.session.execute(insert(ExtratoXP).values(
+        user_id=user_id, origem_tipo=origem_tipo, origem_id=str(origem_id), xp=xp, motivo=motivo,
+        created_at=agora_utc(),
+    ).on_conflict_do_nothing())
+    if resultado.rowcount == 0:
         return None
     _somar(user_id, xp)
-    return item
+    return db.session.get(ExtratoXP, resultado.inserted_primary_key[0])
 
 
 def _somar(user_id, xp):

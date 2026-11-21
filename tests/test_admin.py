@@ -123,6 +123,19 @@ def test_adm06_decisao_registra_quem_e_quando(app, adm):
         assert Review.query.one().hidden is False  # já decidida
 
 
+def test_adm06_denuncia_de_post_de_clube_nao_e_decidida_aqui(app, adm):
+    make_user(app, "denunciante")
+    with app.app_context():
+        rep = Report(alvo_tipo="post_clube", alvo_id=1, reporter_id=2, reason="spam")
+        db.session.add(rep)
+        db.session.commit()
+        repid = rep.id
+    assert adm.post(f"/admin/denuncias/{repid}/ocultar").status_code == 404
+    assert adm.post(f"/admin/denuncias/{repid}/rejeitar").status_code == 404
+    with app.app_context():
+        assert db.session.get(Report, repid).status == "pendente"
+
+
 def test_adm07_adm08_ocultar_atualiza_e_reverter(app, adm):
     slug, rid = reported(app, adm)
     c = app.test_client()

@@ -6,6 +6,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import joinedload, selectinload
 from werkzeug.exceptions import NotFound
 
+from . import serializadores
 from .busca import search_games
 from .jogo import redirecionar_mesclado
 from .models import Game, Like, Review, db, game_stats, visible_games
@@ -103,7 +104,8 @@ def detalhe(slug):
         return mesclado_ou_404(slug)
     s = game_stats(g.id)
     return resposta({**item(g, s["avg"], s["total"]), "sinopse": g.synopsis,
-                     "histograma": {str(k): v for k, v in s["hist"].items()}, "fontes": fontes(g)})
+                     "histograma": {str(k): v for k, v in s["hist"].items()}, "fontes": fontes(g),
+                     **serializadores.precos(g.id)})
 
 
 @bp.route("/jogos/<slug>/avaliacoes")

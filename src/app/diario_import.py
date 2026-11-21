@@ -13,6 +13,7 @@ from datetime import date, timedelta
 
 from flask import Blueprint, Response, abort, flash, redirect, render_template, request
 from sqlalchemy import func
+from sqlalchemy.orm import contains_eager, joinedload
 
 from . import diario
 from .fontes import base
@@ -65,10 +66,14 @@ def biblioteca_steam(steam_id):
         dados = base.get_json(URL_BIBLIOTECA, params)
     except Exception:  # rede, HTTP (inclusive 429) ou JSON inválido: mensagem genérica, sem a URL com a chave
         raise ErroImportacao(FALHA) from None
-    jogos = (dados or {}).get("response", {}).get("games") if isinstance(dados, dict) else None
+    resposta = dados.get("response") if isinstance(dados, dict) else None
+    jogos = resposta.get("games") if isinstance(resposta, dict) else None
     if not jogos:
         raise ErroImportacao(PERFIL_PRIVADO)
-    return {str(j["appid"]): int(j.get("playtime_forever") or 0) for j in jogos if "appid" in j}
+    try:
+        return {str(j["appid"]): int(j.get("playtime_forever") or 0) for j in jogos if "appid" in j}
+    except (TypeError, ValueError, AttributeError):  # resposta malformada: como falha da Steam (HRS-05)
+        raise ErroImportacao(FALHA) from None
 
 
 def jogos_do_catalogo(appids):
@@ -338,6 +343,7 @@ def exportar_csv(user_id):
     escritor = csv.writer(saida)
     escritor.writerow(COLUNAS)
     sessoes = (SessaoJogo.query.filter_by(user_id=user_id).join(Game, Game.id == SessaoJogo.game_id)
+               .options(contains_eager(SessaoJogo.game), joinedload(SessaoJogo.plataforma))
                .order_by(SessaoJogo.jogada_em, SessaoJogo.id))
     for s in sessoes:
         escritor.writerow([

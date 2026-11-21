@@ -1,7 +1,10 @@
 import re
+import secrets
 from datetime import timedelta
+from functools import cache
 
-from flask import Blueprint, abort, flash, redirect, render_template, request, session
+from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, session
+from sqlalchemy.exc import IntegrityError
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from .models import Activity, Follow, GameList, LoginAttempt, Review, User, db, now
@@ -18,6 +21,12 @@ bp = Blueprint("auth", __name__)
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 USER_RE = re.compile(r"^[A-Za-z0-9_]{3,20}$")
 MAX_FAILS, WINDOW = 5, timedelta(minutes=15)
+
+
+@cache
+def hash_ficticio():
+    """Hash conferido quando o e-mail não existe, para o login não revelar contas pelo tempo de resposta."""
+    return generate_password_hash(secrets.token_hex(16))
 
 
 def validate_signup(username, email, password):
@@ -38,6 +47,7 @@ def validate_signup(username, email, password):
 def start_session(user):
     session.clear()
     session["uid"], session["sv"] = user.id, user.session_version
+    session["inst"] = current_app.config["INSTANCIA"]
 
 
 @bp.route("/cadastro", methods=["GET", "POST"])
@@ -57,7 +67,12 @@ def signup():
             role="jogador",  # CAD-10: todo cadastro novo é jogador
         )
         db.session.add(user)
-        db.session.commit()
+        try:
+            db.session.commit()
+        except IntegrityError:  # cadastro simultâneo: a outra requisição gravou o mesmo usuário ou e-mail
+            db.session.rollback()
+            errors = validate_signup(username, email, password) or {"email": "E-mail já cadastrado."}
+            return render_template("auth/cadastro.html", errors=errors, form=f), 400
         start_session(user)
         flash("Conta criada! Bem-vindo ao GameLog.", "ok")
         return redirect(safe_next(request.args.get("next")))
@@ -74,7 +89,8 @@ def login():
             flash("Muitas tentativas. Tente novamente em 15 minutos.", "erro")
             return render_template("auth/login.html", form=request.form), 429
         user = User.query.filter_by(email=email).first()
-        if user and check_password_hash(user.password_hash, password):
+        confere = check_password_hash(user.password_hash if user else hash_ficticio(), password)  # CAD-03: mesmo tempo
+        if user and confere:
             LoginAttempt.query.filter_by(email=email).delete()
             db.session.commit()
             start_session(user)
