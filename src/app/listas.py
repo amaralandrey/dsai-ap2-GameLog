@@ -31,7 +31,9 @@ def set_status(slug):
             changed = True
             db.session.add(Status(user_id=me.id, game_id=game.id, value=value))
         if value == "jogado" and changed:
-            db.session.add(Activity(user_id=me.id, kind="jogado", game_id=game.id))
+            ja = Activity.query.filter_by(user_id=me.id, kind="jogado", game_id=game.id).first()
+            if ja is None:  # SOC-05/DIA-04: uma vez só
+                db.session.add(Activity(user_id=me.id, kind="jogado", game_id=game.id))
     else:
         flash("Status inválido.", "erro")
         return back(f"/jogos/{slug}")

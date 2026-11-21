@@ -136,3 +136,13 @@ def test_lis11_apagar_lista_nao_afeta_status_nem_avaliacoes(app, ctx):
     ctx.post(f"/listas/{lid}/apagar")
     with app.app_context():
         assert Status.query.count() == 1 and Review.query.count() == 1 and GameList.query.count() == 0
+
+
+def test_soc05_trocar_para_jogado_de_novo_nao_duplica_atividade(app, ctx):
+    from app.models import Activity
+
+    slug = make_game(app)
+    for v in ("jogado", "jogando", "jogado", "abandonado", "jogado"):
+        ctx.post(f"/jogos/{slug}/status", data={"status": v})
+    with app.app_context():
+        assert Activity.query.filter_by(kind="jogado").count() == 1
