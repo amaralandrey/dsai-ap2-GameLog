@@ -1,10 +1,14 @@
 """Fonte GOG: catálogo público e API de jogos, sem chave (GOG-01, GOG-02)."""
+import json
+from urllib.error import HTTPError
+
 from . import base
 from .normalizar import ler_data, texto_puro
 
 NOME = "GOG"
 CATALOGO = "https://catalog.gog.com/v1/catalog"
 JOGO = "https://api.gog.com/v2/games/{}"
+PRECOS = "https://api.gog.com/products/{}/prices"
 POR_PAGINA = 48
 
 
@@ -64,3 +68,39 @@ def buscar(termo, limite=10):
 
 def listar(limite, termo=None):
     return base.percorrer(_ids(limite, termo), detalhe)
+
+
+def _centavos(texto):
+    valor, moeda = str(texto).split()
+    if moeda != "BRL":
+        raise ValueError(f"moeda inesperada: {texto}")
+    return int(valor)
+
+
+def _sem_preco_no_brasil(exc):
+    """4xx com `reason: PRICES_NOT_FOUND` no corpo: o produto não é vendido no Brasil."""
+    try:
+        return json.loads(exc.read() or b"{}").get("reason") == "PRICES_NOT_FOUND"
+    except (AttributeError, TypeError, ValueError):
+        return False
+
+
+def preco(external_id):
+    """(preço, preço base, desconto) em centavos de BRL; id não numérico não vai à rede (PRC-03)."""
+    eid = str(external_id).strip()
+    if not eid.isdigit():
+        return None
+    try:
+        d = base.get_json(PRECOS.format(eid), {"countryCode": "BR"})
+    except HTTPError as exc:
+        if exc.code != 429 and _sem_preco_no_brasil(exc):
+            return None
+        raise
+    if d.get("reason") == "PRICES_NOT_FOUND":
+        return None
+    brl = [p for p in d["_embedded"]["prices"] if p["currency"]["code"] == "BRL"]
+    if not brl:
+        return None
+    final, inicial = _centavos(brl[0]["finalPrice"]), _centavos(brl[0]["basePrice"])
+    desconto = (200 * (inicial - final) + inicial) // (2 * inicial) if inicial else 0  # arredonda meio para cima
+    return final, inicial, desconto

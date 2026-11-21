@@ -62,6 +62,10 @@ def create_app(config=None):
     app.jinja_env.filters["horas"] = formatar_minutos  # "12h 30min" (DIA-06, DIA-09)
     app.jinja_env.filters["selo_horas"] = selo_horas
     app.jinja_env.filters["zip"] = lambda a, *outros: list(zip(a, *outros))
+    from .precos import dia, reais
+
+    app.jinja_env.filters["reais"] = reais  # "R$ 1.234,56" (PRC-08)
+    app.jinja_env.filters["dia"] = dia
 
     @app.context_processor
     def inject():

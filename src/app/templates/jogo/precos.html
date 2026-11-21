@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% from "_macros.html" import pager %}
+{% block title %}Preços de {{ game.title }} — GameLog{% endblock %}
+{% block content %}
+<h1>Preços de <a href="/jogos/{{ game.slug }}">{{ game.title }}</a></h1>
+{% if grafico %}
+<figure class="grafico-box">{{ grafico | safe }}</figure>
+<table><thead><tr><th>Coletado em</th><th>Loja</th><th>Preço</th><th>Preço base</th><th>Desconto</th></tr></thead><tbody>
+{% for p in page.items %}<tr><td>{{ p.coletado_em | dia }}</td><td>{{ nomes_lojas[p.fonte] }}</td><td>{{ p.preco_centavos | reais }}</td>
+  <td>{{ p.preco_base_centavos | reais }}</td><td>{% if p.desconto_pct %}−{{ p.desconto_pct }}%{% else %}—{% endif %}</td></tr>
+{% endfor %}</tbody></table>
+{{ pager(page) }}
+<p class="mut">O GameLog não vende jogos: os preços são das lojas, em reais, e podem ter mudado desde a última verificação.</p>
+{% else %}
+<p class="mut">Ainda não temos preços deste jogo.</p>
+{% endif %}
+{% endblock %}

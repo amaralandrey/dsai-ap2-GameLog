@@ -99,3 +99,18 @@ def listar(limite, termo=None):
             continue
         if j:
             yield j
+
+
+def preco(external_id):
+    """(preço, preço base, desconto) em centavos de BRL; None se não há preço no Brasil (PRC-02)."""
+    appid = int(external_id)
+    bloco = _get(f"appdetails?appids={appid}&cc=br")[str(appid)]
+    d = bloco.get("data") if bloco.get("success") else None
+    if not isinstance(d, dict):
+        return None
+    if d.get("is_free"):
+        return 0, 0, 0
+    p = d.get("price_overview")
+    if p is None or p.get("currency") != "BRL":
+        return None
+    return int(p["final"]), int(p["initial"]), int(p["discount_percent"])
