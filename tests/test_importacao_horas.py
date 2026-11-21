@@ -161,6 +161,9 @@ def test_hrs_05_sem_chave_nao_chama_a_rede(app, ana, api, monkeypatch):
     (http(500), "Não foi possível falar com a Steam"),
     (http(429), "Não foi possível falar com a Steam"),
     (http(403), "Não foi possível falar com a Steam"),
+    ({"response": []}, "o perfil da Steam precisa ser público"),
+    ({"response": {"games": [{"appid": 1145360, "playtime_forever": "muito"}]}}, "Não foi possível falar com a Steam"),
+    ({"response": {"games": [7]}}, "Não foi possível falar com a Steam"),
 ])
 def test_hrs_05_falhas_nao_gravam(app, ana, steam, resposta, mensagem):
     steam.rotas[URL] = resposta

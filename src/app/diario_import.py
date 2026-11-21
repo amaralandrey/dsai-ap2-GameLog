@@ -65,10 +65,14 @@ def biblioteca_steam(steam_id):
         dados = base.get_json(URL_BIBLIOTECA, params)
     except Exception:  # rede, HTTP (inclusive 429) ou JSON inválido: mensagem genérica, sem a URL com a chave
         raise ErroImportacao(FALHA) from None
-    jogos = (dados or {}).get("response", {}).get("games") if isinstance(dados, dict) else None
+    resposta = dados.get("response") if isinstance(dados, dict) else None
+    jogos = resposta.get("games") if isinstance(resposta, dict) else None
     if not jogos:
         raise ErroImportacao(PERFIL_PRIVADO)
-    return {str(j["appid"]): int(j.get("playtime_forever") or 0) for j in jogos if "appid" in j}
+    try:
+        return {str(j["appid"]): int(j.get("playtime_forever") or 0) for j in jogos if "appid" in j}
+    except (TypeError, ValueError, AttributeError):  # resposta malformada: como falha da Steam (HRS-05)
+        raise ErroImportacao(FALHA) from None
 
 
 def jogos_do_catalogo(appids):
