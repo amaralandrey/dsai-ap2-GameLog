@@ -18,6 +18,18 @@ def test_cad01_validacoes(client, app):
     assert signup(client, username="bia", email="ANA@ex.com").status_code == 400  # e-mail único
 
 
+def test_cad01_cadastro_simultaneo_mostra_erro_e_nao_500(client, app, corrida):
+    corrida("INSERT INTO user (username, username_lower, email, password_hash, display_name, bio, role, "
+            "session_version, created_at, perfil_privado) "
+            "VALUES ('Ana', 'ana', 'ana@ex.com', 'x', 'Ana', '', 'jogador', 0, '2026-01-01', 0)")
+    r = signup(client)
+    assert r.status_code == 400
+    html = r.get_data(as_text=True)
+    assert "Nome de usuário já em uso." in html and "E-mail já cadastrado." in html
+    with app.app_context():
+        assert User.query.count() == 1
+
+
 def test_cad02_hash_com_salt(client, app):
     signup(client)
     with app.app_context():
