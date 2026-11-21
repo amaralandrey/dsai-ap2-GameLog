@@ -215,6 +215,19 @@ def test_ida_04_link_de_nova_verificacao_so_com_adaptador_confiavel(app, pendent
     assert 'href="/conta/idade"' in pendente_14.get("/conta/pendente").get_data(as_text=True)
 
 
+@pytest.mark.parametrize("caminho,livre", [("/termos", True), ("/conta/pendente/revisao", True),
+                                           ("/termos-de-clube", False), ("/sair-do-clube", False),
+                                           ("/conta/idade-historico", False)])
+def test_ida_04_rota_livre_e_caminho_exato_ou_segmento(app, caminho, livre):
+    from app.util import _pendencia_de_idade
+
+    with app.app_context():
+        u = usuario(app)
+        u.aguardando_responsavel, u.nascimento = True, anos_atras(14)
+        with app.test_request_context(caminho):
+            assert (_pendencia_de_idade(u) is None) == livre
+
+
 # ---------- IDA-05 ----------
 def sem_data(app, nome="ana", role="jogador"):
     make_user(app, nome, role=role)

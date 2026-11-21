@@ -50,8 +50,8 @@ LIVRES_DA_IDADE = ("/sair", "/privacidade", "/termos", "/conta/privacidade", "/c
 
 def _pendencia_de_idade(u):
     """Para onde vai quem ainda não pode usar o site logado: conta antiga sem data ou à espera do responsável."""
-    if request.path.startswith(LIVRES_DA_IDADE):
-        return None
+    if request.path in LIVRES_DA_IDADE or request.path.startswith(tuple(f"{p}/" for p in LIVRES_DA_IDADE)):
+        return None  # caminho exato ou seguido de "/": `/termos-de-clube` não é livre
     if u.nascimento is None:
         return redirect("/conta/nascimento")
     from .menores.idade import aguarda_responsavel  # menores.idade importa util
