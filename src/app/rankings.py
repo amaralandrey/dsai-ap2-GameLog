@@ -181,7 +181,7 @@ def retrato(temporada, categoria, ids=None, visitante=None):
     q = (db.session.query(User, SnapshotRanking.valor).join(User, User.id == SnapshotRanking.user_id)
          .filter(SnapshotRanking.temporada_id == temporada.id, SnapshotRanking.categoria == categoria))
     if ids is not None:
-        q = q.filter(User.id.in_(ids))
+        q = q.filter(User.id.in_(ids), User.id.not_in(ocultos_para(visitante)))  # RNK-05
     fora = bloqueados_com(visitante) if visitante is not None else set()
     return [(u, v) for u, v in q.order_by(SnapshotRanking.posicao) if u.id not in fora]
 

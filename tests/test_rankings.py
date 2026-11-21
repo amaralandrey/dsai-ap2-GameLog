@@ -258,6 +258,17 @@ def test_rnk_09_retrato_imutavel_e_hall_da_fama(encerravel):
     assert "2026-T3" in hall and "🥇" in hall and "usuário removido" in hall
 
 
+def test_rnk_05_retrato_no_seguindo_esconde_perfil_privado(encerravel):
+    encerravel.test_cli_runner().invoke(args=["rankings", "encerrar-temporada", "2026-T3"])
+    seguir(encerravel, "ana", "bia")
+    seguir(encerravel, "ana", "carla")
+    with encerravel.app_context():
+        User.query.filter_by(username="bia").one().perfil_privado = True
+        db.session.commit()
+    html = cliente(encerravel, "ana").get("/rankings?escopo=seguindo&janela=2026-T3").get_data(as_text=True)
+    assert ordem(html) == ["ana", "carla"]
+
+
 # ---------- RNK-10 ----------
 def test_rnk_10_admin_temporada_desclassificacao_e_reversao(base):
     for n, v in zip(NOMES, (40, 30, 20, 10)):
