@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Rankings — Admin — GameLog{% endblock %}
+{% block content %}
+<h1>Rankings</h1>
+<div class="row">
+<form method="post" class="panel"><h2>Nova temporada</h2>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="acao" value="temporada">
+  <label for="nome">Nome</label><input id="nome" name="nome" value="{{ form.get('nome', '') if form.get('acao') == 'temporada' }}">
+  {% if erros.nome %}<div class="err">{{ erros.nome }}</div>{% endif %}
+  <label for="inicio">Início</label><input id="inicio" name="inicio" type="date">
+  <label for="fim">Fim</label><input id="fim" name="fim" type="date">
+  {% if erros.datas %}<div class="err">{{ erros.datas }}</div>{% endif %}
+  <p><button>Criar temporada</button></p></form>
+<form method="post" class="panel"><h2>Desclassificar</h2>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="acao" value="desclassificar">
+  <label for="temporada">Temporada</label><select id="temporada" name="temporada">{% for t in temporadas if not t.encerrada_em %}<option value="{{ t.slug }}">{{ t.nome }}</option>{% endfor %}</select>
+  {% if erros.temporada %}<div class="err">{{ erros.temporada }}</div>{% endif %}
+  <label for="categoria">Categoria</label><select id="categoria" name="categoria">{% for k, v in categorias.items() %}<option value="{{ k }}">{{ v }}</option>{% endfor %}</select>
+  <label for="usuario">Usuário</label><input id="usuario" name="usuario">{% if erros.usuario %}<div class="err">{{ erros.usuario }}</div>{% endif %}
+  <label for="motivo">Motivo</label><input id="motivo" name="motivo" maxlength="200">{% if erros.motivo %}<div class="err">{{ erros.motivo }}</div>{% endif %}
+  <p><button class="danger">Desclassificar</button></p></form>
+</div>
+<h2>Temporadas</h2>
+<table><tbody>{% for t in temporadas %}<tr><td>{{ t.nome }}</td><td>{{ t.inicio }} a {{ t.fim }}</td><td>{{ 'encerrada' if t.encerrada_em else 'aberta' }}</td></tr>{% endfor %}</tbody></table>
+<h2>Desclassificações</h2>
+<table><tbody>{% for d, u, t in desclassificacoes %}<tr><td>@{{ u.username }}</td><td>{{ t.nome }} · {{ categorias[d.categoria] }}</td><td>{{ d.motivo }}</td>
+  <td>{% if d.revertida_em %}revertida{% elif not t.encerrada_em %}<form method="post" action="/admin/rankings/desclassificacoes/{{ d.id }}/reverter"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="link">Reverter</button></form>{% endif %}</td></tr>
+{% else %}<tr><td class="mut">Nenhuma.</td></tr>{% endfor %}</tbody></table>
+{% endblock %}

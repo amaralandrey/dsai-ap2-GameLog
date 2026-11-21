@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% from "_macros.html" import pager, avatar %}
+{% block title %}{{ clube.nome }} — Clubes — GameLog{% endblock %}
+{% block content %}
+<section class="panel">
+  <h1 style="margin-top:0">{{ clube.nome }}{% if not clube.publico %} <span class="tag">privado</span>{% endif %}{% if clube.genero %} <span class="tag">{{ clube.genero.name }}</span>{% endif %}</h1>
+  {% if clube.descricao %}<p>{{ clube.descricao }}</p>{% endif %}
+  <p class="mut">{{ membros | length }} {{ 'membro' if membros | length == 1 else 'membros' }}{% if m and m.situacao == 'ativo' %} · você é {{ m.papel }}{% endif %}</p>
+  {% if me and not ativo %}<form method="post" action="/clubes/{{ clube.slug }}/entrar"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button>Entrar no clube</button></form>
+  {% elif ativo and m.papel != 'dono' %}<form method="post" action="/clubes/{{ clube.slug }}/sair"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="ghost">Sair do clube</button></form>{% endif %}
+  {% if modera %}<p><a href="/clubes/{{ clube.slug }}/moderacao">Moderação do mural</a></p>{% endif %}
+</section>
+<div class="row">
+<section class="panel"><h2>Jogo do mês</h2>
+  {% if jdm %}<p><a href="/jogos/{{ jdm.game.slug }}"><strong>{{ jdm.game.title }}</strong></a><br><span class="mut">Os membros somam {{ minutos_jdm | horas if minutos_jdm else '0h' }} nele este mês.</span></p>
+  {% else %}<p class="mut">Nenhum jogo escolhido para este mês.</p>{% endif %}
+  {% if modera %}<form method="post" action="/clubes/{{ clube.slug }}/jogo-do-mes"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label for="jogo-mes">Slug do jogo</label><input id="jogo-mes" name="jogo" placeholder="ex.: hades">
+    <label for="mes">Mês</label><input id="mes" name="mes" type="month">
+    <p><button class="ghost">Definir</button></p></form>{% endif %}
+</section>
+<section class="panel"><h2>Top 5 de horas na temporada</h2>
+  {% for u, minutos in top %}<p>{{ loop.index }}. {{ nome_visivel(u.id) }} · {{ minutos | horas }}</p>{% else %}<p class="mut">Ninguém registrou horas ainda.</p>{% endfor %}
+  <p><a href="/rankings?escopo=clube&clube={{ clube.slug }}">Ranking completo do clube</a></p>
+</section>
+</div>
+<section class="panel"><h2>Metas</h2>
+  {% for meta, total, top_meta in metas %}
+  <div class="meta-clube"><strong>{{ tipos[meta.tipo] }}{% if meta.game %}: {{ meta.game.title }}{% endif %}</strong>
+    <span class="mut">{{ meta.inicio.strftime('%d/%m') }} a {{ meta.fim.strftime('%d/%m/%Y') }}</span>
+    {% if meta.atingida_em %}<span class="tag">atingida</span>{% endif %}
+    <div class="progresso" style="width:100%" role="img" aria-label="{{ total }} de {{ meta.alvo }}"><span style="width:{{ [total * 100 / meta.alvo, 100] | min | round(1) }}%"></span></div>
+    <p class="mut">{{ total }} de {{ meta.alvo }}{% if top_meta %} · quem mais contribuiu: {% for uid, valor in top_meta %}{{ nome_visivel(uid) }}{{ ', ' if not loop.last }}{% endfor %}{% endif %}</p></div>
+  {% else %}<p class="mut">Nenhuma meta ainda.</p>{% endfor %}
+  {% if modera %}<details><summary>Nova meta</summary><form method="post" action="/clubes/{{ clube.slug }}/metas" class="row">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div><label for="tipo">Tipo</label><select id="tipo" name="tipo">{% for k, v in tipos.items() %}<option value="{{ k }}">{{ v }}</option>{% endfor %}</select></div>
+    <div><label for="alvo">Alvo (horas ou membros)</label><input id="alvo" name="alvo" type="number" min="1"></div>
+    <div><label for="jogo-meta">Jogo (slug)</label><input id="jogo-meta" name="jogo"></div>
+    <div><label for="inicio">Início</label><input id="inicio" name="inicio" type="date"></div>
+    <div><label for="fim">Fim</label><input id="fim" name="fim" type="date"></div>
+    <div style="align-self:end"><button class="ghost">Criar meta</button></div></form></details>{% endif %}
+</section>
+<div class="row">
+<section class="panel" id="mural" style="flex:2"><h2>Mural</h2>
+  {% if ativo %}<form method="post" action="/clubes/{{ clube.slug }}/mural"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label class="sr" for="texto">Escrever no mural</label><textarea id="texto" name="texto" maxlength="1000" required placeholder="Escreva para o clube…"></textarea>
+    <label style="font-weight:400"><input type="checkbox" name="spoiler" style="width:auto"> Tem spoiler</label>
+    <p><button>Publicar</button></p></form>{% endif %}
+  {% for p in mural.items %}
+  {% set u, nome = autor(p.user_id) %}
+  <div class="post-clube" id="post-{{ p.id }}">{% if u %}{{ avatar(u, 'small') }}{% else %}<span class="avatar small anonimo" aria-hidden="true">?</span>{% endif %} <strong>{{ nome }}</strong>
+    <span class="mut">{{ p.created_at.strftime('%d/%m/%Y %H:%M') }}</span>{% if p.oculto %} <span class="tag">oculto: {{ p.motivo_ocultacao }}</span>{% endif %}
+    {% if p.spoiler %}<details class="spoiler"><summary>Spoiler — clique para ler</summary><p>{{ p.texto }}</p></details>{% else %}<p>{{ p.texto }}</p>{% endif %}
+    {% if me and p.user_id == me.id %}<form class="inline" method="post" action="/clubes/{{ clube.slug }}/mural/{{ p.id }}/apagar"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="link danger-link">Apagar</button></form>
+    {% elif ativo %}<details style="display:inline"><summary class="mut" style="display:inline;cursor:pointer">Denunciar</summary>
+      <form method="post" action="/clubes/{{ clube.slug }}/mural/{{ p.id }}/denunciar"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <select name="reason">{% for k, v in reasons.items() %}<option value="{{ k }}">{{ v }}</option>{% endfor %}</select><button class="ghost">Enviar</button></form></details>{% endif %}
+    {% if modera and not p.oculto %}<form class="inline" method="post" action="/clubes/{{ clube.slug }}/mural/{{ p.id }}/ocultar"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input name="motivo" placeholder="motivo" style="width:auto" required><button class="link">Ocultar</button></form>{% endif %}
+  </div>
+  {% else %}<p class="mut">O mural está vazio.</p>{% endfor %}
+  {{ pager(mural) }}
+</section>
+<section class="panel"><h2>Membros</h2>
+  {% for mc, u in membros %}<p>{{ nome_visivel(u.id) }} <span class="tag">{{ mc.papel }}</span>
+    {% if m and m.papel == 'dono' and mc.user_id != me.id %}
+      {% for acao, rotulo in ([('rebaixar', 'Rebaixar')] if mc.papel == 'moderador' else [('promover', 'Promover')]) + [('transferir', 'Tornar dono'), ('remover', 'Remover')] %}
+      <form class="inline" method="post" action="/clubes/{{ clube.slug }}/membros/{{ mc.user_id }}/{{ acao }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="link">{{ rotulo }}</button></form>{% endfor %}
+    {% elif modera and mc.papel == 'membro' and mc.user_id != me.id %}
+      <form class="inline" method="post" action="/clubes/{{ clube.slug }}/membros/{{ mc.user_id }}/remover"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="link">Remover</button></form>{% endif %}</p>
+  {% endfor %}
+  {% if pendentes %}<h3>Pedidos de entrada</h3>{% for p in pendentes %}<p>@{{ p.user.username }}
+    {% for d in ('aprovar', 'recusar') %}<form class="inline" method="post" action="/clubes/{{ clube.slug }}/pedidos/{{ p.user_id }}/{{ d }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="link">{{ d | capitalize }}</button></form>{% endfor %}</p>{% endfor %}{% endif %}
+</section>
+</div>
+{% endblock %}

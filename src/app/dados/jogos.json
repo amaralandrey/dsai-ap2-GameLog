@@ -14,7 +14,14 @@
    "Windows",
    "macOS"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1086940/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1086940/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "324997"
+   ]
+  ]
  },
  {
   "external_id": "1245620",
@@ -29,7 +36,14 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1245620/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1245620/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "326243"
+   ]
+  ]
  },
  {
   "external_id": "1091500",
@@ -44,7 +58,19 @@
    "Windows",
    "macOS"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1091500/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1091500/library_600x900.jpg",
+  "lojas": [
+   [
+    "epic",
+    "https://store.epicgames.com/p/cyberpunk-2077"
+   ]
+  ],
+  "origens": [
+   [
+    "rawg",
+    "41494"
+   ]
+  ]
  },
  {
   "external_id": "1174180",
@@ -59,7 +85,19 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1174180/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1174180/library_600x900.jpg",
+  "lojas": [
+   [
+    "epic",
+    "https://store.epicgames.com/p/red-dead-redemption-2"
+   ]
+  ],
+  "origens": [
+   [
+    "rawg",
+    "28"
+   ]
+  ]
  },
  {
   "external_id": "292030",
@@ -73,7 +111,19 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/292030/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/292030/library_600x900.jpg",
+  "lojas": [
+   [
+    "gog",
+    "https://www.gog.com/game/the_witcher_3_wild_hunt"
+   ]
+  ],
+  "origens": [
+   [
+    "rawg",
+    "3328"
+   ]
+  ]
  },
  {
   "external_id": "1145350",
@@ -90,7 +140,19 @@
    "Windows",
    "macOS"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1145350/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1145350/library_600x900.jpg",
+  "lojas": [
+   [
+    "epic",
+    "https://store.epicgames.com/p/hades-ii"
+   ]
+  ],
+  "origens": [
+   [
+    "rawg",
+    "891238"
+   ]
+  ]
  },
  {
   "external_id": "367520",
@@ -108,7 +170,14 @@
    "macOS",
    "Linux"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/367520/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/367520/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "9767"
+   ]
+  ]
  },
  {
   "external_id": "413150",
@@ -126,7 +195,14 @@
    "macOS",
    "Linux"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/413150/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/413150/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "654"
+   ]
+  ]
  },
  {
   "external_id": "504230",
@@ -144,7 +220,19 @@
    "macOS",
    "Linux"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/504230/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/504230/library_600x900.jpg",
+  "lojas": [
+   [
+    "epic",
+    "https://store.epicgames.com/p/celeste"
+   ]
+  ],
+  "origens": [
+   [
+    "rawg",
+    "22121"
+   ]
+  ]
  },
  {
   "external_id": "105600",
@@ -163,7 +251,14 @@
    "macOS",
    "Linux"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/105600/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/105600/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "422"
+   ]
+  ]
  },
  {
   "external_id": "620",
@@ -179,7 +274,14 @@
    "Windows",
    "Linux"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/620/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/620/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "4200"
+   ]
+  ]
  },
  {
   "external_id": "220",
@@ -194,7 +296,14 @@
    "Windows",
    "Linux"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/220/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/220/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "13537"
+   ]
+  ]
  },
  {
   "external_id": "730",
@@ -210,7 +319,14 @@
    "Windows",
    "Linux"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/730/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/730/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "965470"
+   ]
+  ]
  },
  {
   "external_id": "570",
@@ -228,7 +344,14 @@
    "macOS",
    "Linux"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/570/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/570/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "10213"
+   ]
+  ]
  },
  {
   "external_id": "550",
@@ -243,7 +366,14 @@
    "Windows",
    "Linux"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/550/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/550/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "12020"
+   ]
+  ]
  },
  {
   "external_id": "374320",
@@ -272,7 +402,14 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/814380/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/814380/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "50734"
+   ]
+  ]
  },
  {
   "external_id": "2050650",
@@ -287,7 +424,14 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/2050650/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/2050650/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "795632"
+   ]
+  ]
  },
  {
   "external_id": "1196590",
@@ -301,7 +445,14 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1196590/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1196590/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "452649"
+   ]
+  ]
  },
  {
   "external_id": "588650",
@@ -319,7 +470,14 @@
    "macOS",
    "Linux"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/588650/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/588650/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "11726"
+   ]
+  ]
  },
  {
   "external_id": "268910",
@@ -335,7 +493,14 @@
    "Windows",
    "macOS"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/268910/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/268910/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "28154"
+   ]
+  ]
  },
  {
   "external_id": "391540",
@@ -352,7 +517,14 @@
    "macOS",
    "Linux"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/391540/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/391540/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "13627"
+   ]
+  ]
  },
  {
   "external_id": "632470",
@@ -367,7 +539,19 @@
    "Windows",
    "macOS"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/632470/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/632470/library_600x900.jpg",
+  "lojas": [
+   [
+    "gog",
+    "https://www.gog.com/game/disco_elysium"
+   ]
+  ],
+  "origens": [
+   [
+    "rawg",
+    "545015"
+   ]
+  ]
  },
  {
   "external_id": "870780",
@@ -383,7 +567,23 @@
    "Windows",
    "macOS"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/870780/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/870780/library_600x900.jpg",
+  "lojas": [
+   [
+    "gog",
+    "https://www.gog.com/game/control_ultimate_edition"
+   ],
+   [
+    "epic",
+    "https://store.epicgames.com/p/control"
+   ]
+  ],
+  "origens": [
+   [
+    "rawg",
+    "479695"
+   ]
+  ]
  },
  {
   "external_id": "1850570",
@@ -398,7 +598,19 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1850570/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1850570/library_600x900.jpg",
+  "lojas": [
+   [
+    "epic",
+    "https://store.epicgames.com/p/death-stranding-directors-cut"
+   ]
+  ],
+  "origens": [
+   [
+    "rawg",
+    "614964"
+   ]
+  ]
  },
  {
   "external_id": "782330",
@@ -412,7 +624,19 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/782330/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/782330/library_600x900.jpg",
+  "lojas": [
+   [
+    "gog",
+    "https://www.gog.com/game/doom_eternal"
+   ]
+  ],
+  "origens": [
+   [
+    "rawg",
+    "58777"
+   ]
+  ]
  },
  {
   "external_id": "377160",
@@ -426,7 +650,14 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/377160/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/377160/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "3070"
+   ]
+  ]
  },
  {
   "external_id": "22380",
@@ -441,7 +672,14 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/22380/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/22380/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "5563"
+   ]
+  ]
  },
  {
   "external_id": "489830",
@@ -455,7 +693,14 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/489830/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/489830/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "12447"
+   ]
+  ]
  },
  {
   "external_id": "1328670",
@@ -470,7 +715,14 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1328670/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1328670/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "516111"
+   ]
+  ]
  },
  {
   "external_id": "435150",
@@ -487,7 +739,19 @@
    "Windows",
    "macOS"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/435150/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/435150/library_600x900.jpg",
+  "lojas": [
+   [
+    "gog",
+    "https://www.gog.com/game/divinity_original_sin_2"
+   ]
+  ],
+  "origens": [
+   [
+    "rawg",
+    "59199"
+   ]
+  ]
  },
  {
   "external_id": "1687950",
@@ -501,7 +765,14 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1687950/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1687950/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "339958"
+   ]
+  ]
  },
  {
   "external_id": "582010",
@@ -515,7 +786,14 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/582010/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/582010/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "46889"
+   ]
+  ]
  },
  {
   "external_id": "289070",
@@ -531,7 +809,19 @@
    "macOS",
    "Linux"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/289070/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/289070/library_600x900.jpg",
+  "lojas": [
+   [
+    "epic",
+    "https://store.epicgames.com/p/sid-meiers-civilization-vi"
+   ]
+  ],
+  "origens": [
+   [
+    "rawg",
+    "10297"
+   ]
+  ]
  },
  {
   "external_id": "255710",
@@ -548,7 +838,14 @@
    "macOS",
    "Linux"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/255710/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/255710/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "10065"
+   ]
+  ]
  },
  {
   "external_id": "427520",
@@ -567,7 +864,14 @@
    "macOS",
    "Linux"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/427520/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/427520/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "10926"
+   ]
+  ]
  },
  {
   "external_id": "526870",
@@ -584,7 +888,19 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/526870/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/526870/library_600x900.jpg",
+  "lojas": [
+   [
+    "epic",
+    "https://store.epicgames.com/p/satisfactory"
+   ]
+  ],
+  "origens": [
+   [
+    "rawg",
+    "58806"
+   ]
+  ]
  },
  {
   "external_id": "294100",
@@ -602,7 +918,14 @@
    "macOS",
    "Linux"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/294100/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/294100/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "12130"
+   ]
+  ]
  },
  {
   "external_id": "264710",
@@ -618,7 +941,19 @@
    "Windows",
    "macOS"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/264710/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/264710/library_600x900.jpg",
+  "lojas": [
+   [
+    "epic",
+    "https://store.epicgames.com/p/subnautica"
+   ]
+  ],
+  "origens": [
+   [
+    "rawg",
+    "10419"
+   ]
+  ]
  },
  {
   "external_id": "892970",
@@ -637,7 +972,14 @@
    "macOS",
    "Linux"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/892970/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/892970/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "248521"
+   ]
+  ]
  },
  {
   "external_id": "322330",
@@ -658,7 +1000,14 @@
    "macOS",
    "Linux"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/322330/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/322330/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "9882"
+   ]
+  ]
  },
  {
   "external_id": "242760",
@@ -675,7 +1024,14 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/242760/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/242760/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "9600"
+   ]
+  ]
  },
  {
   "external_id": "1326470",
@@ -692,7 +1048,14 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1326470/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1326470/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "398405"
+   ]
+  ]
  },
  {
   "external_id": "252490",
@@ -711,7 +1074,14 @@
    "Windows",
    "macOS"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/252490/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/252490/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "9671"
+   ]
+  ]
  },
  {
   "external_id": "346110",
@@ -730,7 +1100,19 @@
    "Windows",
    "macOS"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/346110/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/346110/library_600x900.jpg",
+  "lojas": [
+   [
+    "epic",
+    "https://store.epicgames.com/p/ark"
+   ]
+  ],
+  "origens": [
+   [
+    "rawg",
+    "9810"
+   ]
+  ]
  },
  {
   "external_id": "3240220",
@@ -746,7 +1128,14 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/3240220/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/3240220/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "998846"
+   ]
+  ]
  },
  {
   "external_id": "1551360",
@@ -764,7 +1153,14 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1551360/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1551360/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "622492"
+   ]
+  ]
  },
  {
   "external_id": "227300",
@@ -781,7 +1177,14 @@
    "macOS",
    "Linux"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/227300/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/227300/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "9609"
+   ]
+  ]
  },
  {
   "external_id": "394360",
@@ -798,7 +1201,14 @@
    "macOS",
    "Linux"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/394360/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/394360/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "10715"
+   ]
+  ]
  },
  {
   "external_id": "281990",
@@ -815,7 +1225,14 @@
    "macOS",
    "Linux"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/281990/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/281990/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "10040"
+   ]
+  ]
  },
  {
   "external_id": "1158310",
@@ -833,7 +1250,14 @@
    "macOS",
    "Linux"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1158310/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1158310/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "384567"
+   ]
+  ]
  },
  {
   "external_id": "1142710",
@@ -850,7 +1274,19 @@
    "macOS",
    "Linux"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1142710/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1142710/library_600x900.jpg",
+  "lojas": [
+   [
+    "epic",
+    "https://store.epicgames.com/p/total-war-warhammer-3"
+   ]
+  ],
+  "origens": [
+   [
+    "rawg",
+    "552923"
+   ]
+  ]
  },
  {
   "external_id": "268500",
@@ -866,7 +1302,19 @@
    "macOS",
    "Linux"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/268500/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/268500/library_600x900.jpg",
+  "lojas": [
+   [
+    "epic",
+    "https://store.epicgames.com/p/xcom-2"
+   ]
+  ],
+  "origens": [
+   [
+    "rawg",
+    "1256"
+   ]
+  ]
  },
  {
   "external_id": "646570",
@@ -883,7 +1331,14 @@
    "macOS",
    "Linux"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/646570/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/646570/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "28121"
+   ]
+  ]
  },
  {
   "external_id": "2379780",
@@ -900,7 +1355,14 @@
    "Windows",
    "macOS"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/2379780/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/2379780/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "977316"
+   ]
+  ]
  },
  {
   "external_id": "1794680",
@@ -918,7 +1380,14 @@
    "Windows",
    "macOS"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1794680/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1794680/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "685577"
+   ]
+  ]
  },
  {
   "external_id": "632360",
@@ -933,7 +1402,19 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/632360/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/632360/library_600x900.jpg",
+  "lojas": [
+   [
+    "epic",
+    "https://store.epicgames.com/p/risk-of-rain-2"
+   ]
+  ],
+  "origens": [
+   [
+    "rawg",
+    "263590"
+   ]
+  ]
  },
  {
   "external_id": "553850",
@@ -947,7 +1428,14 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/553850/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/553850/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "976564"
+   ]
+  ]
  },
  {
   "external_id": "1966720",
@@ -964,7 +1452,14 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1966720/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1966720/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "968329"
+   ]
+  ]
  },
  {
   "external_id": "945360",
@@ -978,7 +1473,14 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/945360/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/945360/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "356714"
+   ]
+  ]
  },
  {
   "external_id": "1172470",
@@ -994,7 +1496,14 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1172470/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1172470/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "290856"
+   ]
+  ]
  },
  {
   "external_id": "440",
@@ -1010,7 +1519,14 @@
    "Windows",
    "Linux"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/440/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/440/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "11859"
+   ]
+  ]
  },
  {
   "external_id": "1085660",
@@ -1026,7 +1542,19 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1085660/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1085660/library_600x900.jpg",
+  "lojas": [
+   [
+    "epic",
+    "https://store.epicgames.com/p/destiny-2"
+   ]
+  ],
+  "origens": [
+   [
+    "rawg",
+    "32"
+   ]
+  ]
  },
  {
   "external_id": "230410",
@@ -1042,7 +1570,19 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/230410/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/230410/library_600x900.jpg",
+  "lojas": [
+   [
+    "epic",
+    "https://store.epicgames.com/p/warframe"
+   ]
+  ],
+  "origens": [
+   [
+    "rawg",
+    "766"
+   ]
+  ]
  },
  {
   "external_id": "238960",
@@ -1062,7 +1602,14 @@
    "Windows",
    "macOS"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/238960/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/238960/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "10533"
+   ]
+  ]
  },
  {
   "external_id": "1092790",
@@ -1080,7 +1627,19 @@
    "macOS",
    "Linux"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1092790/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1092790/library_600x900.jpg",
+  "lojas": [
+   [
+    "gog",
+    "https://www.gog.com/game/inscryption"
+   ]
+  ],
+  "origens": [
+   [
+    "rawg",
+    "479694"
+   ]
+  ]
  },
  {
   "external_id": "753640",
@@ -1095,7 +1654,19 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/753640/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/753640/library_600x900.jpg",
+  "lojas": [
+   [
+    "epic",
+    "https://store.epicgames.com/p/outerwilds"
+   ]
+  ],
+  "origens": [
+   [
+    "rawg",
+    "58764"
+   ]
+  ]
  },
  {
   "external_id": "653530",
@@ -1111,7 +1682,14 @@
    "Windows",
    "macOS"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/653530/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/653530/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "46508"
+   ]
+  ]
  },
  {
   "external_id": "383870",
@@ -1128,7 +1706,14 @@
    "macOS",
    "Linux"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/383870/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/383870/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "2819"
+   ]
+  ]
  },
  {
   "external_id": "48000",
@@ -1145,7 +1730,19 @@
    "Windows",
    "macOS"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/48000/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/48000/library_600x900.jpg",
+  "lojas": [
+   [
+    "epic",
+    "https://store.epicgames.com/p/limbo"
+   ]
+  ],
+  "origens": [
+   [
+    "rawg",
+    "1030"
+   ]
+  ]
  },
  {
   "external_id": "304430",
@@ -1161,7 +1758,19 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/304430/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/304430/library_600x900.jpg",
+  "lojas": [
+   [
+    "epic",
+    "https://store.epicgames.com/p/inside"
+   ]
+  ],
+  "origens": [
+   [
+    "rawg",
+    "1450"
+   ]
+  ]
  },
  {
   "external_id": "424840",
@@ -1175,7 +1784,14 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/424840/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/424840/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "41"
+   ]
+  ]
  },
  {
   "external_id": "219150",
@@ -1192,7 +1808,14 @@
    "macOS",
    "Linux"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/219150/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/219150/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "3612"
+   ]
+  ]
  },
  {
   "external_id": "460950",
@@ -1208,7 +1831,14 @@
    "Windows",
    "macOS"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/460950/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/460950/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "13856"
+   ]
+  ]
  },
  {
   "external_id": "1057090",
@@ -1222,7 +1852,14 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1057090/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1057090/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "28199"
+   ]
+  ]
  },
  {
   "external_id": "261570",
@@ -1236,7 +1873,14 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/261570/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/261570/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "19590"
+   ]
+  ]
  },
  {
   "external_id": "40800",
@@ -1252,7 +1896,19 @@
    "macOS",
    "Linux"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/40800/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/40800/library_600x900.jpg",
+  "lojas": [
+   [
+    "epic",
+    "https://store.epicgames.com/p/super-meat-boy"
+   ]
+  ],
+  "origens": [
+   [
+    "rawg",
+    "3144"
+   ]
+  ]
  },
  {
   "external_id": "250900",
@@ -1268,7 +1924,19 @@
    "macOS",
    "Linux"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/250900/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/250900/library_600x900.jpg",
+  "lojas": [
+   [
+    "gog",
+    "https://www.gog.com/game/the_binding_of_isaac_rebirth"
+   ]
+  ],
+  "origens": [
+   [
+    "rawg",
+    "250"
+   ]
+  ]
  },
  {
   "external_id": "418530",
@@ -1283,7 +1951,14 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/418530/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/418530/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "59613"
+   ]
+  ]
  },
  {
   "external_id": "683320",
@@ -1299,7 +1974,14 @@
    "Windows",
    "macOS"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/683320/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/683320/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "59313"
+   ]
+  ]
  },
  {
   "external_id": "1172620",
@@ -1314,7 +1996,14 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1172620/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1172620/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "50781"
+   ]
+  ]
  },
  {
   "external_id": "275850",
@@ -1330,7 +2019,14 @@
    "Windows",
    "macOS"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/275850/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/275850/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "2093"
+   ]
+  ]
  },
  {
   "external_id": "397540",
@@ -1345,7 +2041,19 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/397540/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/397540/library_600x900.jpg",
+  "lojas": [
+   [
+    "epic",
+    "https://store.epicgames.com/p/borderlands-3"
+   ]
+  ],
+  "origens": [
+   [
+    "rawg",
+    "58617"
+   ]
+  ]
  },
  {
   "external_id": "750920",
@@ -1362,7 +2070,19 @@
    "macOS",
    "Linux"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/750920/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/750920/library_600x900.jpg",
+  "lojas": [
+   [
+    "epic",
+    "https://store.epicgames.com/p/shadow-of-the-tomb-raider"
+   ]
+  ],
+  "origens": [
+   [
+    "rawg",
+    "479678"
+   ]
+  ]
  },
  {
   "external_id": "2208920",
@@ -1378,7 +2098,19 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/2208920/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/2208920/library_600x900.jpg",
+  "lojas": [
+   [
+    "epic",
+    "https://store.epicgames.com/p/assassins-creed-valhalla"
+   ]
+  ],
+  "origens": [
+   [
+    "rawg",
+    "437059"
+   ]
+  ]
  },
  {
   "external_id": "812140",
@@ -1394,7 +2126,19 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/812140/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/812140/library_600x900.jpg",
+  "lojas": [
+   [
+    "epic",
+    "https://store.epicgames.com/p/assassins-creed-odyssey"
+   ]
+  ],
+  "origens": [
+   [
+    "rawg",
+    "58616"
+   ]
+  ]
  },
  {
   "external_id": "552520",
@@ -1425,7 +2169,19 @@
    "macOS",
    "Linux"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/412020/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/412020/library_600x900.jpg",
+  "lojas": [
+   [
+    "epic",
+    "https://store.epicgames.com/p/metro-exodus"
+   ]
+  ],
+  "origens": [
+   [
+    "rawg",
+    "28201"
+   ]
+  ]
  },
  {
   "external_id": "8870",
@@ -1441,7 +2197,19 @@
    "macOS",
    "Linux"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/8870/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/8870/library_600x900.jpg",
+  "lojas": [
+   [
+    "epic",
+    "https://store.epicgames.com/p/bioshock-infinite-complete-edition"
+   ]
+  ],
+  "origens": [
+   [
+    "rawg",
+    "4062"
+   ]
+  ]
  },
  {
   "external_id": "403640",
@@ -1455,7 +2223,14 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/403640/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/403640/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "864"
+   ]
+  ]
  },
  {
   "external_id": "480490",
@@ -1470,7 +2245,14 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/480490/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/480490/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "39"
+   ]
+  ]
  },
  {
   "external_id": "337000",
@@ -1487,7 +2269,14 @@
    "macOS",
    "Linux"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/337000/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/337000/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "1447"
+   ]
+  ]
  },
  {
   "external_id": "208650",
@@ -1502,7 +2291,23 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/208650/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/208650/library_600x900.jpg",
+  "lojas": [
+   [
+    "epic",
+    "https://store.epicgames.com/p/batman-arkham-knight"
+   ],
+   [
+    "gog",
+    "https://www.gog.com/game/batman_arkham_knight"
+   ]
+  ],
+  "origens": [
+   [
+    "rawg",
+    "3287"
+   ]
+  ]
  },
  {
   "external_id": "1817070",
@@ -1518,7 +2323,19 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1817070/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1817070/library_600x900.jpg",
+  "lojas": [
+   [
+    "epic",
+    "https://store.epicgames.com/p/marvels-spider-man-remastered"
+   ]
+  ],
+  "origens": [
+   [
+    "rawg",
+    "663742"
+   ]
+  ]
  },
  {
   "external_id": "1593500",
@@ -1534,7 +2351,19 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1593500/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1593500/library_600x900.jpg",
+  "lojas": [
+   [
+    "gog",
+    "https://www.gog.com/fr/game/god_of_war"
+   ]
+  ],
+  "origens": [
+   [
+    "rawg",
+    "58175"
+   ]
+  ]
  },
  {
   "external_id": "2561580",
@@ -1550,7 +2379,14 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/2561580/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/2561580/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "989802"
+   ]
+  ]
  },
  {
   "external_id": "1259420",
@@ -1565,7 +2401,19 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1259420/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1259420/library_600x900.jpg",
+  "lojas": [
+   [
+    "gog",
+    "https://www.gog.com/fr/game/days_gone"
+   ]
+  ],
+  "origens": [
+   [
+    "rawg",
+    "29338"
+   ]
+  ]
  },
  {
   "external_id": "2215430",
@@ -1580,7 +2428,19 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/2215430/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/2215430/library_600x900.jpg",
+  "lojas": [
+   [
+    "epic",
+    "https://store.epicgames.com/p/ghost-of-tsushima"
+   ]
+  ],
+  "origens": [
+   [
+    "rawg",
+    "638650"
+   ]
+  ]
  },
  {
   "external_id": "1888930",
@@ -1595,7 +2455,19 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1888930/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1888930/library_600x900.jpg",
+  "lojas": [
+   [
+    "epic",
+    "https://store.epicgames.com/p/the-last-of-us-part-1"
+   ]
+  ],
+  "origens": [
+   [
+    "rawg",
+    "799265"
+   ]
+  ]
  },
  {
   "external_id": "990080",
@@ -1611,7 +2483,19 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/990080/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/990080/library_600x900.jpg",
+  "lojas": [
+   [
+    "epic",
+    "https://store.epicgames.com/p/hogwarts-legacy"
+   ]
+  ],
+  "origens": [
+   [
+    "rawg",
+    "906547"
+   ]
+  ]
  },
  {
   "external_id": "1623730",
@@ -1628,7 +2512,14 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1623730/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1623730/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "718135"
+   ]
+  ]
  },
  {
   "external_id": "2358720",
@@ -1644,7 +2535,19 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/2358720/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/2358720/library_600x900.jpg",
+  "lojas": [
+   [
+    "epic",
+    "https://store.epicgames.com/p/black-myth-wukong-87a72b"
+   ]
+  ],
+  "origens": [
+   [
+    "rawg",
+    "481913"
+   ]
+  ]
  },
  {
   "external_id": "1627720",
@@ -1661,7 +2564,14 @@
    "Windows",
    "macOS"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1627720/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1627720/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "605674"
+   ]
+  ]
  },
  {
   "external_id": "1888160",
@@ -1675,7 +2585,14 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1888160/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1888160/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "892902"
+   ]
+  ]
  },
  {
   "external_id": "2138710",
@@ -1690,7 +2607,14 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/2138710/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/2138710/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "564757"
+   ]
+  ]
  },
  {
   "external_id": "1868140",
@@ -1708,7 +2632,14 @@
    "Windows",
    "macOS"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1868140/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1868140/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "871264"
+   ]
+  ]
  },
  {
   "external_id": "1313140",
@@ -1726,7 +2657,19 @@
    "Windows",
    "macOS"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1313140/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1313140/library_600x900.jpg",
+  "lojas": [
+   [
+    "gog",
+    "https://www.gog.com/fr/game/cult_of_the_lamb"
+   ]
+  ],
+  "origens": [
+   [
+    "rawg",
+    "650605"
+   ]
+  ]
  },
  {
   "external_id": "1817230",
@@ -1740,7 +2683,14 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1817230/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1817230/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "914789"
+   ]
+  ]
  },
  {
   "external_id": "553420",
@@ -1757,7 +2707,23 @@
    "Windows",
    "macOS"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/553420/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/553420/library_600x900.jpg",
+  "lojas": [
+   [
+    "gog",
+    "https://www.gog.com/fr/game/tunic"
+   ],
+   [
+    "epic",
+    "https://store.epicgames.com/p/tunic"
+   ]
+  ],
+  "origens": [
+   [
+    "rawg",
+    "29236"
+   ]
+  ]
  },
  {
   "external_id": "2231450",
@@ -1772,7 +2738,14 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/2231450/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/2231450/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "914795"
+   ]
+  ]
  },
  {
   "external_id": "1562430",
@@ -1788,7 +2761,23 @@
    "Windows",
    "macOS"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1562430/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1562430/library_600x900.jpg",
+  "lojas": [
+   [
+    "epic",
+    "https://store.epicgames.com/p/dredge-3e3a5f"
+   ],
+   [
+    "gog",
+    "https://www.gog.com/fr/game/dredge"
+   ]
+  ],
+  "origens": [
+   [
+    "rawg",
+    "842402"
+   ]
+  ]
  },
  {
   "external_id": "1144200",
@@ -1804,7 +2793,14 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1144200/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1144200/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "300682"
+   ]
+  ]
  },
  {
   "external_id": "739630",
@@ -1820,7 +2816,14 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/739630/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/739630/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "427930"
+   ]
+  ]
  },
  {
   "external_id": "1332010",
@@ -1836,7 +2839,14 @@
    "Windows",
    "macOS"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1332010/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1332010/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "452638"
+   ]
+  ]
  },
  {
   "external_id": "837470",
@@ -1852,7 +2862,19 @@
    "Windows",
    "macOS"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/837470/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/837470/library_600x900.jpg",
+  "lojas": [
+   [
+    "epic",
+    "https://store.epicgames.com/p/untitled-goose-game"
+   ]
+  ],
+  "origens": [
+   [
+    "rawg",
+    "59637"
+   ]
+  ]
  },
  {
   "external_id": "1426210",
@@ -1867,7 +2889,14 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1426210/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1426210/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "455597"
+   ]
+  ]
  },
  {
   "external_id": "728880",
@@ -1885,7 +2914,14 @@
    "macOS",
    "Linux"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/728880/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/728880/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "58827"
+   ]
+  ]
  },
  {
   "external_id": "477160",
@@ -1903,7 +2939,14 @@
    "Windows",
    "macOS"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/477160/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/477160/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "13247"
+   ]
+  ]
  },
  {
   "external_id": "1003590",
@@ -1918,7 +2961,14 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1003590/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1003590/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "471027"
+   ]
+  ]
  },
  {
   "external_id": "703080",
@@ -1934,7 +2984,14 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/703080/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/703080/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "311652"
+   ]
+  ]
  },
  {
   "external_id": "493340",
@@ -1953,7 +3010,14 @@
    "Windows",
    "macOS"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/493340/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/493340/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "9644"
+   ]
+  ]
  },
  {
   "external_id": "535930",
@@ -1970,7 +3034,19 @@
    "macOS",
    "Linux"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/535930/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/535930/library_600x900.jpg",
+  "lojas": [
+   [
+    "gog",
+    "https://www.gog.com/fr/game/two_point_hospital"
+   ]
+  ],
+  "origens": [
+   [
+    "rawg",
+    "51687"
+   ]
+  ]
  },
  {
   "external_id": "323190",
@@ -1985,7 +3061,19 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/323190/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/323190/library_600x900.jpg",
+  "lojas": [
+   [
+    "epic",
+    "https://store.epicgames.com/p/frostpunk"
+   ]
+  ],
+  "origens": [
+   [
+    "rawg",
+    "45821"
+   ]
+  ]
  },
  {
   "external_id": "282070",
@@ -2002,7 +3090,19 @@
    "Windows",
    "Linux"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/282070/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/282070/library_600x900.jpg",
+  "lojas": [
+   [
+    "epic",
+    "https://store.epicgames.com/p/this-war-of-mine"
+   ]
+  ],
+  "origens": [
+   [
+    "rawg",
+    "1090"
+   ]
+  ]
  },
  {
   "external_id": "813780",
@@ -2017,7 +3117,14 @@
    "Windows",
    "macOS"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/813780/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/813780/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "326253"
+   ]
+  ]
  },
  {
   "external_id": "1361210",
@@ -2033,7 +3140,14 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1361210/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1361210/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "471029"
+   ]
+  ]
  },
  {
   "external_id": "261550",
@@ -2051,7 +3165,23 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/261550/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/261550/library_600x900.jpg",
+  "lojas": [
+   [
+    "epic",
+    "https://store.epicgames.com/p/mount-and-blade-2"
+   ],
+   [
+    "gog",
+    "https://www.gog.com/game/mount_blade_ii_bannerlord"
+   ]
+  ],
+  "origens": [
+   [
+    "rawg",
+    "10069"
+   ]
+  ]
  },
  {
   "external_id": "379430",
@@ -2067,7 +3197,19 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/379430/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/379430/library_600x900.jpg",
+  "lojas": [
+   [
+    "epic",
+    "https://store.epicgames.com/p/kingdom-come-deliverance"
+   ]
+  ],
+  "origens": [
+   [
+    "rawg",
+    "28172"
+   ]
+  ]
  },
  {
   "external_id": "2054970",
@@ -2082,7 +3224,14 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/2054970/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/2054970/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "804753"
+   ]
+  ]
  },
  {
   "external_id": "570940",
@@ -2096,7 +3245,14 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/570940/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/570940/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "51610"
+   ]
+  ]
  },
  {
   "external_id": "433340",
@@ -2115,7 +3271,19 @@
    "macOS",
    "Linux"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/433340/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/433340/library_600x900.jpg",
+  "lojas": [
+   [
+    "epic",
+    "https://store.epicgames.com/p/slime-rancher"
+   ]
+  ],
+  "origens": [
+   [
+    "rawg",
+    "9736"
+   ]
+  ]
  },
  {
   "external_id": "648800",
@@ -2131,7 +3299,14 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/648800/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/648800/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "46301"
+   ]
+  ]
  },
  {
   "external_id": "815370",
@@ -2148,7 +3323,14 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/815370/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/815370/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "61152"
+   ]
+  ]
  },
  {
   "external_id": "305620",
@@ -2167,7 +3349,14 @@
    "macOS",
    "Linux"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/305620/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/305620/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "11312"
+   ]
+  ]
  },
  {
   "external_id": "220200",
@@ -2184,7 +3373,19 @@
    "macOS",
    "Linux"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/220200/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/220200/library_600x900.jpg",
+  "lojas": [
+   [
+    "epic",
+    "https://store.epicgames.com/p/kerbal-space-program"
+   ]
+  ],
+  "origens": [
+   [
+    "rawg",
+    "2213"
+   ]
+  ]
  },
  {
   "external_id": "546560",
@@ -2199,7 +3400,14 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/546560/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/546560/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "392019"
+   ]
+  ]
  },
  {
   "external_id": "578080",
@@ -2216,7 +3424,19 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/578080/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/578080/library_600x900.jpg",
+  "lojas": [
+   [
+    "epic",
+    "https://store.epicgames.com/p/pubg-59c1d9"
+   ]
+  ],
+  "origens": [
+   [
+    "rawg",
+    "10142"
+   ]
+  ]
  },
  {
   "external_id": "359550",
@@ -2231,7 +3451,19 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/359550/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/359550/library_600x900.jpg",
+  "lojas": [
+   [
+    "epic",
+    "https://store.epicgames.com/p/rainbow-six-siege"
+   ]
+  ],
+  "origens": [
+   [
+    "rawg",
+    "8488"
+   ]
+  ]
  },
  {
   "external_id": "1253920",
@@ -2250,7 +3482,14 @@
    "macOS",
    "Linux"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1253920/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1253920/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "428839"
+   ]
+  ]
  },
  {
   "external_id": "607050",
@@ -2265,7 +3504,14 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/607050/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/607050/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "28195"
+   ]
+  ]
  },
  {
   "external_id": "590380",
@@ -2284,7 +3530,19 @@
    "macOS",
    "Linux"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/590380/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/590380/library_600x900.jpg",
+  "lojas": [
+   [
+    "epic",
+    "https://store.epicgames.com/p/into-the-breach"
+   ]
+  ],
+  "origens": [
+   [
+    "rawg",
+    "13566"
+   ]
+  ]
  },
  {
   "external_id": "212680",
@@ -2302,7 +3560,23 @@
    "macOS",
    "Linux"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/212680/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/212680/library_600x900.jpg",
+  "lojas": [
+   [
+    "epic",
+    "https://store.epicgames.com/p/faster-than-light"
+   ],
+   [
+    "gog",
+    "https://www.gog.com/game/faster_than_light"
+   ]
+  ],
+  "origens": [
+   [
+    "rawg",
+    "624"
+   ]
+  ]
  },
  {
   "external_id": "239030",
@@ -2319,7 +3593,14 @@
    "macOS",
    "Linux"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/239030/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/239030/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "1358"
+   ]
+  ]
  },
  {
   "external_id": "457140",
@@ -2336,7 +3617,19 @@
    "macOS",
    "Linux"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/457140/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/457140/library_600x900.jpg",
+  "lojas": [
+   [
+    "epic",
+    "https://store.epicgames.com/p/oxygen-not-included"
+   ]
+  ],
+  "origens": [
+   [
+    "rawg",
+    "9880"
+   ]
+  ]
  },
  {
   "external_id": "219740",
@@ -2354,7 +3647,14 @@
    "macOS",
    "Linux"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/219740/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/219740/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "9475"
+   ]
+  ]
  },
  {
   "external_id": "1703340",
@@ -2372,7 +3672,14 @@
    "macOS",
    "Linux"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1703340/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1703340/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "274758"
+   ]
+  ]
  },
  {
   "external_id": "322500",
@@ -2389,7 +3696,19 @@
    "macOS",
    "Linux"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/322500/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/322500/library_600x900.jpg",
+  "lojas": [
+   [
+    "epic",
+    "https://store.epicgames.com/p/superhot"
+   ]
+  ],
+  "origens": [
+   [
+    "rawg",
+    "7819"
+   ]
+  ]
  },
  {
   "external_id": "287980",
@@ -2407,7 +3726,14 @@
    "macOS",
    "Linux"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/287980/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/287980/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "2666"
+   ]
+  ]
  },
  {
   "external_id": "1927720",
@@ -2424,7 +3750,19 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1927720/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1927720/library_600x900.jpg",
+  "lojas": [
+   [
+    "epic",
+    "https://store.epicgames.com/p/monument-valley-1d99d3"
+   ]
+  ],
+  "origens": [
+   [
+    "rawg",
+    "591"
+   ]
+  ]
  },
  {
   "external_id": "1145360",
@@ -2441,7 +3779,19 @@
    "Windows",
    "macOS"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1145360/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1145360/library_600x900.jpg",
+  "lojas": [
+   [
+    "epic",
+    "https://store.epicgames.com/p/hades"
+   ]
+  ],
+  "origens": [
+   [
+    "rawg",
+    "274755"
+   ]
+  ]
  },
  {
   "external_id": "252950",
@@ -2458,7 +3808,14 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/252950/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/252950/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "3272"
+   ]
+  ]
  },
  {
   "external_id": "2252570",
@@ -2475,7 +3832,14 @@
    "Windows",
    "macOS"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/2252570/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/2252570/library_600x900.jpg",
+  "lojas": [],
+  "origens": [
+   [
+    "rawg",
+    "971687"
+   ]
+  ]
  },
  {
   "external_id": "1097150",
@@ -2493,6 +3857,18 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1097150/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/1097150/library_600x900.jpg",
+  "lojas": [
+   [
+    "epic",
+    "https://store.epicgames.com/p/fall-guys"
+   ]
+  ],
+  "origens": [
+   [
+    "rawg",
+    "326292"
+   ]
+  ]
  }
 ]

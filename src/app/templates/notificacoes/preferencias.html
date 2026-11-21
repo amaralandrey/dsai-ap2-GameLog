@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Preferências de notificação — GameLog{% endblock %}
+{% block content %}
+<h1>Preferências de notificação</h1>
+<form method="post" class="panel">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <table><thead><tr><th>Tipo</th><th>No site</th><th>Por e-mail</th></tr></thead><tbody>
+  {% for tipo, nome in tipos.items() %}{% set site, email = prefs[tipo] %}
+    <tr><td>{{ nome }}</td>
+      <td><input type="checkbox" name="site_{{ tipo }}" style="width:auto" aria-label="{{ nome }} no site" {{ 'checked' if site }} {{ 'disabled' if tipo in obrigatorios }}></td>
+      <td><input type="checkbox" name="email_{{ tipo }}" style="width:auto" aria-label="{{ nome }} por e-mail" {{ 'checked' if email }}></td></tr>
+  {% endfor %}</tbody></table>
+  <p><button>Salvar preferências</button> <a href="/notificacoes">Voltar</a></p>
+</form>
+{% endblock %}

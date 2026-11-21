@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% from "_macros.html" import avatar %}
+{% block title %}Rankings — GameLog{% endblock %}
+{% block content %}
+<h1>Rankings{% if extra.clube %} do clube <a href="/clubes/{{ extra.clube.slug }}">{{ extra.clube.nome }}</a>{% endif %}</h1>
+<form method="get" class="panel row">
+  <div><label for="categoria">Categoria</label><select id="categoria" name="categoria">{% for k, v in categorias.items() %}<option value="{{ k }}" {{ 'selected' if k == categoria }}>{{ v }}</option>{% endfor %}</select></div>
+  <div><label for="janela">Janela</label><select id="janela" name="janela"><option value="atual">Temporada atual</option>
+    {% for t in temporadas %}<option value="{{ t.slug }}" {{ 'selected' if sel_janela == t.slug and request.args.get('janela') == t.slug }}>{{ t.nome }}{% if t.encerrada_em %} (encerrada){% endif %}</option>{% endfor %}
+    <option value="sempre" {{ 'selected' if sel_janela == 'sempre' }}>Desde sempre</option></select></div>
+  <div><label for="escopo">Escopo</label><select id="escopo" name="escopo">
+    {% if me %}<option value="seguindo" {{ 'selected' if escopo == 'seguindo' }}>Quem eu sigo</option>{% endif %}
+    <option value="global" {{ 'selected' if escopo == 'global' }}>Global (perfis públicos)</option>
+    {% if extra.clube %}<option value="clube" selected>Clube</option>{% endif %}</select>
+    {% if extra.clube %}<input type="hidden" name="clube" value="{{ extra.clube.slug }}">{% endif %}</div>
+  <div style="align-self:end"><button class="ghost">Ver</button></div>
+</form>
+{% if cartao is not none and me %}<div class="panel cartao-ranking">{% if cartao %}Você está em <strong>{{ cartao[0] }}º</strong> com <strong>{{ mostrar(categoria, cartao[1]) }}</strong>{% else %}Você ainda não pontuou nesta temporada{% endif %}</div>{% endif %}
+<table><thead><tr><th>#</th><th>Jogador</th><th>{{ categorias[categoria] }}</th></tr></thead><tbody>
+{% for pos, (u, valor) in linhas %}<tr{% if me and u.id == me.id %} class="eu"{% endif %}><td>{{ pos }}</td>
+  <td>{% if u.username.startswith('removido-') %}usuário removido{% else %}{{ avatar(u, 'small') }} <a href="/u/{{ u.username }}">{{ u.display_name }}</a>{% endif %}</td>
+  <td>{{ mostrar(categoria, valor) }}</td></tr>
+{% else %}<tr><td colspan="3" class="mut">Ninguém pontuou nesta janela.</td></tr>{% endfor %}
+</tbody></table>
+{% if paginas > 1 %}<nav class="pager">{% if pagina_n > 1 %}<a href="{{ page_url(pagina_n - 1) }}">← Anterior</a>{% endif %}<span>Página {{ pagina_n }} de {{ paginas }}</span>{% if pagina_n < paginas %}<a href="{{ page_url(pagina_n + 1) }}">Próxima →</a>{% endif %}</nav>{% endif %}
+<p><a href="/rankings/hall-da-fama">Hall da fama</a></p>
+{% endblock %}

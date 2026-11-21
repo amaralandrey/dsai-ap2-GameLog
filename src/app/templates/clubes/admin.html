@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% from "_macros.html" import pager %}
+{% block title %}Clubes — Admin — GameLog{% endblock %}
+{% block content %}
+<h1>Clubes</h1>
+<table><tbody>{% for c in page.items %}<tr><td>{{ c.nome }}</td><td>{{ 'público' if c.publico else 'privado' }}</td>
+  <td>{% if c.removido_em %}<span class="tag">removido</span>{% endif %}</td>
+  <td><form method="post" action="/admin/clubes/{{ c.id }}/{{ 'restaurar' if c.removido_em else 'remover' }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="link{{ '' if c.removido_em else ' danger-link' }}">{{ 'Restaurar' if c.removido_em else 'Remover' }}</button></form></td></tr>
+{% else %}<tr><td class="mut">Nenhum clube.</td></tr>{% endfor %}</tbody></table>
+{{ pager(page) }}
+{% endblock %}

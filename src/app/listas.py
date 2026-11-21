@@ -1,7 +1,10 @@
+import json
+
 from flask import Blueprint, abort, flash, redirect, render_template, request
 from sqlalchemy import case
 
-from .models import STATUSES, Activity, Game, GameList, ListItem, Status, db, now, visible_games
+from .models import STATUSES, Activity, Game, GameList, ListaInteligente, ListItem, Status, db, now, visible_games
+from .gamificacao import emitir_evento
 from .util import current_user, login_required, paginate
 
 bp = Blueprint("listas", __name__)
@@ -33,6 +36,7 @@ def set_status(slug):
         flash("Status inválido.", "erro")
         return back(f"/jogos/{slug}")
     db.session.commit()
+    emitir_evento(me.id, "status", game_id=game.id)  # GAM-03
     return back(f"/jogos/{slug}")
 
 
@@ -66,16 +70,24 @@ def my_lists():
             if gl.public:
                 db.session.add(Activity(user_id=me.id, kind="lista", list_id=gl.id))
             db.session.commit()
+            emitir_evento(me.id, "lista", list_id=gl.id)  # GAM-03
             return redirect(f"/listas/{gl.id}")
+    from .listas_inteligentes import descricao
+
     lists = GameList.query.filter_by(user_id=me.id).order_by(GameList.created_at.desc()).all()
-    return render_template("listas/minhas.html", lists=lists, errors=errors, form=request.form), (400 if errors else 200)
+    inteligentes = [(li, descricao(json.loads(li.regra)))  # LSA-06
+                    for li in ListaInteligente.query.filter_by(user_id=me.id).order_by(ListaInteligente.created_at.desc())]
+    return render_template("listas/minhas.html", lists=lists, inteligentes=inteligentes, errors=errors,
+                           form=request.form), (400 if errors else 200)
 
 
 def get_list(lid, owner_only=False):
     """LIS-08: privada responde 404 a quem não é dono. Escrita de não-dono em pública: 403."""
+    from .diario import pode_ver_perfil
+
     gl, me = db.get_or_404(GameList, lid), current_user()
     own = me is not None and me.id == gl.user_id
-    if not own and not gl.public:
+    if not own and (not gl.public or not pode_ver_perfil(me, gl.user)):  # DIA-12
         abort(404)
     if owner_only and not own:
         abort(403 if me else 404)
@@ -84,9 +96,12 @@ def get_list(lid, owner_only=False):
 
 @bp.route("/listas/<int:lid>")
 def view_list(lid):
+    from .listas_inteligentes import progresso_comum
+
     gl, own = get_list(lid)
     items = [i for i in gl.items if own or i.game.removed_at is None]  # LIS-09
-    return render_template("listas/lista.html", gl=gl, own=own, items=items)
+    return render_template("listas/lista.html", gl=gl, own=own, items=items, prog=progresso_comum(gl, own),
+                           statuses=STATUSES)
 
 
 @bp.route("/listas/<int:lid>/editar", methods=["POST"])
@@ -137,6 +152,7 @@ def add_to_list(slug):
         if gl.public:
             db.session.add(Activity(user_id=gl.user_id, kind="lista_jogo", game_id=game.id, list_id=gl.id))
         db.session.commit()
+        emitir_evento(gl.user_id, "lista", list_id=gl.id)
         flash(f"Adicionado a “{gl.name}”.", "ok")
     return back(f"/jogos/{slug}")
 
