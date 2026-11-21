@@ -1,5 +1,6 @@
 import hashlib
 from functools import wraps
+from urllib.parse import urlsplit
 
 from flask import abort, g, redirect, request, session, url_for
 
@@ -73,10 +74,16 @@ def admin_required(f):
 
 
 def safe_next(url):
-    """Só aceita caminho local, evita open redirect."""
-    if url and url.startswith("/") and not url.startswith("//"):
-        return url
-    return "/"
+    """Só aceita caminho local, evita open redirect.
+
+    Navegadores tratam `\\` como `/` e descartam TAB e quebra de linha, então `/\\evil.com` vira `//evil.com`.
+    """
+    if not url or not url.startswith("/") or url.startswith("//"):
+        return "/"
+    if "\\" in url or any(ord(c) < 32 or ord(c) == 127 for c in url):
+        return "/"
+    partes = urlsplit(url)
+    return url if partes.scheme == "" and partes.netloc == "" else "/"
 
 
 def slugify(text):

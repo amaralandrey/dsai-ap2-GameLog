@@ -67,6 +67,16 @@ def test_cad06_volta_a_acao_apos_login(client, app):
     assert r.headers["Location"] == "/"
 
 
+def test_cad06_safe_next_recusa_barra_invertida_e_controle():
+    from app.util import safe_next
+
+    for ruim in ["/\\evil.com", "/\tevil.com", "/\t/evil.com", "/\n/evil.com", "//evil.com",
+                 "https://evil.com", "/x\\y", "\\evil.com"]:
+        assert safe_next(ruim) == "/", ruim
+    for bom in ["/u/ana/editar", "/jogos/x?aba=2#c1", "/"]:
+        assert safe_next(bom) == bom
+
+
 def test_cad07_perfil_publico(client, app):
     make_user(app)
     html = client.get("/u/ana").get_data(as_text=True)
