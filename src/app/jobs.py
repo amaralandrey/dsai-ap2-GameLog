@@ -16,8 +16,9 @@ from flask import Blueprint, abort, current_app, flash, jsonify, redirect, rende
 from sqlalchemy.exc import IntegrityError
 
 from . import tempo
+from .admin import audit
 from .cron import proxima_execucao
-from .models import JOB_STATUS, Agendamento, AuditLog, Job, db
+from .models import JOB_STATUS, Agendamento, Job, db
 from .util import admin_required, current_user, paginate
 
 bp = Blueprint("jobs", __name__, cli_group="jobs")
@@ -278,7 +279,7 @@ def painel():
 
 
 def _auditar(acao, detalhe):
-    db.session.add(AuditLog(admin_id=current_user().id, action=acao, detail=detalhe[:300]))  # ADM-09
+    audit(acao, detalhe)
     db.session.commit()
 
 
