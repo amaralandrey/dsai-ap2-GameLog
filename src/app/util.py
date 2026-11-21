@@ -53,7 +53,7 @@ def _pendencia_de_idade(u):
     if request.path in LIVRES_DA_IDADE or request.path.startswith(tuple(f"{p}/" for p in LIVRES_DA_IDADE)):
         return None  # caminho exato ou seguido de "/": `/termos-de-clube` não é livre
     if u.nascimento is None:
-        return redirect("/conta/nascimento")
+        return redirect(url_for("idade.nascimento", next=_destino()))
     from .menores.idade import aguarda_responsavel  # menores.idade importa util
 
     if aguarda_responsavel(u):
@@ -61,10 +61,13 @@ def _pendencia_de_idade(u):
     return None
 
 
+def _destino():
+    """Para onde voltar depois de um desvio (GLOBAL-02): o próprio GET, ou a página de origem de um POST."""
+    return request.full_path.rstrip("?") if request.method == "GET" else (request.referrer or "/")
+
+
 def _login_redirect():
-    # volta à ação depois do login (GLOBAL-02): POST volta à página de origem
-    nxt = request.full_path.rstrip("?") if request.method == "GET" else (request.referrer or "/")
-    return redirect(url_for("auth.login", next=nxt))
+    return redirect(url_for("auth.login", next=_destino()))
 
 
 def login_required(f):

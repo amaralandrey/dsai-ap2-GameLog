@@ -243,9 +243,10 @@ def test_ida_05_conta_antiga_informa_a_data_antes_de_tudo(app, client, role, rot
     sem_data(app, role=role)
     login(client)
     r = client.get(rota)
-    assert r.status_code == 302 and r.headers["Location"] == "/conta/nascimento"
-    assert client.post("/conta/nascimento", data={"nascimento": "2030-01-01"}).status_code == 400
-    assert client.post("/conta/nascimento", data={"nascimento": "1990-05-05"}).status_code == 302
+    assert r.status_code == 302 and r.headers["Location"] == f"/conta/nascimento?next={rota}"
+    assert client.post(r.headers["Location"], data={"nascimento": "2030-01-01"}).status_code == 400
+    r = client.post(r.headers["Location"], data={"nascimento": "1990-05-05"})
+    assert r.status_code == 302 and r.headers["Location"] == rota  # volta para a página que tinha pedido
     assert client.get(rota).status_code == 200
     assert client.get("/conta/nascimento").headers["Location"] == "/"
 
