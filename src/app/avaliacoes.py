@@ -89,6 +89,8 @@ def delete(rid):
 @login_required
 def like(rid):
     review = db.get_or_404(Review, rid)
+    if review.game.removed_at:  # CAT-07
+        abort(404)
     me = current_user()
     if review.user_id == me.id:
         flash("Você não pode curtir a própria resenha.", "erro")  # AVA-06

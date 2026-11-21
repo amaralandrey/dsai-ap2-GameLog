@@ -48,6 +48,16 @@ def test_cad03_login_generico(client, app):
     assert "E-mail ou senha incorretos" in b.get_data(as_text=True)
 
 
+def test_cad03_email_inexistente_tambem_confere_hash(client, app, monkeypatch):
+    from app import auth
+
+    conferidos = []
+    original = auth.check_password_hash
+    monkeypatch.setattr(auth, "check_password_hash", lambda h, s: conferidos.append(h) or original(h, s))
+    assert client.post("/entrar", data={"email": "nao@existe.com", "password": "senha1234"}).status_code == 401
+    assert conferidos == [auth.hash_ficticio()]
+
+
 def test_cad04_bloqueio_apos_5_falhas(client, app):
     make_user(app)
     for _ in range(5):
@@ -138,6 +148,11 @@ def test_csrf_bloqueia_post_sem_token(tmp_path):
 
     app = create_app({"TESTING": True, "SQLALCHEMY_DATABASE_URI": f"sqlite:///{tmp_path}/c.db"})
     assert app.test_client().post("/cadastro", data=OK).status_code == 400
+    c = app.test_client()
+    with c.session_transaction() as s:
+        s["csrf"] = "abc"
+    assert c.post("/cadastro", data={**OK, "csrf_token": "abç"}).status_code == 400
+    assert c.post("/cadastro", data={**OK, "csrf_token": "abc"}).status_code == 302
 
 
 def test_cookie_de_banco_anterior_nao_autentica_quem_herdou_o_id(tmp_path):

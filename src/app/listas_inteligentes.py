@@ -20,7 +20,7 @@ from .models import (
     LOJAS, NOMES_DAS_LOJAS, STATUSES, Game, GameList, Genre, JogoFonte, ListaInteligente, ListItem, Review,
     SessaoJogo, Status, db, game_genres,
 )
-from .tempo import hoje
+from .tempo import agora, hoje
 from .util import current_user, login_required, paginate
 
 bp = Blueprint("listas_inteligentes", __name__)
@@ -64,11 +64,12 @@ def largados(user_id, p):
               .filter(SessaoJogo.user_id == user_id).group_by(SessaoJogo.game_id).subquery())
     limite = hoje() - timedelta(days=p["dias"])
     st = _status_do_dono(user_id)
+    horas = int(agora().utcoffset().total_seconds() // 3600)
+    parado = func.coalesce(ultima.c.dia, func.date(st.c.updated_at, f"{horas} hours"))  # dia em Belém
     return (
         _jogos_visiveis().join(st, st.c.game_id == Game.id).outerjoin(ultima, ultima.c.game_id == Game.id)
-        .filter((st.c.value == "abandonado")
-                | ((st.c.value == "jogando") & (func.coalesce(ultima.c.dia, func.date(st.c.updated_at)) <= limite)))
-        .order_by(func.coalesce(ultima.c.dia, func.date(st.c.updated_at)), Game.title)
+        .filter((st.c.value == "abandonado") | ((st.c.value == "jogando") & (parado <= limite)))
+        .order_by(parado, Game.title)
     )
 
 

@@ -108,6 +108,13 @@ def test_lsa_02_largados_respeita_n_dias(app, ana):
     assert "Jogando sem sessão há 30 dias ou abandonados" in html
 
 
+def test_lsa_02_largados_conta_o_dia_da_parada_em_belem(app, ana):
+    status(app, "alfa", "jogando", atualizado=datetime(2026, 10, 17, 1, 0))  # 16/10 às 22h em Belém
+    status(app, "beta", "jogando", atualizado=datetime(2026, 10, 17, 4, 0))  # 17/10 à 1h em Belém
+    criar(ana, "largados", dias="31")
+    assert jogos(ana, ultima(app))[0] == ["Alfa"]
+
+
 def test_lsa_02_wishlist_na_loja_certa(app, ana):
     status(app, "alfa", "planejado")
     status(app, "beta", "planejado")

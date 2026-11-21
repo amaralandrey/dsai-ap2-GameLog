@@ -73,6 +73,43 @@ def test_soc04_feed_so_de_quem_sigo_do_mais_recente_e_paginado(app, duo):
     assert "Página 1 de 2" in h and feed(ca, "?page=2").count('class="panel"') == 2
 
 
+def consultas(app, client, url):
+    from sqlalchemy import event
+
+    n = []
+
+    def conta(*a):
+        n.append(1)
+    with app.app_context():
+        event.listen(db.engine, "before_cursor_execute", conta)
+        assert client.get(url).status_code == 200
+        event.remove(db.engine, "before_cursor_execute", conta)
+    return len(n)
+
+
+def test_soc04_feed_sem_consulta_por_atividade(app, duo):
+    ca, _ = duo
+
+    def povoar(de, ate):
+        for i in range(de, ate):
+            make_user(app, f"u{i}")
+            make_game(app, f"J{i}")
+        with app.app_context():
+            ana = User.query.filter_by(username="ana").one()
+            for i in range(de, ate):
+                u, g = User.query.filter_by(username=f"u{i}").one(), Game.query.filter_by(slug=f"j{i}").one()
+                gl = GameList(user_id=u.id, name=f"L{i}", public=True)
+                db.session.add_all([Follow(follower_id=ana.id, followed_id=u.id), gl])
+                db.session.flush()
+                db.session.add(Activity(user_id=u.id, kind="lista_jogo", game_id=g.id, list_id=gl.id))
+            db.session.commit()
+
+    povoar(0, 2)
+    poucas = consultas(app, ca, "/feed")
+    povoar(2, 8)
+    assert consultas(app, ca, "/feed") == poucas
+
+
 def test_soc05_atividades_geradoras(app, duo):
     ca, cb = duo
     s = make_game(app)

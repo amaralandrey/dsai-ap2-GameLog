@@ -161,6 +161,9 @@ def test_hrs_05_sem_chave_nao_chama_a_rede(app, ana, api, monkeypatch):
     (http(500), "Não foi possível falar com a Steam"),
     (http(429), "Não foi possível falar com a Steam"),
     (http(403), "Não foi possível falar com a Steam"),
+    ({"response": []}, "o perfil da Steam precisa ser público"),
+    ({"response": {"games": [{"appid": 1145360, "playtime_forever": "muito"}]}}, "Não foi possível falar com a Steam"),
+    ({"response": {"games": [7]}}, "Não foi possível falar com a Steam"),
 ])
 def test_hrs_05_falhas_nao_gravam(app, ana, steam, resposta, mensagem):
     steam.rotas[URL] = resposta
@@ -363,6 +366,31 @@ def test_hrs_11_exportar_e_reimportar_da_tudo_duplicado(app, ana):
     assert "'=SOMA(A1)" in texto and ",hades," in texto
     _, linhas = previa(app, ana, texto)
     assert sorted(x["classe"] for x in linhas) == ["duplicada", "duplicada", "steam"]
+
+
+def test_hrs_11_exportar_sem_consulta_por_sessao(app, ana):
+    from sqlalchemy import event
+
+    from app.diario_import import exportar_csv
+    from app.models import Platform
+
+    def consultas(de, ate):
+        slugs = [make_game(app, f"Exp {i}", platform=f"Plat {i}") for i in range(de, ate)]
+        with app.app_context():
+            for s in slugs:
+                g = Game.query.filter_by(slug=s).one()
+                db.session.add(SessaoJogo(user_id=uid(app), game_id=g.id, jogada_em=date(2026, 11, 1), duracao_min=30,
+                                          plataforma_id=Platform.query.filter_by(name=g.platforms[0].name).one().id))
+            db.session.commit()
+            contadas = []
+
+            def conta(*a):
+                contadas.append(1)
+            event.listen(db.engine, "before_cursor_execute", conta)
+            exportar_csv(uid(app))
+            event.remove(db.engine, "before_cursor_execute", conta)
+            return len(contadas)
+    assert consultas(0, 2) == consultas(2, 8)
 
 
 def test_hrs_11_anotacao_de_1000_caracteres_com_formula_volta_duplicada(app, ana):

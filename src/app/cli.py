@@ -73,7 +73,7 @@ def register(app):
     @app.cli.command("seed")
     @click.option("--seed", default=42)
     def seed_cmd(seed):
-        """Popula o banco com dados fictícios reproduzíveis."""
+        """Popula o banco com o catálogo real do snapshot e usuários de exemplo, de forma reproduzível."""
         from .seed import run
 
         populou = run(seed, real=True)
@@ -172,10 +172,13 @@ def register(app):
     @rankings_cli.command("abrir-temporada")
     def rankings_abrir():
         """Cria a temporada do trimestre atual, se ainda não existir."""
-        from .rankings import abrir_temporada
+        from .rankings import abrir_temporada, trimestre
+        from .tempo import hoje
 
         t, criada = abrir_temporada()
         click.echo(f"temporada={t.slug} criada={int(criada)}")
+        if t.slug != trimestre(hoje())[0]:
+            click.echo(f"aviso=o trimestre se sobrepõe à temporada {t.slug}; nada foi criado")
 
     @rankings_cli.command("encerrar-temporada")
     @click.argument("slug")

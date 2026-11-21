@@ -76,6 +76,16 @@ def test_rnk_01_abrir_temporada_idempotente(app):
         assert (t.inicio, t.fim) == (date(2026, 10, 1), date(2026, 12, 31))
 
 
+def test_rnk_10_abrir_temporada_nao_sobrepoe_a_do_admin(app):
+    with app.app_context():
+        db.session.add(Temporada(nome="Natal", slug="natal", inicio=date(2026, 12, 1), fim=date(2027, 1, 15)))
+        db.session.commit()
+    r = app.test_cli_runner().invoke(args=["rankings", "abrir-temporada"])
+    assert "temporada=natal criada=0" in r.output and "aviso=" in r.output
+    with app.app_context():
+        assert [t.slug for t in Temporada.query] == ["natal"]
+
+
 @pytest.mark.parametrize("dia,slug,inicio,fim", [
     (date(2026, 1, 1), "2026-T1", date(2026, 1, 1), date(2026, 3, 31)),
     (date(2026, 6, 30), "2026-T2", date(2026, 4, 1), date(2026, 6, 30)),
@@ -168,6 +178,7 @@ def test_rnk_04_escopos(base, monkeypatch):
     visitante = cliente(base)
     assert ordem(visitante.get("/rankings").get_data(as_text=True)) == ["ana", "bia", "carla", "duda"]
     assert visitante.get("/rankings?escopo=seguindo").headers["Location"].startswith("/entrar")
+    assert visitante.get("/rankings?escopo=clube&clube=x").headers["Location"].startswith("/entrar")
     monkeypatch.setitem(politica.ACOES, "ranking_global", lambda user, alvo=None: user.username != "carla")
     assert "carla" not in ordem(visitante.get("/rankings?escopo=global").get_data(as_text=True))
 
@@ -215,6 +226,14 @@ def test_rnk_07_desempate_por_instante_e_por_id(base):
     html = cliente(base).get("/rankings?escopo=global").get_data(as_text=True)
     assert ordem(html) == ["ana", "duda", "bia", "carla"]  # bia tem id menor que carla
     assert ordem(cliente(base).get("/rankings?escopo=global").get_data(as_text=True)) == ordem(html)
+
+
+def test_rnk_07_estorno_de_xp_nao_atrasa_o_instante(base):
+    xp(base, "ana", 10, datetime(2026, 11, 8))
+    xp(base, "bia", 15, datetime(2026, 11, 5))
+    xp(base, "bia", -5, datetime(2026, 11, 10))
+    html = cliente(base).get("/rankings?escopo=global").get_data(as_text=True)
+    assert ordem(html) == ["bia", "ana"]
 
 
 # ---------- RNK-08, RNK-09 ----------
@@ -304,6 +323,17 @@ def test_rnk_09_retrato_imutavel_e_hall_da_fama(encerravel):
     assert ordem(html)[0] == "ana" and "usuário removido" in html
     hall = cliente(encerravel).get("/rankings/hall-da-fama").get_data(as_text=True)
     assert "2026-T3" in hall and "🥇" in hall and "usuário removido" in hall
+
+
+def test_rnk_05_retrato_no_seguindo_esconde_perfil_privado(encerravel):
+    encerravel.test_cli_runner().invoke(args=["rankings", "encerrar-temporada", "2026-T3"])
+    seguir(encerravel, "ana", "bia")
+    seguir(encerravel, "ana", "carla")
+    with encerravel.app_context():
+        User.query.filter_by(username="bia").one().perfil_privado = True
+        db.session.commit()
+    html = cliente(encerravel, "ana").get("/rankings?escopo=seguindo&janela=2026-T3").get_data(as_text=True)
+    assert ordem(html) == ["ana", "carla"]
 
 
 # ---------- RNK-10 ----------

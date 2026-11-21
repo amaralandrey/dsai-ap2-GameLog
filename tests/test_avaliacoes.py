@@ -178,3 +178,20 @@ def test_ava11_avaliar_marca_jogado_se_sem_status(app, ctx):
         assert Status.query.one().value == "jogando"  # não sobrescreve
         assert Activity.query.filter_by(kind="avaliou").count() == 1
 
+
+def test_curtir_resenha_de_jogo_removido_responde_404(app, ctx):
+    from app.models import Game
+    from app.tempo import agora_utc
+
+    client, slug = ctx
+    make_user(app, "bia")
+    rate(client, slug, score=7, text="boa")
+    with app.app_context():
+        rid = Review.query.one().id
+        Game.query.filter_by(slug=slug).one().removed_at = agora_utc()
+        db.session.commit()
+    c2 = app.test_client()
+    login(c2, "bia")
+    assert c2.post(f"/avaliacoes/{rid}/curtir").status_code == 404
+    with app.app_context():
+        assert Like.query.count() == 0

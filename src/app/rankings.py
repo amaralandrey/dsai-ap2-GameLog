@@ -6,8 +6,8 @@ de RNK-07. Temporada encerrada é lida do `SnapshotRanking`, que não muda depoi
 import logging
 from datetime import date, timedelta
 
-from flask import Blueprint, abort, flash, redirect, render_template, request
-from sqlalchemy import func
+from flask import Blueprint, abort, current_app, flash, redirect, render_template, request
+from sqlalchemy import case, func
 
 from . import gamificacao
 from .diario import ocultos_para
@@ -53,6 +53,10 @@ def abrir_temporada(dia=None):
     t = Temporada.query.filter_by(slug=slug).first()
     if t is not None:
         return t, False
+    outra = Temporada.query.filter(Temporada.inicio <= fim, Temporada.fim >= inicio).first()
+    if outra is not None:  # RNK-10: temporadas não se sobrepõem; a criada pelo admin fica
+        current_app.logger.warning("temporada %s não aberta: sobrepõe %s", slug, outra.slug)
+        return outra, False
     t = Temporada(nome=slug, slug=slug, inicio=inicio, fim=fim)
     db.session.add(t)
     db.session.commit()
@@ -103,8 +107,9 @@ def consulta(categoria, de, ate):
                 .join(Review, Review.id == Like.review_id).join(Game, Game.id == Review.game_id)
                 .filter(Review.hidden.is_(False), Game.removed_at.is_(None), _entre(Like.created_at, de, ate, False))
                 .group_by(Review.user_id))
+    ganho = func.max(case((ExtratoXP.xp > 0, ExtratoXP.created_at)))  # estorno não atrasa o desempate (RNK-07)
     return (db.session.query(ExtratoXP.user_id.label("user_id"), func.sum(ExtratoXP.xp).label("valor"),
-                             func.max(ExtratoXP.created_at).label("instante"))
+                             ganho.label("instante"))
             .filter(_entre(ExtratoXP.created_at, de, ate, False))
             .group_by(ExtratoXP.user_id))
 
@@ -145,7 +150,7 @@ def pagina():
     escopo = request.args.get("escopo")
     if escopo not in ESCOPOS:
         escopo = "seguindo" if me else "global"
-    if escopo == "seguindo" and me is None:
+    if escopo != "global" and me is None:  # RNK-04: o visitante vê só o global
         return redirect(f"/entrar?next={request.full_path.rstrip('?')}")  # GLOBAL-02
     temporada, de, ate = janela(request.args.get("janela", JANELA_PADRAO), temporadas)
     sel_janela = "sempre" if request.args.get("janela") == "sempre" else (temporada.slug if temporada else "atual")
@@ -183,7 +188,7 @@ def retrato(temporada, categoria, ids=None, visitante=None):
     q = (db.session.query(User, SnapshotRanking.valor).join(User, User.id == SnapshotRanking.user_id)
          .filter(SnapshotRanking.temporada_id == temporada.id, SnapshotRanking.categoria == categoria))
     if ids is not None:
-        q = q.filter(User.id.in_(ids))
+        q = q.filter(User.id.in_(ids), User.id.not_in(ocultos_para(visitante)))  # RNK-05
     fora = bloqueados_com(visitante) if visitante is not None else set()
     return [(u, v) for u, v in q.order_by(SnapshotRanking.posicao) if u.id not in fora]
 

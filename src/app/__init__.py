@@ -46,7 +46,7 @@ def create_app(config=None):
     def csrf_protect():
         if request.method == "POST" and app.config["CSRF"]:
             token = session.get("csrf")
-            if not token or token != request.form.get("csrf_token"):
+            if not token or not secrets.compare_digest(token.encode(), request.form.get("csrf_token", "").encode()):
                 abort(400, "Token CSRF inválido")
 
     app.jinja_env.globals["avatar_style"] = avatar_style

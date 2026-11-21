@@ -95,6 +95,8 @@ def suggestions(me, limit=5):
 @login_required
 def feed():
     me = current_user()
-    q = feed_query(me.id, me).options(selectinload(Activity.review).selectinload(Review.comments).joinedload(Comment.user))
+    q = feed_query(me.id, me).options(
+        selectinload(Activity.review).selectinload(Review.comments).joinedload(Comment.user),
+        selectinload(Activity.user), selectinload(Activity.game), selectinload(Activity.list))
     page = paginate(q, request.args.get("page"))
     return render_template("social/feed.html", page=page, suggestions=suggestions(me) if not page.items else [])
