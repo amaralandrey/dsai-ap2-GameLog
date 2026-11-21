@@ -162,7 +162,8 @@ def test_registro_csv(app, client):  # MAP-08
                                "exportado", "anonimizacao", "suboperadores"]
     assert [l["finalidade"] for l in linhas] == [l["finalidade"] for l in mapa.registro_operacoes()]
     seguranca = next(l for l in linhas if l["finalidade"] == "seguranca")
-    assert seguranca["tabelas"] == "login_attempt" and seguranca["retencao"] == "30 dias"
-    assert seguranca["exportado"] == "não" and seguranca["anonimizacao"] == "apagar_linha"
+    assert seguranca["tabelas"] == "instancia; login_attempt"
+    assert seguranca["retencao"] == "30 dias; não se aplica"
+    assert seguranca["exportado"] == "não" and seguranca["anonimizacao"] == "apagar_linha; manter"
     conta = next(l for l in linhas if l["finalidade"] == "conta")
     assert "autenticacao" in conta["categorias"].split("; ") and conta["exportado"] == "parcial"
