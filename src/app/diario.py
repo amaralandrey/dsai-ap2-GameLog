@@ -10,6 +10,7 @@ from flask import Blueprint, abort, flash, redirect, render_template, request
 from sqlalchemy import func, select
 from sqlalchemy.orm import contains_eager, joinedload
 
+from .bloqueios import bloqueado_entre, sql_com_bloqueio
 from .gamificacao import emitir_evento
 from .models import Activity, Follow, Game, SessaoJogo, Status, User, db, visible_games
 from .tempo import hoje
@@ -23,25 +24,29 @@ DURACAO_RE = re.compile(r"^(?:(\d+)\s*h\s*(?:(\d+)\s*(?:min|m)?)?|(\d+)\s*(?:min
 
 # ---------- visibilidade do perfil (DIA-12, DIA-13) ----------
 def pode_ver_perfil(visitante, dono):
-    """Perfil público, o dono, um admin ou alguém que o dono segue (seguir o dono não basta)."""
+    """Sem bloqueio entre os dois (BLQ-03): perfil público, o dono, um admin ou alguém que o dono segue."""
+    if visitante is not None and visitante.id == dono.id:
+        return True
+    if bloqueado_entre(visitante, dono):
+        return False
     if not dono.perfil_privado:
         return True
     if visitante is None:
         return False
-    if visitante.id == dono.id or visitante.is_admin:
+    if visitante.is_admin:
         return True
     return Follow.query.filter_by(follower_id=dono.id, followed_id=visitante.id).first() is not None
 
 
 def ocultos_para(visitante):
-    """Ids dos donos de perfil privado que `visitante` não pode ver (a regra de `pode_ver_perfil` em SQL)."""
+    """Ids que `visitante` não pode ver: perfil privado ou bloqueio (a regra de `pode_ver_perfil` em SQL)."""
     q = select(User.id).where(User.perfil_privado.is_(True))
     if visitante is None:
         return q
     if visitante.is_admin:
-        return q.where(False)
+        return sql_com_bloqueio(visitante.id)
     me_segue = select(Follow.follower_id).where(Follow.followed_id == visitante.id)
-    return q.where(User.id != visitante.id, User.id.not_in(me_segue))
+    return q.where(User.id != visitante.id, User.id.not_in(me_segue)).union(sql_com_bloqueio(visitante.id))
 
 
 def perfil_ou_404(username):

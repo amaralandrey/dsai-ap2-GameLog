@@ -15,6 +15,14 @@
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <button class="{{ 'ghost' if following }}">{{ 'Seguindo' if following else 'Seguir' }}</button>
       </form>
+      <details class="acoes-perfil"><summary class="link" aria-label="Mais ações">⋯</summary>
+        <form method="post" action="/u/{{ u.username }}/{{ 'dessilenciar' if silenciado else 'silenciar' }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="link">{{ 'Dessilenciar' if silenciado else 'Silenciar' }}</button></form>
+        <form method="post" action="/u/{{ u.username }}/bloquear">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="link danger-link">Bloquear</button></form>
+      </details>
     {% else %}<a class="btn" href="/entrar?next=/u/{{ u.username }}">Seguir</a>{% endif %}
   </div>
   {% if u.bio %}<p>{{ u.bio }}</p>{% endif %}

@@ -4,8 +4,9 @@ from datetime import timedelta
 from flask import Blueprint, abort, flash, redirect, render_template, request, session
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from .models import Activity, Follow, GameList, LoginAttempt, Review, User, db, now
+from .models import Activity, Follow, GameList, LoginAttempt, Review, Silencio, User, db, now
 from .afinidade import resumo_com
+from .bloqueios import bloqueado_entre
 from .diario import minutos_registrados, pode_ver_perfil, zerados
 from .diario_import import ler_steam_id
 from .conquistas import vitrine
@@ -101,9 +102,12 @@ def profile(username):
     user = User.query.filter_by(username_lower=username.lower()).first_or_404()
     me = current_user()
     own = me is not None and me.id == user.id
+    if bloqueado_entre(me, user):
+        abort(404)  # BLQ-03: como um perfil inexistente, sem dizer quem bloqueou
     following = bool(me and not own and Follow.query.filter_by(follower_id=me.id, followed_id=user.id).first())
+    silenciado = bool(me and not own and Silencio.query.filter_by(user_id=me.id, silenciado_id=user.id).first())
     if not pode_ver_perfil(me, user):  # DIA-12: só o cabeçalho
-        return render_template("auth/perfil_privado.html", u=user, following=following)
+        return render_template("auth/perfil_privado.html", u=user, following=following, silenciado=silenciado)
     lists = GameList.query.filter_by(user_id=user.id)
     if not own:
         lists = lists.filter_by(public=True)
@@ -121,7 +125,7 @@ def profile(username):
     extra["vitrine"] = vitrine(user.id)  # GAM-09: lidas, sem recalcular (CON-06)
     extra["progressao"] = resumo_progressao(user.id)  # PRG-09
     return render_template(
-        "auth/perfil.html", u=user, own=own, stats=stats, following=following, lists=lists.limit(10).all(), afin=afin,
+        "auth/perfil.html", u=user, own=own, stats=stats, following=following, silenciado=silenciado, lists=lists.limit(10).all(), afin=afin,
         **extra,
     )
 
