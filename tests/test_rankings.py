@@ -238,6 +238,51 @@ def test_rnk_08_encerrar_grava_retrato_premia_e_nao_repete(encerravel):
                                              UsuarioConquista.desbloqueada_em.isnot(None)).count() == 3
 
 
+def podio_xp(app):
+    from app.models import Conquista, UsuarioConquista
+    with app.app_context():
+        podio = Conquista.query.filter_by(codigo="podio-xp").one()
+        return sorted(u.username for u in User.query.join(UsuarioConquista, UsuarioConquista.user_id == User.id)
+                      .filter(UsuarioConquista.conquista_id == podio.id, UsuarioConquista.desbloqueada_em.isnot(None)))
+
+
+def test_rnk_08_ouvinte_que_falha_nao_tira_o_podio_dos_seguintes(encerravel, monkeypatch):
+    from app import gamificacao
+
+    def quebra(user_id, tipo, ctx):
+        if tipo == "conquista":
+            raise RuntimeError("ouvinte quebrado")
+
+    monkeypatch.setattr(gamificacao, "_ouvintes", [quebra] + gamificacao._ouvintes)
+    r = encerravel.test_cli_runner().invoke(args=["rankings", "encerrar-temporada", "2026-T3"])
+    assert r.output.strip() == "encerrada=1"
+    assert podio_xp(encerravel) == ["ana", "bia", "carla"]
+
+
+def test_rnk_08_reencerrar_concede_o_podio_que_faltou_sem_repetir(encerravel, monkeypatch):
+    from app import gamificacao
+
+    original = gamificacao.conceder
+    bia = uid(encerravel, "bia")
+
+    def falha_na_bia(user_id, codigo):
+        if user_id == bia:
+            raise RuntimeError("falhou")
+        return original(user_id, codigo)
+
+    cli = encerravel.test_cli_runner()
+    monkeypatch.setattr(gamificacao, "conceder", falha_na_bia)
+    assert cli.invoke(args=["rankings", "encerrar-temporada", "2026-T3"]).output.strip() == "encerrada=1"
+    assert podio_xp(encerravel) == ["ana", "carla"]
+    monkeypatch.setattr(gamificacao, "conceder", original)
+    assert cli.invoke(args=["rankings", "encerrar-temporada", "2026-T3"]).output.strip() == "ja_encerrada=1"
+    assert podio_xp(encerravel) == ["ana", "bia", "carla"]
+    with encerravel.app_context():
+        assert SnapshotRanking.query.filter_by(categoria="xp").count() == 4
+        assert Notificacao.query.filter_by(tipo="sistema").count() == 3
+        assert Notificacao.query.filter_by(tipo="conquista").count() == 3
+
+
 def test_rnk_09_retrato_imutavel_e_hall_da_fama(encerravel):
     encerravel.test_cli_runner().invoke(args=["rankings", "encerrar-temporada", "2026-T3"])
     with encerravel.app_context():

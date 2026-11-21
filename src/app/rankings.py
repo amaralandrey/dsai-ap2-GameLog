@@ -3,6 +3,7 @@
 Cada categoria é uma consulta agregada no banco, (usuário, valor, instante), com o desempate determinístico
 de RNK-07. Temporada encerrada é lida do `SnapshotRanking`, que não muda depois de gravado (RNK-09).
 """
+import logging
 from datetime import date, timedelta
 
 from flask import Blueprint, abort, flash, redirect, render_template, request
@@ -18,6 +19,7 @@ from .models import (
 from .tempo import hoje, inicio_do_dia_utc
 from .util import admin_required, current_user, slugify
 
+log = logging.getLogger(__name__)
 bp = Blueprint("rankings", __name__)
 CATEGORIAS = {"xp": "XP", "zerados": "Jogos zerados", "horas": "Horas registradas", "curtidas": "Curtidas recebidas"}
 CATEGORIA_PADRAO, JANELA_PADRAO = "xp", "atual"
@@ -206,14 +208,27 @@ class TemporadaEmAndamento(Exception):
     pass
 
 
+def premiar_podio(t):
+    """Concede o pódio lido do retrato; idempotente, e a falha de um premiado não impede os outros."""
+    podio = SnapshotRanking.query.filter(SnapshotRanking.temporada_id == t.id, SnapshotRanking.posicao <= 3)
+    for linha in podio.order_by(SnapshotRanking.categoria, SnapshotRanking.posicao).all():
+        try:
+            gamificacao.conceder(linha.user_id, f"podio-{linha.categoria}")
+        except Exception:
+            log.exception("pódio %s de %s falhou para o usuário %s", linha.categoria, t.slug, linha.user_id)
+            db.session.rollback()
+
+
 def encerrar(slug):
-    """Grava o retrato dos 100 primeiros do global por categoria e premia o pódio; devolve False se já encerrada."""
+    """Grava o retrato dos 100 primeiros do global por categoria e premia o pódio; devolve False se já encerrada,
+    depois de conceder o pódio que tenha faltado."""
     from .notificacoes import notificar
 
     t = Temporada.query.filter_by(slug=slug).first()
     if t is None:
         raise LookupError(slug)
     if t.encerrada_em is not None:
+        premiar_podio(t)
         return False
     if t.fim >= hoje():
         raise TemporadaEmAndamento(slug)
@@ -230,8 +245,7 @@ def encerrar(slug):
         notificar(user.id, "sistema", texto=f"Você ficou em {pos}º lugar em {CATEGORIAS[categoria]} na temporada {t.nome}",
                   alvo_url="/rankings/hall-da-fama")
     db.session.commit()
-    for user, categoria, _ in premiados:
-        gamificacao.conceder(user.id, f"podio-{categoria}")
+    premiar_podio(t)
     return True
 
 

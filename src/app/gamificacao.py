@@ -344,8 +344,8 @@ def conceder(user_id, codigo):
         db.session.add(uc)
     ok = _desbloquear(user, uc, conquista)
     db.session.commit()
-    if ok:
-        _emitir(user_id, "conquista", {"raridade": conquista.raridade, "conquista_id": conquista.id})
+    if ok:  # já gravada: a falha de um ouvinte fica no log, como nos demais eventos
+        emitir_evento(user_id, "conquista", raridade=conquista.raridade, conquista_id=conquista.id)
     return ok
 
 
