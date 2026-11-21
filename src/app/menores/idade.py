@@ -270,3 +270,20 @@ def retirar_contestacao(uid):
         _auditar("idade.retirar_contestacao", alvo)
         flash(f"Contestação da idade de @{alvo.username} retirada.", "ok")
     return redirect("/admin/usuarios")
+
+
+@bp.route("/admin/usuarios/<int:uid>/nova-data", methods=["POST"])
+@admin_required
+def nova_data(uid):
+    """Data autodeclarada errada (até a que suspendeu a conta): apaga a data, e a conta a informa de novo (IDA-05)."""
+    alvo = _alvo(uid)
+    if alvo is None:
+        pass
+    elif alvo.nascimento_confiavel:
+        flash("A data desta conta veio de uma verificação confiável e não é apagada.", "erro")
+    else:
+        alvo.nascimento, alvo.suspensa_em = None, None
+        alvo.aguardando_responsavel = alvo.idade_contestada_em is not None  # a contestação continua valendo
+        _auditar("idade.nova_data", alvo)
+        flash(f"@{alvo.username} informa a data de nascimento de novo no próximo acesso.", "ok")
+    return redirect("/admin/usuarios")

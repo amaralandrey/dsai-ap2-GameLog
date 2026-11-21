@@ -220,6 +220,45 @@ def test_ida_05_conta_antiga_de_menor_de_12_e_suspensa(app, client):
         assert User.query.one().suspensa_em is not None
 
 
+def test_ida_05_suspensa_por_data_errada_volta_com_nova_data_pelo_admin(app, client):
+    from app.models import AuditLog
+    from conftest import login
+
+    make_user(app, "chefe", role="admin")
+    sem_data(app)
+    login(client)
+    client.post("/conta/nascimento", data={"nascimento": "2020-01-01"})  # quis digitar 1990
+    assert login(client).status_code == 403
+    chefe = app.test_client()
+    login(chefe, "chefe")
+    assert "Pedir nova data" in chefe.get("/admin/usuarios").get_data(as_text=True)
+    with app.app_context():
+        aid = User.query.filter_by(username="ana").one().id
+    chefe.post(f"/admin/usuarios/{aid}/nova-data")
+    assert login(client).status_code == 302 and client.get("/listas").headers["Location"].startswith("/conta/nascimento")
+    client.post("/conta/nascimento", data={"nascimento": "1990-01-01"})
+    assert client.get("/listas").status_code == 200
+    with app.app_context():
+        assert [a.action for a in AuditLog.query] == ["idade.nova_data"]
+
+
+def test_ida_05_suspensao_por_verificacao_confiavel_nao_se_desfaz(app, client, monkeypatch):
+    from conftest import login
+
+    monkeypatch.setenv("VERIFICACAO_PROVEDOR", "simulado")
+    make_user(app, "chefe", role="admin")
+    make_user(app)
+    login(client)
+    client.post("/conta/idade/provedor_simulado", data={"codigo": "CRIANCA"})
+    chefe = app.test_client()
+    login(chefe, "chefe")
+    assert "Pedir nova data" not in chefe.get("/admin/usuarios").get_data(as_text=True)
+    with app.app_context():
+        aid = User.query.filter_by(username="ana").one().id
+    r = chefe.post(f"/admin/usuarios/{aid}/nova-data", follow_redirects=True)
+    assert "verificação confiável" in r.get_data(as_text=True) and login(client).status_code == 403
+
+
 def test_ida_05_conta_antiga_de_14_anos_fica_pendente(app, client):
     from conftest import login
 

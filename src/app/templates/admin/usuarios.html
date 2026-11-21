@@ -11,6 +11,7 @@
   <td>{% if u.id != me.id %}
     {% if u.idade_contestada_em %}<form class="inline" method="post" action="/admin/usuarios/{{ u.id }}/retirar-contestacao"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="ghost">Retirar contestação</button></form>
     {% elif not u.suspensa_em %}<form class="inline" method="post" action="/admin/usuarios/{{ u.id }}/contestar-idade"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="ghost">Contestar idade</button></form>{% endif %}
+    {% if not u.nascimento_confiavel and (u.suspensa_em or aguarda(u)) %}<form class="inline" method="post" action="/admin/usuarios/{{ u.id }}/nova-data"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="ghost">Pedir nova data</button></form>{% endif %}
   {% endif %}</td></tr>
 {% endfor %}</table>
 {{ pager(page) }}
