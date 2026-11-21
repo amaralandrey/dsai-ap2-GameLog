@@ -157,6 +157,7 @@ def test_rnk_04_escopos(base, monkeypatch):
     visitante = cliente(base)
     assert ordem(visitante.get("/rankings").get_data(as_text=True)) == ["ana", "bia", "carla", "duda"]
     assert visitante.get("/rankings?escopo=seguindo").headers["Location"].startswith("/entrar")
+    assert visitante.get("/rankings?escopo=clube&clube=x").headers["Location"].startswith("/entrar")
     monkeypatch.setitem(politica.ACOES, "ranking_global", lambda user, alvo=None: user.username != "carla")
     assert "carla" not in ordem(visitante.get("/rankings?escopo=global").get_data(as_text=True))
 

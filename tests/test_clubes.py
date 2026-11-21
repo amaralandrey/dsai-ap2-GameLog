@@ -270,7 +270,7 @@ def test_clb_08_meta_de_zerados_em_clube_privado_sem_atividade(base):
 def test_clb_09_ranking_do_clube(clube):
     sessao(clube, "carla", "hades", date(2026, 11, 3), 120)
     sessao(clube, "eva", "hades", date(2026, 11, 3), 999)  # fora do clube
-    html = cliente(clube).get("/rankings?escopo=clube&clube=roguelikes&categoria=horas").get_data(as_text=True)
+    html = cliente(clube, "eva").get("/rankings?escopo=clube&clube=roguelikes&categoria=horas").get_data(as_text=True)
     assert ">carla</a>" in html and ">eva</a>" not in html
     assert "1. carla · 2h" in cliente(clube, "ana").get("/clubes/roguelikes").get_data(as_text=True)
     ana = cliente(clube, "ana")

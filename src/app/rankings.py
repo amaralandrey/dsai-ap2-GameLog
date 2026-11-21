@@ -143,7 +143,7 @@ def pagina():
     escopo = request.args.get("escopo")
     if escopo not in ESCOPOS:
         escopo = "seguindo" if me else "global"
-    if escopo == "seguindo" and me is None:
+    if escopo != "global" and me is None:  # RNK-04: o visitante vê só o global
         return redirect(f"/entrar?next={request.full_path.rstrip('?')}")  # GLOBAL-02
     temporada, de, ate = janela(request.args.get("janela", JANELA_PADRAO), temporadas)
     sel_janela = "sempre" if request.args.get("janela") == "sempre" else (temporada.slug if temporada else "atual")
