@@ -13,6 +13,7 @@ from datetime import date, timedelta
 
 from flask import Blueprint, Response, abort, flash, redirect, render_template, request
 from sqlalchemy import func
+from sqlalchemy.orm import contains_eager, joinedload
 
 from . import diario
 from .fontes import base
@@ -342,6 +343,7 @@ def exportar_csv(user_id):
     escritor = csv.writer(saida)
     escritor.writerow(COLUNAS)
     sessoes = (SessaoJogo.query.filter_by(user_id=user_id).join(Game, Game.id == SessaoJogo.game_id)
+               .options(contains_eager(SessaoJogo.game), joinedload(SessaoJogo.plataforma))
                .order_by(SessaoJogo.jogada_em, SessaoJogo.id))
     for s in sessoes:
         escritor.writerow([

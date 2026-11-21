@@ -361,6 +361,31 @@ def test_hrs_11_exportar_e_reimportar_da_tudo_duplicado(app, ana):
     assert sorted(x["classe"] for x in linhas) == ["duplicada", "duplicada", "steam"]
 
 
+def test_hrs_11_exportar_sem_consulta_por_sessao(app, ana):
+    from sqlalchemy import event
+
+    from app.diario_import import exportar_csv
+    from app.models import Platform
+
+    def consultas(de, ate):
+        slugs = [make_game(app, f"Exp {i}", platform=f"Plat {i}") for i in range(de, ate)]
+        with app.app_context():
+            for s in slugs:
+                g = Game.query.filter_by(slug=s).one()
+                db.session.add(SessaoJogo(user_id=uid(app), game_id=g.id, jogada_em=date(2026, 11, 1), duracao_min=30,
+                                          plataforma_id=Platform.query.filter_by(name=g.platforms[0].name).one().id))
+            db.session.commit()
+            contadas = []
+
+            def conta(*a):
+                contadas.append(1)
+            event.listen(db.engine, "before_cursor_execute", conta)
+            exportar_csv(uid(app))
+            event.remove(db.engine, "before_cursor_execute", conta)
+            return len(contadas)
+    assert consultas(0, 2) == consultas(2, 8)
+
+
 def test_hrs_11_anotacao_de_1000_caracteres_com_formula_volta_duplicada(app, ana):
     ana.post("/jogos/hades/sessoes", data={"jogada_em": "2026-11-02", "duracao": "90", "anotacao": "-" * 1000})
     _, linhas = previa(app, ana, ana.get("/diario/exportar.csv").get_data(as_text=True))
