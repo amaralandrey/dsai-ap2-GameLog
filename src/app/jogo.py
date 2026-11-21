@@ -8,6 +8,7 @@ from .models import (
     NOMES_DAS_LOJAS, REPORT_REASONS, STATUSES, Comment, Game, GameList, Like, Review, Status, avg_subquery, db, game_genres, game_stats,
     visible_games,
 )
+from .precos import atual, atuais, grafico, historico, menor_preco
 from .util import current_user, paginate
 
 bp = Blueprint("jogo", __name__)
@@ -69,8 +70,22 @@ def game_page(slug):
         my_lists = GameList.query.filter_by(user_id=me.id).order_by(GameList.name).all()
     stats = game_stats(game.id)
     horas = minutos_por_usuario(game.id, [r.user_id for r, _ in page.items] + ([mine.user_id] if mine else []))
+    precos = atuais(game.id)  # PRC-13: duas consultas, com qualquer número de lojas e de linhas
     return render_template(
         "jogo/pagina.html", game=game, stats=stats, page=page, sort=sort, mine=mine, status=status, liked=liked,
         my_lists=my_lists, statuses=STATUSES, reasons=REPORT_REASONS, related=related_games(game),
         hist_max=max(stats["hist"].values()) or 1, nomes_lojas=NOMES_DAS_LOJAS, horas=horas,
+        precos=precos, vigentes={f for f, p in precos.items() if atual(p)}, menor=menor_preco(game.id),
     )
+
+
+@bp.route("/jogos/<slug>/precos")
+def historico_de_precos(slug):
+    """Histórico por loja em gráfico e tabela paginada (PRC-10)."""
+    game = visible_games().filter_by(slug=slug).first()
+    if game is None:
+        return redirecionar_mesclado(slug, lambda s: f"/jogos/{s}/precos")
+    q = historico(game.id)
+    page = paginate(q, request.args.get("page"))
+    return render_template("jogo/precos.html", game=game, page=page, nomes_lojas=NOMES_DAS_LOJAS,
+                           grafico=grafico(q.all()) if page.total else None)

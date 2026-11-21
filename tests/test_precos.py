@@ -221,3 +221,118 @@ def test_prc_06_comando_resume_por_fonte(app, jogo, api, relogio):
 def test_prc_06_fonte_desconhecida_e_erro_de_uso(app, fonte):
     r = atualizar(app, "--fonte", fonte)
     assert r.exit_code != 0 and "fonte desconhecida" in r.output
+
+
+def gravar(app, game_id, *linhas_):
+    """Linhas (fonte, preço, base, desconto, coletado_em[, verificado_em]) direto no banco."""
+    with app.app_context():
+        for fonte, p, b, d, coletado, *verificado in linhas_:
+            db.session.add(PrecoLoja(game_id=game_id, fonte=fonte, moeda="BRL", preco_centavos=p, preco_base_centavos=b,
+                                     desconto_pct=d, coletado_em=coletado, verificado_em=(verificado or [coletado])[0]))
+        db.session.commit()
+
+
+def pagina(client, url="/jogos/hades"):
+    r = client.get(url)
+    assert r.status_code == 200
+    return r.get_data(as_text=True)
+
+
+# ---------- PRC-08 ----------
+@pytest.mark.parametrize("centavos, texto", [(123456, "R$ 1.234,56"), (5, "R$ 0,05"), (0, "Gratuito"),
+                                             (100000000, "R$ 1.000.000,00"), (5999, "R$ 59,99")])
+def test_prc_08_formato_reais(centavos, texto):
+    assert precos.reais(centavos) == texto
+
+
+def test_prc_08_preco_atual_com_desconto_e_gratuito(app, client, jogo, relogio):
+    gravar(app, jogo, ("steam", 5999, 9999, 40, AGORA - timedelta(days=1)), ("gog", 0, 0, 0, AGORA))
+    html = pagina(client)
+    assert '<span class="preco"><strong>−40%</strong> <del>R$ 99,99</del> R$ 59,99</span>' in html
+    assert '<span class="preco">Gratuito</span>' in html
+    assert ">Epic Games Store</span></p>" in html  # loja sem preço: só o link (MRG-12)
+
+
+def test_prc_08_preco_desatualizado(app, client, jogo, relogio):
+    antigo = AGORA - timedelta(days=8)
+    gravar(app, jogo, ("steam", 5999, 9999, 40, antigo), ("gog", 2999, 2999, 0, antigo, AGORA - timedelta(days=7)))
+    html = pagina(client)
+    assert "R$ 59,99, preço de 12/11/2026" in html and "−40%" not in html
+    assert '<span class="preco">R$ 29,99</span>' in html  # 7 dias exatos ainda é atual
+
+
+# ---------- PRC-09 ----------
+def test_prc_09_menor_preco_com_empate(app, client, jogo, relogio):
+    pagina_sem = pagina(client)
+    assert "Menor preço" not in pagina_sem
+    d = AGORA - timedelta(days=5)
+    gravar(app, jogo, ("steam", 1999, 1999, 0, d), ("steam", 999, 1999, 50, AGORA), ("gog", 999, 999, 0, d),
+           ("gog", 1500, 1500, 0, AGORA))
+    with app.app_context():
+        m = precos.menor_preco(jogo)
+        assert (m.fonte, m.preco_centavos, m.coletado_em) == ("gog", 999, d)  # empate: a coleta mais antiga
+    gravar(app, jogo, ("steam", 999, 999, 0, d))
+    with app.app_context():
+        assert precos.menor_preco(jogo).fonte == "steam"  # mesma data: Steam antes de GOG
+    assert "Menor preço já visto: R$ 9,99 na Steam em 15/11/2026" in pagina(client)
+
+
+# ---------- PRC-10 ----------
+def test_prc_10_historico_com_grafico_e_tabela_paginada(app, client, jogo, relogio):
+    gravar(app, jogo, *[("steam", 1000 + i, 5000, 0, AGORA - timedelta(days=30 - i)) for i in range(25)],
+           ("gog", 2000, 2000, 0, AGORA - timedelta(days=2)))
+    html = pagina(client, "/jogos/hades/precos")
+    assert html.count("<svg") == 1 and 'class="serie-0"' in html and 'class="serie-1"' in html
+    assert html.index("R$ 20,00") < html.index("R$ 10,24") < html.index("R$ 10,23")  # mais recente primeiro
+    assert "Página 1 de 2" in html
+    assert "R$ 10,00" in pagina(client, "/jogos/hades/precos?page=2")
+
+
+def test_prc_10_sem_historico_removido_e_mesclado(app, client, jogo):
+    assert "Ainda não temos preços deste jogo" in pagina(client, "/jogos/hades/precos")
+    outro = make_game(app, "Hades Antigo")
+    with app.app_context():
+        g = Game.query.filter_by(slug=outro).one()
+        g.mesclado_em_id, g.removed_at = jogo, AGORA
+        db.session.commit()
+    r = client.get("/jogos/hades-antigo/precos?page=2")
+    assert r.status_code == 301 and r.headers["Location"].endswith("/jogos/hades/precos?page=2")
+    with app.app_context():
+        db.session.get(Game, jogo).removed_at = AGORA
+        db.session.commit()
+    assert client.get("/jogos/hades/precos").status_code == 404
+
+
+def test_prc_10_grafico_repete_o_ultimo_preco_conhecido(app, jogo):
+    gravar(app, jogo, ("steam", 1000, 1000, 0, AGORA - timedelta(days=2)), ("gog", 500, 500, 0, AGORA))
+    with app.app_context():
+        svg = precos.grafico(precos.historico(jogo).all())
+    assert "Steam — 18/11: 10" in svg and "Steam — 20/11: 10" in svg and "GOG — 18/11: 5" in svg
+
+
+# ---------- PRC-13 ----------
+def test_prc_13_orcamento_de_consultas(app, client, jogo, relogio, monkeypatch):
+    from sqlalchemy import event
+
+    from app import jogo as pagina_do_jogo
+
+    def contar():
+        contadas = []
+
+        def conta(*a):
+            contadas.append(1)
+        with app.app_context():
+            event.listen(db.engine, "before_cursor_execute", conta)
+            pagina(client)
+            event.remove(db.engine, "before_cursor_execute", conta)
+        return len(contadas)
+
+    with monkeypatch.context() as m:  # a página como era antes desta spec
+        m.setattr(pagina_do_jogo, "atuais", lambda _: {})
+        m.setattr(pagina_do_jogo, "menor_preco", lambda _: None)
+        antes = contar()
+    gravar(app, jogo, ("steam", 999, 999, 0, AGORA))
+    uma = contar()
+    gravar(app, jogo, *[(f, 1000 + i, 5000, i % 50, AGORA - timedelta(hours=i)) for i in range(1, 40) for f in ("steam", "gog")])
+    muitas = contar()
+    assert uma == muitas <= antes + 2

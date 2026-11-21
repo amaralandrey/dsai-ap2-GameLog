@@ -4,8 +4,9 @@ from datetime import timedelta
 from sqlalchemy import case, exists, func
 
 from .fontes import Interrompido, base, gog, steam
-from .models import Game, JogoFonte, PrecoLoja, Status, db
-from .tempo import agora_utc
+from .graficos_svg import linha
+from .models import LOJAS_COM_PRECO, NOMES_DAS_LOJAS, Game, JogoFonte, PrecoLoja, Status, db
+from .tempo import agora_utc, dia_de
 
 COLETORES = {"steam": steam.preco, "gog": gog.preco}  # Epic e RAWG não têm preço (PRC-04)
 VALIDADE = timedelta(days=7)  # depois disso o preço não é mais atual (PRC-08)
@@ -13,7 +14,9 @@ ORDEM_DAS_LOJAS = case((PrecoLoja.fonte == "steam", 0), else_=1)
 
 
 def reais(centavos):
-    """`R$ 1.234,56` a partir de centavos."""
+    """`R$ 1.234,56` a partir de centavos; 0 é "Gratuito" (PRC-08)."""
+    if centavos == 0:
+        return "Gratuito"
     inteiro, resto = divmod(centavos, 100)
     return f"R$ {inteiro:,}".replace(",", ".") + f",{resto:02d}"
 
@@ -90,3 +93,28 @@ def menor_preco(game_id):
 def historico(game_id):
     return (PrecoLoja.query.filter_by(game_id=game_id)
             .order_by(PrecoLoja.coletado_em.desc(), PrecoLoja.id.desc()))
+
+
+def dia(momento_utc):
+    """dd/mm/aaaa em Belém de um instante gravado em UTC."""
+    return dia_de(momento_utc).strftime("%d/%m/%Y")
+
+
+def grafico(linhas, ultimos_dias=12):
+    """SVG com uma série por loja nos dias em que algum preço mudou (PRC-10).
+
+    Cada série repete o último preço conhecido; antes da primeira coleta da loja, repete o primeiro.
+    """
+    dias = sorted({dia_de(p.coletado_em) for p in linhas})[-ultimos_dias:]
+    series = []
+    for fonte in LOJAS_COM_PRECO:
+        da_loja = sorted((p for p in linhas if p.fonte == fonte), key=lambda p: (p.coletado_em, p.id))
+        if not da_loja:
+            continue
+        valores, i, vigente = [], 0, da_loja[0].preco_centavos
+        for d in dias:
+            while i < len(da_loja) and dia_de(da_loja[i].coletado_em) <= d:
+                vigente, i = da_loja[i].preco_centavos, i + 1
+            valores.append(vigente / 100)
+        series.append((NOMES_DAS_LOJAS[fonte], valores))
+    return linha(series, [d.strftime("%d/%m") for d in dias], "Preço por loja (R$)")

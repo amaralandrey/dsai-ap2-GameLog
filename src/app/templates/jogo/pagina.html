@@ -36,7 +36,12 @@
     <p style="white-space:pre-line">{{ game.synopsis }}</p>
     {% if game.lojas %}<p class="lojas">Disponível em:
       {% for v in game.lojas %}{% if v.url_loja and v.url_loja.startswith(('http://', 'https://')) %}<a class="tag" href="{{ v.url_loja }}" target="_blank" rel="noopener">{{ nomes_lojas[v.fonte] }}</a>
-      {%- else %}<span class="tag">{{ nomes_lojas[v.fonte] }}</span>{% endif %}{% endfor %}</p>{% endif %}
+      {%- else %}<span class="tag">{{ nomes_lojas[v.fonte] }}</span>{% endif %}
+      {%- set p = precos.get(v.fonte) %}{% if p and v.fonte in vigentes %} <span class="preco">
+        {%- if p.desconto_pct %}<strong>−{{ p.desconto_pct }}%</strong> <del>{{ p.preco_base_centavos | reais }}</del> {% endif %}{{ p.preco_centavos | reais }}</span>
+      {%- elif p %} <span class="preco mut">{{ p.preco_centavos | reais }}, preço de {{ p.verificado_em | dia }}</span>{% endif %}{% endfor %}</p>{% endif %}
+    {% if menor %}<p class="mut">Menor preço já visto: {{ menor.preco_centavos | reais }} na {{ nomes_lojas[menor.fonte] }} em {{ menor.coletado_em | dia }}
+      · <a href="/jogos/{{ game.slug }}/precos">histórico de preços</a></p>{% endif %}
     {% if game.fontes | selectattr("fonte", "equalto", "rawg") | first %}<p class="mut">Dados fornecidos por <a href="https://rawg.io" target="_blank" rel="noopener">RAWG</a></p>{% endif %}
     <p style="font-size:1.4rem">
       {% if stats.avg is not none %}{{ stars(stats.avg, media=True) }} <span class="mut">({{ stats.total }} avaliaç{{ 'ões' if stats.total != 1 else 'ão' }})</span>
