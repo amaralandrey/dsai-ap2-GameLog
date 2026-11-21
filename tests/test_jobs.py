@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 import pytest
 
 from app import jobs, tempo
-from app.models import Job, User, db
+from app.models import AuditLog, Job, User, db
 
 
 class Relogio:
@@ -383,7 +383,7 @@ def test_job_10_lista_filtra_e_pagina_do_mais_recente(app, chefe, tarefas, relog
 
 
 def test_job_10_acoes_com_auditoria(app, chefe, tarefas):
-    from app.models import Agendamento, AuditLog
+    from app.models import Agendamento
 
     agendamento(app)
     with app.app_context():
@@ -420,6 +420,32 @@ def test_job_10_retentar_com_a_chave_ja_aberta_em_outro_job(app, chefe, tarefas)
     assert r.status_code == 200 and "Já existe um job aberto com a chave k" in r.get_data(as_text=True)
     with app.app_context():
         assert db.session.get(Job, morto).status == "morto"
+
+
+def test_job_10_cancelar_nao_passa_por_cima_de_quem_ja_travou(app, chefe, tarefas, monkeypatch):
+    with app.app_context():
+        jid = jobs.enfileirar("anota").id
+        db.session.commit()
+    original = jobs.db.get_or_404
+
+    def executor():
+        with app.app_context():  # outra sessão e outra conexão, como um executor de verdade
+            jobs._travar(jid, "b:2")
+            db.session.remove()
+
+    def le_e_um_executor_trava(*args, **kwargs):  # o executor trava logo depois de a rota ler o job
+        job = original(*args, **kwargs)
+        t = threading.Thread(target=executor)
+        t.start()
+        t.join()
+        return job
+    monkeypatch.setattr(jobs.db, "get_or_404", le_e_um_executor_trava)
+    r = chefe.post(f"/admin/jobs/{jid}/cancelar", follow_redirects=True)
+    assert "Só um job pendente pode ser cancelado." in r.get_data(as_text=True)
+    with app.app_context():
+        j = db.session.get(Job, jid)
+        assert (j.status, j.travado_por) == ("rodando", "b:2")
+        assert AuditLog.query.count() == 0
 
 
 # ---------- JOB-11 ----------

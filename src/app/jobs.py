@@ -301,11 +301,12 @@ def retentar(jid):
 @admin_required
 def cancelar(jid):
     job = db.get_or_404(Job, jid)
-    if job.status != "pendente":
+    cancelado = {"status": "falhou", "concluido_em": tempo.agora_utc(),  # `falhou`, para poder ser tentado de novo
+                 "ultimo_erro": f"cancelado por @{current_user().username}"}
+    # condicional, como em _travar: um executor pode ter pegado o job depois que a página o leu
+    if Job.query.filter(Job.id == jid, Job.status == "pendente").update(cancelado, synchronize_session=False) != 1:
         flash("Só um job pendente pode ser cancelado.", "erro")
-    else:  # cancelado fica como `falhou`, para poder ser tentado de novo
-        job.status, job.concluido_em = "falhou", tempo.agora_utc()
-        job.ultimo_erro = f"cancelado por @{current_user().username}"
+    else:
         _auditar("jobs.cancelar", f"job {job.id} ({job.tipo})")
         flash(f"Job {job.id} cancelado.", "ok")
     return redirect("/admin/jobs")
