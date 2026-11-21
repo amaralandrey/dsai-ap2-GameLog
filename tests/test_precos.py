@@ -336,3 +336,25 @@ def test_prc_13_orcamento_de_consultas(app, client, jogo, relogio, monkeypatch):
     gravar(app, jogo, *[(f, 1000 + i, 5000, i % 50, AGORA - timedelta(hours=i)) for i in range(1, 40) for f in ("steam", "gog")])
     muitas = contar()
     assert uma == muitas <= antes + 2
+
+
+# ---------- PRC-12 ----------
+def test_prc_12_api_traz_precos_atuais_e_menor_preco(app, client, jogo, relogio):
+    vazio = client.get("/api/jogos/hades").get_json()
+    assert vazio["precos"] == [] and vazio["menor_preco"] is None
+    gravar(app, jogo, ("gog", 1990, 1990, 0, AGORA - timedelta(days=9)), ("steam", 5990, 9999, 40, AGORA))
+    d = client.get("/api/jogos/hades").get_json()
+    assert d["precos"] == [{"loja": "steam", "preco": 59.9, "preco_base": 99.99, "desconto": 40,
+                            "verificado_em": "2026-11-20T15:00:00"}]  # o da GOG está desatualizado
+    assert d["menor_preco"] == {"preco": 19.9, "loja": "gog", "data": "2026-11-11T15:00:00"}
+
+
+def test_prc_12_serializador_do_jogo_com_e_sem_precos(app, jogo, relogio):
+    from app import serializadores
+
+    gravar(app, jogo, ("steam", 0, 0, 0, AGORA))
+    with app.app_context():
+        g = db.session.get(Game, jogo)
+        assert "precos" not in serializadores.jogo(g)
+        com = serializadores.jogo(g, com_precos=True)
+    assert com["precos"][0]["preco"] == 0 and com["menor_preco"]["loja"] == "steam"
