@@ -33,6 +33,8 @@ def _get(caminho, **params):
             raise RuntimeError(str(exc).replace(chave, "***")) from None
         if isinstance(exc, OSError) and exc.filename:
             exc.filename = str(exc.filename).replace(chave, "***")  # HTTPError guarda a URL pedida
+        if isinstance(getattr(exc, "url", None), str):
+            exc.url = exc.url.replace(chave, "***")  # e de novo em `url`/`geturl()`
         raise
 
 
