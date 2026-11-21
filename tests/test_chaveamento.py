@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 from app import chaveamento as ch
+from app import graficos_svg
 from app.chaveamento import BYE, CorrecaoBloqueada, ResultadoInvalido
 
 TAMANHOS = [2, 3, 5, 8, 16]
@@ -415,3 +416,29 @@ def test_chv_04_classificacao_so_aceita_o_returno_com_ida_e_volta():
     volta = next(p for p in ch.pontos_corridos(ps, ida_e_volta=True) if p.id == "L4-1")
     linhas = ch.classificacao("pontos_corridos", ps, [("L4-1", volta.a, 1, 0)], ida_e_volta=True)
     assert (linhas[0].participante, linhas[0].pontos) == (volta.a, 3)
+
+
+# ---------- CHV-13 ----------
+def test_chv_13_svg_com_uma_coluna_por_rodada_e_vencedor_em_destaque():
+    chave = ch.eliminacao_simples(nomes(3))  # p1 tem bye na 1ª rodada
+    ch.avancar(chave, ("E1-2", "p2", 2, 0))
+    svg = graficos_svg.chave(chave, nomes={"p2": "Ana"})
+    assert svg.startswith("<svg") and 'role="img"' in svg and "<title>Chave do torneio</title>" in svg
+    assert [t for t in ("Rodada 1", "Rodada 2", "Rodada 3") if t in svg] == ["Rodada 1", "Rodada 2"]
+    assert svg.count('class="partida"') == 3 and ">bye<" in svg and "E1-2: Ana × p3 (2 × 0)" in svg
+    assert svg.count('class="vencedor"') == 2  # p1 pelo bye e Ana; o E2-1 ainda não foi jogado
+    assert 'class="vencedor" font-weight="bold">p1<' in svg and 'class="vencedor" font-weight="bold">Ana<' in svg
+    assert graficos_svg.chave(chave, nomes={"p2": "Ana"}) == svg
+
+
+def test_chv_13_svg_da_dupla_nomeia_as_chaves_e_o_reset():
+    svg = graficos_svg.chave(ch.eliminacao_dupla(nomes(4)))
+    for rotulo in ("Vencedores 1", "Vencedores 2", "Perdedores 1", "Perdedores 2", "Final", "Reset"):
+        assert f">{rotulo}<" in svg
+    assert ">a definir<" in svg
+
+
+def test_chv_13_nome_com_script_vira_texto():
+    malicioso = "<script>alert(1)</script>"
+    svg = graficos_svg.chave(ch.eliminacao_simples([malicioso, "p2"]), titulo=malicioso)
+    assert "<script" not in svg and svg.count("&lt;script&gt;alert(1)&lt;/script&gt;") >= 3
