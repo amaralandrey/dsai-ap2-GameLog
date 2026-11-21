@@ -358,3 +358,77 @@ def test_prc_12_serializador_do_jogo_com_e_sem_precos(app, jogo, relogio):
         assert "precos" not in serializadores.jogo(g)
         com = serializadores.jogo(g, com_precos=True)
     assert com["precos"][0]["preco"] == 0 and com["menor_preco"]["loja"] == "steam"
+
+
+# ---------- PRC-11 ----------
+BASE_ITEM = {"synopsis": "s", "release_date": "2020-09-17", "developer": "Dev", "genres": ["Ação"],
+             "platforms": ["Windows"], "cover_url": None}
+ITENS = [
+    {**BASE_ITEM, "external_id": "10", "title": "Hades", "lojas": [], "origens": [["rawg", "1"], ["gog", "20"]]},
+    {**BASE_ITEM, "external_id": "11", "title": "Celeste", "lojas": [["gog", "https://www.gog.com/game/celeste"]]},
+    {**BASE_ITEM, "external_id": "12", "title": "Outro"},
+]
+
+
+@pytest.fixture
+def snapshot(tmp_path):
+    caminho = tmp_path / "jogos.json"
+    caminho.write_text(json.dumps(ITENS, ensure_ascii=False), encoding="utf-8")
+    return caminho
+
+
+def ler(caminho):
+    return json.loads(caminho.read_text(encoding="utf-8"))
+
+
+def enriquecer_precos(app, caminho):
+    return app.test_cli_runner().invoke(args=["enriquecer-snapshot", "--arquivo", str(caminho), "--precos"])
+
+
+def test_prc_11_snapshot_ganha_precos_sem_mexer_no_resto(app, snapshot, api, relogio):
+    api.rotas[STEAM] = steam(preco_steam(5999, 9999, 40))
+    api.rotas["appdetails?appids=11&"] = steam(is_free=True, appid="11")
+    api.rotas["appdetails?appids=12&"] = steam(appid="12")
+    api.rotas[GOG] = gog((2999, 2999, "BRL"))
+    r = enriquecer_precos(app, snapshot)
+    assert r.output == "jogos=3 com_preco=2 sem_preco=1 falhas=0\n"
+    hades, celeste, outro = ler(snapshot)
+    assert hades == {**ITENS[0], "precos": [["steam", 5999, 9999, 40, "2026-11-20T15:00:00"],
+                                            ["gog", 2999, 2999, 0, "2026-11-20T15:00:00"]]}
+    assert celeste == {**ITENS[1], "precos": [["steam", 0, 0, 0, "2026-11-20T15:00:00"]]}  # slug da GOG: sem rede
+    assert outro == {**ITENS[2], "precos": []}
+    assert not any("celeste" in u for u in api.urls())
+
+
+def test_prc_11_falha_mantem_o_jogo_e_429_grava_o_que_ja_foi(app, snapshot, api, relogio):
+    api.rotas[STEAM] = steam(preco_steam(5999, 9999, 40))
+    api.rotas[GOG] = http(500)
+    api.rotas["appdetails?appids=11&"] = http(429)
+    r = enriquecer_precos(app, snapshot)
+    assert r.output == "jogos=3 com_preco=0 sem_preco=0 falhas=1 interrompido=rate-limit\n"
+    assert ler(snapshot) == ITENS
+
+
+def test_prc_11_seed_cria_precos_do_snapshot_sem_rede(app, snapshot, api, relogio, monkeypatch):
+    from app.fontes import arquivo, importar
+
+    em = "2026-11-10T12:00:00"
+    itens = [{**ITENS[0], "precos": [["steam", 5999, 9999, 40, em], ["gog", 2999, 2999, 0, em]]},
+             {**ITENS[1], "precos": [["steam", 0, 0, 0, em]]},
+             {**ITENS[2], "precos": [["gog", 100, 100, 0, em]]},  # Outro não tem vínculo da GOG
+             {**BASE_ITEM, "external_id": "13", "title": "Quarto"}]
+    snapshot.write_text(json.dumps(itens), encoding="utf-8")
+    monkeypatch.setattr(arquivo, "CAMINHO", snapshot)
+    with app.app_context():
+        assert importar("arquivo", limite=10) == (4, 0, 0)  # jogo sem `precos` entra como antes (SNP-07)
+        assert precos.importar_do_snapshot(snapshot) == 3
+        assert precos.importar_do_snapshot(snapshot) == 0
+        assert sorted((db.session.get(Game, p.game_id).slug, p.fonte, p.valores, p.verificado_em)
+                      for p in PrecoLoja.query) == [
+            ("celeste", "steam", (0, 0, 0), datetime(2026, 11, 10, 12)),
+            ("hades", "gog", (2999, 2999, 0), datetime(2026, 11, 10, 12)),
+            ("hades", "steam", (5999, 9999, 40), datetime(2026, 11, 10, 12))]
+    snapshot.write_text(json.dumps(ITENS), encoding="utf-8")
+    with app.app_context():
+        assert precos.importar_do_snapshot(snapshot) == 0
+    assert api.pedidos == []

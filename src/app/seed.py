@@ -56,6 +56,10 @@ def run(seed=42, real=False):
     rng = random.Random(seed)
     if real:
         importar("arquivo", limite=10**6)
+        from .fontes import arquivo
+        from .precos import importar_do_snapshot
+
+        importar_do_snapshot(arquivo.CAMINHO)  # PRC-11
         games = Game.query.order_by(Game.id).all()
     else:
         games = _jogos_ficticios(rng)

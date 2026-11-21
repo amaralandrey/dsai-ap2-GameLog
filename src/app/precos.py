@@ -1,5 +1,6 @@
 """Preços por loja (PRC-01..13): coleta na Steam e na GOG, histórico com uma linha por mudança e menor preço."""
-from datetime import timedelta
+import json
+from datetime import datetime, timedelta
 
 from sqlalchemy import case, exists, func
 
@@ -118,3 +119,27 @@ def grafico(linhas, ultimos_dias=12):
             valores.append(vigente / 100)
         series.append((NOMES_DAS_LOJAS[fonte], valores))
     return linha(series, [d.strftime("%d/%m") for d in dias], "Preço por loja (R$)")
+
+
+def importar_do_snapshot(caminho):
+    """Linhas de PrecoLoja a partir de `precos` do snapshot, sem rede (PRC-11); loja sem vínculo ou que já tem
+    histórico fica de fora. Devolve quantas linhas criou."""
+    with open(caminho, encoding="utf-8") as f:
+        jogos = [j for j in json.load(f) if j.get("precos")]
+    if not jogos:
+        return 0
+    lojas = {(v.fonte, v.external_id): v.game_id for v in JogoFonte.query.filter(JogoFonte.fonte.in_(COLETORES))}
+    vinculados = {(gid, fonte) for (fonte, _), gid in lojas.items()}
+    com_historico = set(db.session.query(PrecoLoja.game_id, PrecoLoja.fonte).distinct())
+    criadas = 0
+    for j in jogos:
+        game_id = lojas.get(("steam", str(j["external_id"])))
+        for fonte, preco, preco_base, desconto, coletado in j["precos"]:
+            if game_id is None or (game_id, fonte) not in vinculados or (game_id, fonte) in com_historico:
+                continue
+            momento = datetime.fromisoformat(coletado)
+            registrar(game_id, fonte, (preco, preco_base, desconto), momento)
+            com_historico.add((game_id, fonte))
+            criadas += 1
+    db.session.commit()
+    return criadas

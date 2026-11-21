@@ -139,12 +139,16 @@ def register(app):
 
     @app.cli.command("enriquecer-snapshot")
     @click.option("--arquivo", default=None, help="padrão: o snapshot do seed (src/app/dados/jogos.json)")
-    def enriquecer_snapshot_cmd(arquivo):
+    @click.option("--precos", is_flag=True, help="grava só os preços atuais da Steam e da GOG (PRC-11), sem chave")
+    def enriquecer_snapshot_cmd(arquivo, precos):
         """Grava no snapshot os links de GOG e Epic e o id da RAWG de cada jogo (SNP-01; exige RAWG_API_KEY)."""
         from .fontes import arquivo as snapshot_padrao
-        from .snapshot import enriquecer
+        from .snapshot import enriquecer, enriquecer_precos
 
         caminho = arquivo or snapshot_padrao.CAMINHO
+        if precos:
+            rodar("steam", lambda _: enriquecer_precos(caminho), ("jogos", "com_preco", "sem_preco", "falhas"))
+            return
         rodar("rawg", lambda _: enriquecer(caminho), ("jogos", "vinculados", "sem_correspondencia", "falhas"))
 
     conquistas_cli = AppGroup("conquistas", help="Catálogo e recálculo das conquistas (GAM-02, GAM-13).")
