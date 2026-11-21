@@ -351,10 +351,21 @@ def test_job_09_sync_games_reaproveita_a_funcao_do_comando(app, monkeypatch):
     from app import sync
 
     chamadas = []
-    monkeypatch.setattr(sync, "sincronizar", lambda fonte, limite: chamadas.append((fonte, limite)))
+    monkeypatch.setattr(sync, "sincronizar", lambda fonte, limite: chamadas.append((fonte, limite)) or (0, 0, 1, 3))
     with app.app_context():
         jobs.enfileirar("sync_games", limite=10)
         assert jobs.ciclo()["ok"] == 1 and chamadas == [("steam", 10)]
+
+
+def test_job_06_sync_em_que_todos_os_jogos_falharam_e_tentado_de_novo(app, monkeypatch):
+    from app import sync
+
+    monkeypatch.setattr(sync, "sincronizar", lambda fonte, limite: (0, 0, 0, 40))
+    with app.app_context():
+        jid = jobs.enfileirar("sync_games").id
+        assert jobs.ciclo()["falhas"] == 1
+        j = db.session.get(Job, jid)
+        assert (j.status, j.ultimo_erro) == ("pendente", "RuntimeError: todos os 40 jogos falharam")
 
 
 def test_job_09_tarefa_sem_chave_da_rawg_morre_com_mensagem_clara(app, monkeypatch):

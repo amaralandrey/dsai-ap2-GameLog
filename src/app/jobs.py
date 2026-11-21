@@ -333,9 +333,12 @@ def alternar_agendamento(aid):
 # ---------- tarefas do catálogo (JOB-09) ----------
 @tarefa("sync_games")
 def sync_games(fonte="steam", limite=40):
+    """Grava jogo a jogo, então o rollback do JOB-06 não desfaz o que já entrou; repetir é seguro (idempotente)."""
     from .sync import sincronizar
 
-    sincronizar(fonte, limite)
+    novos, atualizados, ignorados, falhas = sincronizar(fonte, limite)
+    if falhas and not (novos or atualizados or ignorados):  # ex.: a fonte limitou a taxa item por item
+        raise RuntimeError(f"todos os {falhas} jogos falharam")
 
 
 @tarefa("enriquecer_snapshot")
