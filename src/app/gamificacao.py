@@ -132,7 +132,8 @@ def desenvolvedoras_distintas(user_id):
 
 
 def _sessoes(user_id):
-    return SessaoJogo.query.join(Game, Game.id == SessaoJogo.game_id).filter(SessaoJogo.user_id == user_id)
+    return (SessaoJogo.query.join(Game, Game.id == SessaoJogo.game_id)
+            .filter(SessaoJogo.user_id == user_id, Game.removed_at.is_(None)))
 
 
 def sessoes(user_id):
@@ -344,8 +345,8 @@ def conceder(user_id, codigo):
         db.session.add(uc)
     ok = _desbloquear(user, uc, conquista)
     db.session.commit()
-    if ok:
-        _emitir(user_id, "conquista", {"raridade": conquista.raridade, "conquista_id": conquista.id})
+    if ok:  # já gravada: a falha de um ouvinte fica no log, como nos demais eventos
+        emitir_evento(user_id, "conquista", raridade=conquista.raridade, conquista_id=conquista.id)
     return ok
 
 
@@ -357,12 +358,8 @@ def recalcular(username=None):
     usuarios = q.all()
     metricas = [m for m in METRICAS if m != "concedida"]
     total = 0
-    for user in usuarios:
-        novas = avaliar(user, metricas, recalculo=True)
-        for c in novas:  # o XP da conquista (PRG-02), sem reavaliar as conquistas nem avisar de novo
-            for ouvinte in list(_ouvintes):
-                ouvinte(user.id, "conquista", {"raridade": c.raridade, "conquista_id": c.id})
-        total += len(novas)
+    for user in usuarios:  # sem ouvintes: a conquista retroativa não dá XP (PRG, fora do escopo)
+        total += len(avaliar(user, metricas, recalculo=True))
         db.session.commit()
         despachar_adiados()
     return len(usuarios), total

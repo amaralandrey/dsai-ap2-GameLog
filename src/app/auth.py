@@ -1,7 +1,7 @@
 import re
 from datetime import timedelta
 
-from flask import Blueprint, abort, flash, redirect, render_template, request, session
+from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, session
 from sqlalchemy.exc import IntegrityError
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -39,6 +39,7 @@ def validate_signup(username, email, password):
 def start_session(user):
     session.clear()
     session["uid"], session["sv"] = user.id, user.session_version
+    session["inst"] = current_app.config["INSTANCIA"]
 
 
 @bp.route("/cadastro", methods=["GET", "POST"])

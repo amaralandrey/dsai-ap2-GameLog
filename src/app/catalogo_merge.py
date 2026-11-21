@@ -9,7 +9,8 @@ from sqlalchemy.orm import joinedload
 
 from .fontes import FONTES, external_id_da_url
 from .models import (
-    LOJAS, Activity, Dismissed, Game, JogoFonte, ListItem, PendenciaMerge, Review, Status, db, now, visible_games,
+    LOJAS, Activity, Dismissed, Game, JogoDoMes, JogoFonte, ListItem, MetaClube, Notificacao, PendenciaMerge, Review,
+    SessaoJogo, Status, db, now, visible_games,
 )
 from .util import fold, slugify
 
@@ -262,6 +263,12 @@ def _levar_vinculos(principal, secundario):
             v.game = principal
 
 
+def _levar_referencias(principal, secundario):
+    """Sessões do diário, jogos do mês, metas de clube e notificações não têm unicidade por jogo: vão todas."""
+    for modelo in (SessaoJogo, JogoDoMes, MetaClube, Notificacao):
+        modelo.query.filter_by(game_id=secundario.id).update({"game_id": principal.id}, synchronize_session="fetch")
+
+
 def mesclar(pendencia, principal_id, admin_id):
     """Mescla a pendência levando o histórico do secundário para o principal; devolve (principal, secundario)."""
     if pendencia.status != "pendente":
@@ -285,6 +292,7 @@ def mesclar(pendencia, principal_id, admin_id):
     _levar_itens_de_lista(principal, secundario)
     _levar_dispensas(principal, secundario)
     _levar_atividades(principal, secundario)
+    _levar_referencias(principal, secundario)
     pendencia.status, pendencia.decidida_em, pendencia.decidida_por = "mesclada", now(), admin_id
     _levar_pendencias(principal, secundario, admin_id)
     return principal, secundario

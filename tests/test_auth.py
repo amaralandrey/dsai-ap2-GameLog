@@ -138,3 +138,45 @@ def test_csrf_bloqueia_post_sem_token(tmp_path):
 
     app = create_app({"TESTING": True, "SQLALCHEMY_DATABASE_URI": f"sqlite:///{tmp_path}/c.db"})
     assert app.test_client().post("/cadastro", data=OK).status_code == 400
+
+
+def test_cookie_de_banco_anterior_nao_autentica_quem_herdou_o_id(tmp_path):
+    from app import create_app
+
+    cfg = {"TESTING": True, "CSRF": False, "SECRET_KEY": "fixa"}
+    antigo = create_app({**cfg, "SQLALCHEMY_DATABASE_URI": f"sqlite:///{tmp_path}/a.db"})
+    make_user(antigo, "ana")
+    c = antigo.test_client()
+    login(c, "ana")
+    with c.session_transaction() as s:
+        cookie = dict(s)
+    novo = create_app({**cfg, "SQLALCHEMY_DATABASE_URI": f"sqlite:///{tmp_path}/b.db"})  # banco recriado no boot
+    make_user(novo, "bia")  # herda o id 1 e o session_version 0 da ana
+    c2 = novo.test_client()
+    with c2.session_transaction() as s:
+        s.update(cookie)
+    assert c2.get("/u/bia/editar").status_code == 302
+
+
+def test_cookie_de_sessao_seguro_em_producao(tmp_path):
+    from app import create_app
+
+    app = create_app({"TESTING": True, "PRODUCAO": True, "SECRET_KEY": "fixa",
+                      "SQLALCHEMY_DATABASE_URI": f"sqlite:///{tmp_path}/p.db"})
+    cookie = app.test_client().get("/entrar").headers["Set-Cookie"]
+    assert "Secure" in cookie and "SameSite=Lax" in cookie
+
+
+def test_cookie_de_sessao_lax_fora_de_producao(client):
+    cookie = client.get("/entrar").headers["Set-Cookie"]
+    assert "SameSite=Lax" in cookie and "Secure" not in cookie
+
+
+def test_producao_sem_secret_key_nao_sobe(tmp_path, monkeypatch):
+    import pytest
+
+    from app import create_app
+
+    monkeypatch.delenv("SECRET_KEY", raising=False)
+    with pytest.raises(RuntimeError, match="SECRET_KEY"):
+        create_app({"TESTING": True, "PRODUCAO": True, "SQLALCHEMY_DATABASE_URI": f"sqlite:///{tmp_path}/p.db"})

@@ -251,6 +251,18 @@ def test_lsa_07_congelar_com_corte_em_200(app, ana):
         assert db.session.get(ListaInteligente, lid) is not None
 
 
+def test_lsa_07_congelar_respeita_o_limite_de_50_listas(app, ana):
+    with app.app_context():
+        db.session.add_all(GameList(user_id=uid(app), name=f"L{i}") for i in range(50))
+        db.session.commit()
+    criar(ana, "jogados_sem_avaliacao", nome="Cheia")
+    lid = ultima(app)
+    r = ana.post(f"/listas/inteligentes/{lid}/congelar", follow_redirects=True)
+    assert "Limite de 50 listas atingido" in r.get_data(as_text=True)
+    with app.app_context():
+        assert GameList.query.count() == 50
+
+
 # ---------- LSA-08 ----------
 def test_lsa_08_barra_de_progresso_e_orcamento(app, ana):
     from app.listas_inteligentes import progresso_comum
