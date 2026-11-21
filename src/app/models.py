@@ -31,6 +31,13 @@ class User(db.Model):
     password_hash = db.Column(db.String(300), nullable=False)
     display_name = db.Column(db.String(60), nullable=False)
     bio = db.Column(db.String(280), default="", nullable=False)
+    # verificação de idade (IDA): o nascimento nunca sai do servidor; quem consulta usa a faixa
+    nascimento = db.Column(db.Date, nullable=True)
+    nascimento_confiavel = db.Column(db.Boolean, default=False, nullable=False)
+    aguardando_responsavel = db.Column(db.Boolean, default=False, nullable=False)
+    idade_contestada_em = db.Column(db.DateTime, nullable=True)
+    suspensa_em = db.Column(db.DateTime, nullable=True)
+    revisao_idade_pedida_em = db.Column(db.DateTime, nullable=True)  # a conta pendente pediu revisão da data (IDA-04)
     role = db.Column(db.String(10), default="jogador", nullable=False)
     session_version = db.Column(db.Integer, default=0, nullable=False)
     created_at = db.Column(db.DateTime, default=now, nullable=False)
@@ -40,6 +47,22 @@ class User(db.Model):
     @property
     def is_admin(self):
         return self.role == "admin"
+
+
+class VerificacaoIdade(db.Model):
+    """Histórico só de inserção (IDA-06); nunca guarda documento, foto nem número de documento."""
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.ForeignKey("user.id"), nullable=False, index=True)
+    metodo = db.Column(db.String(30), nullable=False)
+    faixa_resultante = db.Column(db.String(30), nullable=False)
+    confiavel = db.Column(db.Boolean, nullable=False)
+    divergente = db.Column(db.Boolean, default=False, nullable=False)  # IDA-08
+    created_at = db.Column(db.DateTime, default=now, nullable=False)
+
+
+@db.event.listens_for(VerificacaoIdade, "before_update")
+def _historico_imutavel(*_):
+    raise ValueError("o histórico de verificações de idade é só de inserção")
 
 
 class LoginAttempt(db.Model):

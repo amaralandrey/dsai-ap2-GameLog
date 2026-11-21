@@ -39,22 +39,44 @@ def current_user():
         uid = session.get("uid")
         u = db.session.get(User, uid) if uid else None
         # logout incrementa session_version e invalida cookies antigos no servidor (CAD-05)
-        g.user = u if u and u.session_version == session.get("sv") else None
+        g.user = u if u and u.session_version == session.get("sv") and u.suspensa_em is None else None
     return g.user
 
 
+# Rotas que respondem mesmo com a idade pendente (IDA-04, IDA-05)
+LIVRES_DA_IDADE = ("/sair", "/privacidade", "/termos", "/conta/privacidade", "/conta/excluir", "/conta/pendente",
+                   "/conta/nascimento", "/conta/idade")
+
+
+def _pendencia_de_idade(u):
+    """Para onde vai quem ainda não pode usar o site logado: conta antiga sem data ou à espera do responsável."""
+    if request.path in LIVRES_DA_IDADE or request.path.startswith(tuple(f"{p}/" for p in LIVRES_DA_IDADE)):
+        return None  # caminho exato ou seguido de "/": `/termos-de-clube` não é livre
+    if u.nascimento is None:
+        return redirect(url_for("idade.nascimento", next=_destino()))
+    from .menores.idade import aguarda_responsavel  # menores.idade importa util
+
+    if aguarda_responsavel(u):
+        return redirect("/conta/pendente")
+    return None
+
+
+def _destino():
+    """Para onde voltar depois de um desvio (GLOBAL-02): o próprio GET, ou a página de origem de um POST."""
+    return request.full_path.rstrip("?") if request.method == "GET" else (request.referrer or "/")
+
+
 def _login_redirect():
-    # volta à ação depois do login (GLOBAL-02): POST volta à página de origem
-    nxt = request.full_path.rstrip("?") if request.method == "GET" else (request.referrer or "/")
-    return redirect(url_for("auth.login", next=nxt))
+    return redirect(url_for("auth.login", next=_destino()))
 
 
 def login_required(f):
     @wraps(f)
     def wrapper(*a, **kw):
-        if not current_user():
+        u = current_user()
+        if not u:
             return _login_redirect()
-        return f(*a, **kw)
+        return _pendencia_de_idade(u) or f(*a, **kw)
 
     return wrapper
 
@@ -67,7 +89,7 @@ def admin_required(f):
             return _login_redirect()
         if not u.is_admin:
             abort(403)
-        return f(*a, **kw)
+        return _pendencia_de_idade(u) or f(*a, **kw)
 
     return wrapper
 
