@@ -165,6 +165,9 @@ CAMPOS = {
     **_nao_pessoal("conquista", "catalogo"),
     **_nao_pessoal("preco_loja", "catalogo"),
     **_nao_pessoal("instancia", "seguranca"),  # token do banco, não identifica ninguém
+    # as tarefas de hoje só sincronizam o catálogo; tarefa com user_id em args precisa rever estas duas
+    **_nao_pessoal("job", "catalogo"),
+    **_nao_pessoal("agendamento", "catalogo"),
     **_nao_pessoal("temporada", "engajamento"),
     **_nao_pessoal("clube", "engajamento"),
     **_nao_pessoal("jogo_do_mes", "engajamento"),
