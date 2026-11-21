@@ -40,6 +40,13 @@ def modera(m):
     return ativo(m) and m.papel in ("dono", "moderador")
 
 
+def clubes_como_dono(user_id):
+    """Clubes ativos de que `user_id` é dono; removidos pelo admin não contam no limite (CLB-01)."""
+    return (MembroClube.query.join(Clube, Clube.id == MembroClube.clube_id)
+            .filter(MembroClube.user_id == user_id, MembroClube.papel == "dono", MembroClube.situacao == "ativo",
+                    Clube.removido_em.is_(None)).count())
+
+
 def clube_ou_404(slug):
     """Removido responde 404 a todos; privado, a quem não é membro ativo (CLB-02)."""
     clube = Clube.query.filter_by(slug=slug).first()
@@ -107,7 +114,7 @@ def novo():
     if request.method == "GET":
         return render_template("clubes/novo.html", erros={}, form={}, generos=generos)
     dados, erros = validar_clube(request.form)
-    if MembroClube.query.filter_by(user_id=me.id, papel="dono", situacao="ativo").count() >= MAX_DONO:
+    if clubes_como_dono(me.id) >= MAX_DONO:
         erros["nome"] = f"Você já é dono de {MAX_DONO} clubes, o máximo permitido."
     if erros:
         return render_template("clubes/novo.html", erros=erros, form=request.form, generos=generos), 400
@@ -340,7 +347,7 @@ def papel(slug, user_id, acao):
         alvo.papel = "moderador" if acao == "promover" else "membro"
     elif acao == "transferir":
         exigir(ativo(m) and m.papel == "dono")
-        if MembroClube.query.filter_by(user_id=alvo.user_id, papel="dono", situacao="ativo").count() >= MAX_DONO:
+        if clubes_como_dono(alvo.user_id) >= MAX_DONO:
             flash(f"Esse membro já é dono de {MAX_DONO} clubes, o máximo permitido.", "erro")
             return redirect(f"/clubes/{slug}")
         alvo.papel, m.papel = "dono", "moderador"

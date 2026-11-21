@@ -85,6 +85,10 @@ def test_clb_01_limite_de_5_clubes(base):
         criar(ana, f"Clube {i}")
     r = criar(ana, "Sexto")
     assert r.status_code == 400 and "máximo permitido" in r.get_data(as_text=True)
+    with base.app_context():
+        Clube.query.filter_by(nome="Clube 0").one().removido_em = datetime(2026, 11, 10)
+        db.session.commit()
+    assert criar(ana, "Sexto").status_code == 302  # clube removido pelo admin não conta
 
 
 def test_clb_02_lista_busca_privado_e_removido(base):
