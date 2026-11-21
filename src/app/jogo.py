@@ -63,7 +63,9 @@ def game_page(slug):
         mine = Review.query.filter_by(user_id=me.id, game_id=game.id).first()
         s = Status.query.filter_by(user_id=me.id, game_id=game.id).first()
         status = s.value if s else None
-        liked = {x.review_id for x in Like.query.filter_by(user_id=me.id)}
+        da_pagina = [r.id for r, _ in page.items]
+        liked = {i for (i,) in db.session.query(Like.review_id).filter(Like.user_id == me.id,
+                                                                        Like.review_id.in_(da_pagina))}
         my_lists = GameList.query.filter_by(user_id=me.id).order_by(GameList.name).all()
     stats = game_stats(game.id)
     horas = minutos_por_usuario(game.id, [r.user_id for r, _ in page.items] + ([mine.user_id] if mine else []))
