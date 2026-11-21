@@ -77,6 +77,20 @@ def test_cad06_safe_next_recusa_barra_invertida_e_controle():
         assert safe_next(bom) == bom
 
 
+def test_cad06_post_sem_login_volta_a_pagina_de_origem(client, app):
+    make_user(app)
+    make_user(app, "bia")
+    r = client.post("/u/bia/seguir", headers={"Referer": "http://localhost/u/bia?aba=listas"})
+    assert r.status_code == 302
+    r = client.post(r.headers["Location"], data={"email": "ana@ex.com", "password": "senha1234"})
+    assert r.headers["Location"] == "/u/bia?aba=listas"
+    # referrer de outro host não vira destino
+    c2 = app.test_client()
+    r = c2.post("/u/bia/seguir", headers={"Referer": "http://evil.com/u/bia"})
+    r = c2.post(r.headers["Location"], data={"email": "ana@ex.com", "password": "senha1234"})
+    assert r.headers["Location"] == "/"
+
+
 def test_cad07_perfil_publico(client, app):
     make_user(app)
     html = client.get("/u/ana").get_data(as_text=True)

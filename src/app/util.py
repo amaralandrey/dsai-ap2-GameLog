@@ -45,8 +45,12 @@ def current_user():
 
 
 def _login_redirect():
-    # volta à ação depois do login (GLOBAL-02): POST volta à página de origem
-    nxt = request.full_path.rstrip("?") if request.method == "GET" else (request.referrer or "/")
+    # volta à ação depois do login (GLOBAL-02): POST volta à página de origem, se for deste host
+    if request.method == "GET":
+        nxt = request.full_path.rstrip("?")
+    else:
+        ref = urlsplit(request.referrer or "")
+        nxt = (ref.path or "/") + (f"?{ref.query}" if ref.query else "") if ref.netloc == request.host else "/"
     return redirect(url_for("auth.login", next=nxt))
 
 
