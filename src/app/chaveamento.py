@@ -357,42 +357,60 @@ def _pontos(partidas, com_bye):
     return pontos
 
 
-def _parear(fila, ja_jogaram):
-    """Pares sem revanche, do topo para baixo, com volta atrás; None se não houver (ou se demorar demais)."""
-    tentativas = [0]
+def _parear(fila, ja_jogaram, revanches, orcamento):
+    """Pares do topo para baixo, com volta atrás, aceitando até `revanches` repetições.
 
-    def buscar(restantes):
-        tentativas[0] += 1
-        if tentativas[0] > LIMITE_DE_TENTATIVAS:
+    None se não houver, ou se o `orcamento` de tentativas (compartilhado entre as chamadas) acabar.
+    """
+    def buscar(restantes, sobra):
+        orcamento[0] -= 1
+        if orcamento[0] < 0:
             return None
         if not restantes:
             return []
         x = restantes[0]
         for j in range(1, len(restantes)):
-            if frozenset((x, restantes[j])) in ja_jogaram:
+            custo = frozenset((x, restantes[j])) in ja_jogaram
+            if custo > sobra:
                 continue
-            resto = buscar(restantes[1:j] + restantes[j + 1:])
+            resto = buscar(restantes[1:j] + restantes[j + 1:], sobra - custo)
             if resto is not None:
                 return [(x, restantes[j])] + resto
         return None
-    return buscar(fila)
+    return buscar(fila, revanches)
+
+
+def _parear_guloso(fila, ja_jogaram):
+    """Sem orçamento para a busca: cada um, do topo para baixo, pega o primeiro adversário inédito que sobrar."""
+    restantes, pares = list(fila), []
+    while restantes:
+        x = restantes.pop(0)
+        j = next((j for j, y in enumerate(restantes) if frozenset((x, y)) not in ja_jogaram), 0)
+        pares.append((x, restantes.pop(j)))
+    return pares
 
 
 def _emparelhar_suico(participantes, anteriores, rodada):
-    pontos = _pontos(anteriores, com_bye=True)
-    fila = sorted(participantes, key=lambda x: (-pontos.get(x, 0), participantes.index(x)))
-    partidas = []
-    if len(fila) % 2:  # bye para o de menor pontuação que ainda não teve bye
-        tiveram = {p.a for p in anteriores if p.b is BYE}
-        folga = next((x for x in reversed(fila) if x not in tiveram), fila[-1])
-        fila.remove(folga)
-        partidas.append(Partida("", rodada, "suico", a=folga, b=BYE, vencedor=folga))
+    """Menos revanches primeiro (nenhuma enquanto houver alternativa); entre os pareamentos com o mesmo
+    número de revanches, o bye vai para o de menor pontuação que ainda não teve bye."""
+    pontos, semente = _pontos(anteriores, com_bye=True), {x: i for i, x in enumerate(participantes)}
+    fila = sorted(participantes, key=lambda x: (-pontos.get(x, 0), semente[x]))
+    tiveram = {p.a for p in anteriores if p.b is BYE}
+    folgas = [None]
+    if len(fila) % 2:
+        folgas = [x for x in reversed(fila) if x not in tiveram] or [fila[-1]]
     ja_jogaram = {frozenset((p.a, p.b)) for p in anteriores if p.b is not BYE}
-    pares = _parear(fila, ja_jogaram) or list(zip(fila[::2], fila[1::2]))  # sem alternativa: revanche
-    jogos = [Partida("", rodada, "suico", a=a, b=b) for a, b in pares]
-    for n, p in enumerate(jogos + partidas, start=1):
+    orcamento = [LIMITE_DE_TENTATIVAS]
+    escolha = next(((folga, pares) for revanches in range(len(fila) // 2 + 1) for folga in folgas
+                    if (pares := _parear([x for x in fila if x != folga], ja_jogaram, revanches, orcamento)) is not None),
+                   None)
+    folga, pares = escolha or (folgas[0], _parear_guloso([x for x in fila if x != folgas[0]], ja_jogaram))
+    partidas = [Partida("", rodada, "suico", a=a, b=b) for a, b in pares]
+    if folga is not None:
+        partidas.append(Partida("", rodada, "suico", a=folga, b=BYE, vencedor=folga))
+    for n, p in enumerate(partidas, start=1):
         p.id = f"S{rodada}-{n}"
-    return jogos + partidas
+    return partidas
 
 
 def _rodada_suica(pid):

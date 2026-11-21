@@ -286,6 +286,30 @@ def test_chv_05_revanche_so_sem_alternativa():
     assert [(p.a, p.b) for p in ch.suico(nomes(2), resultados, 2)] == [("p1", "p2")]
 
 
+def jogo(pid, a, b, vencedor):
+    return ch.Partida(pid, 1, "suico", a=a, b=b, vencedor=vencedor, jogada=vencedor is not BYE)
+
+
+def test_chv_05_outro_bye_evita_revanche():
+    # a jogou com b, e b com c; o último sem bye é c, mas com c de folga sobraria a revanche a × b
+    anteriores = [jogo("S1-1", "a", "b", "a"), jogo("S1-2", "a", BYE, "a"), jogo("S2-1", "b", "c", "b")]
+    assert [(p.a, p.b) for p in ch._emparelhar_suico(["a", "b", "c"], anteriores, 3)] == [("a", "c"), ("b", BYE)]
+
+
+def test_chv_05_sem_alternativa_o_minimo_de_revanches():
+    # a já jogou com todos e c com d: a ordem dos pares (a × b, c × d) teria duas revanches; o mínimo é uma
+    anteriores = [jogo("S1-1", "a", "b", "a"), jogo("S1-2", "c", "d", "c"),
+                  jogo("S2-1", "a", "c", "a"), jogo("S2-2", "b", "d", "b"), jogo("S3-1", "a", "d", "a")]
+    pares = {frozenset((p.a, p.b)) for p in ch._emparelhar_suico(["a", "b", "c", "d"], anteriores, 4)}
+    assert len(pares & {frozenset((p.a, p.b)) for p in anteriores}) == 1
+
+
+def test_chv_05_sem_orcamento_para_a_busca_cada_um_pega_um_inedito(monkeypatch):
+    monkeypatch.setattr(ch, "LIMITE_DE_TENTATIVAS", 0)
+    anteriores = [jogo("S1-1", "a", "b", None), jogo("S1-2", "c", "d", None)]  # dois empates: a ordem é a, b, c, d
+    assert [(p.a, p.b) for p in ch._emparelhar_suico(["a", "b", "c", "d"], anteriores, 2)] == [("a", "c"), ("b", "d")]
+
+
 # ---------- CHV-06, CHV-07 ----------
 def resultado(partidas, x, y, gx, gy):
     p = next(p for p in partidas if {p.a, p.b} == {x, y})
