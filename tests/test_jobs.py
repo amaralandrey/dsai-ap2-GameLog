@@ -175,6 +175,24 @@ def test_job_05_abandonado_volta_para_pendente_contando_tentativa(app, tarefas, 
         assert (j.status, j.tentativas, j.travado_por) == ("ok", 1, None)
 
 
+@pytest.mark.parametrize("falha", [False, True])
+def test_job_05_execucao_que_perdeu_a_trava_nao_grava_o_fim(app, tarefas, relogio, falha):
+    @jobs.tarefa("lenta")
+    def lenta():  # enquanto roda, passa de 15 min, é liberada e outro executor a pega
+        db.session.add(User(username="z", username_lower="z", email="z@ex.com", password_hash="h", display_name="z"))
+        relogio.andar(minutes=16)
+        assert jobs.liberar_abandonados() == 1 and jobs._travar(jid, "b:2")
+        if falha:
+            raise RuntimeError("quebrou depois de perder a trava")
+
+    with app.app_context():
+        jid = jobs.enfileirar("lenta").id
+        assert jobs.executar(jid, "a:1") is None
+        j = db.session.get(Job, jid)
+        assert (j.status, j.travado_por, j.tentativas, j.ultimo_erro) == (
+            "rodando", "b:2", 1, "abandonado: rodando há mais de 15 minutos")
+
+
 # ---------- JOB-07, JOB-08 ----------
 @pytest.mark.parametrize("expressao", ["* * * * *", "*/15 4 1,15 1-6 1-5", "0 0 29 2 *", "30 4 * * 7",
                                        "1-30/5 * * * 0"])

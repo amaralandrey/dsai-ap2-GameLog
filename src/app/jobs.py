@@ -91,51 +91,68 @@ def espera(tentativas):
     return min(ESPERA_BASE * 2 ** (tentativas - 1), ESPERA_MAX)
 
 
-def _falhar(job_id, exc):
-    job = db.session.get(Job, job_id)
-    job.tentativas += 1
-    job.ultimo_erro = f"{type(exc).__name__}: {exc}"[:MAX_ERRO]  # sem traceback nem valores de variáveis
-    job.travado_por = job.travado_em = None
-    if isinstance(exc, ErroPermanente) or job.tentativas >= job.max_tentativas:
-        job.status, job.concluido_em = "morto", tempo.agora_utc()
-    else:
-        job.status, job.executar_em = "pendente", tempo.agora_utc() + espera(job.tentativas)
+def _falha(job, erro, permanente=False, esperar=True):
+    """Valores de um job que falhou: `morto` sem tentativas sobrando (ou com erro permanente), senão `pendente`."""
+    tentativas, agora = job.tentativas + 1, tempo.agora_utc()
+    valores = {"tentativas": tentativas, "ultimo_erro": erro[:MAX_ERRO], "travado_por": None, "travado_em": None}
+    if permanente or tentativas >= job.max_tentativas:
+        return valores | {"status": "morto", "concluido_em": agora}
+    valores["status"] = "pendente"
+    if esperar:
+        valores["executar_em"] = agora + espera(tentativas)
+    return valores
+
+
+def _gravar_se_travado(job_id, executor, valores):
+    """Grava o fim do job só se a trava ainda é deste executor; sem ela, não grava nem faz commit."""
+    mudou = (Job.query.filter(Job.id == job_id, Job.status == "rodando", Job.travado_por == executor)
+             .update(valores, synchronize_session=False))
+    if mudou != 1:
+        return False
     db.session.commit()
-    return job.status
+    return True
+
+
+def _falhar(job_id, executor, exc):
+    erro = f"{type(exc).__name__}: {exc}"  # sem traceback nem valores de variáveis
+    valores = _falha(db.session.get(Job, job_id), erro, permanente=isinstance(exc, ErroPermanente))
+    return valores["status"] if _gravar_se_travado(job_id, executor, valores) else None
 
 
 def executar(job_id, executor=None):
-    """Trava e roda um job; devolve `ok`, `pendente` (vai tentar de novo), `morto` ou None se outro pegou."""
-    if not _travar(job_id, executor or identificacao()):
+    """Trava e roda um job; devolve `ok`, `pendente` (vai tentar de novo), `morto` ou None se outro pegou.
+
+    Se a trava se perdeu no meio (o job foi liberado como abandonado e outro executor o pegou), nada é
+    gravado: o que a tarefa fez é desfeito, e quem tem a trava agora termina o job.
+    """
+    executor = executor or identificacao()
+    if not _travar(job_id, executor):
         return None
     job = db.session.get(Job, job_id)
     try:
         if job.tipo not in TAREFAS:  # tarefa removida do código depois de enfileirada
             raise ErroPermanente(f"tarefa desconhecida: {job.tipo}")
         TAREFAS[job.tipo](**json.loads(job.args))
-        job.status, job.concluido_em = "ok", tempo.agora_utc()
-        job.travado_por = job.travado_em = None
-        db.session.commit()  # o que a tarefa gravou e o "ok" entram juntos; um erro aqui também é falha
+        ok = {"status": "ok", "concluido_em": tempo.agora_utc(), "travado_por": None, "travado_em": None}
+        if not _gravar_se_travado(job_id, executor, ok):  # o que a tarefa gravou e o "ok" entram juntos
+            db.session.rollback()
+            return None
     except Exception as exc:
         db.session.rollback()  # desfaz o que a tarefa gravou (JOB-06)
-        return _falhar(job_id, exc)
+        return _falhar(job_id, executor, exc)
     return "ok"
 
 
 def liberar_abandonados():
     """Job `rodando` há mais de 15 minutos volta para `pendente`, contando uma tentativa (JOB-05)."""
     limite = tempo.agora_utc() - ABANDONO
-    abandonados = Job.query.filter(Job.status == "rodando", Job.travado_em < limite).all()
-    for job in abandonados:
-        job.tentativas += 1
-        job.travado_por = job.travado_em = None
-        job.ultimo_erro = "abandonado: rodando há mais de 15 minutos"
-        if job.tentativas >= job.max_tentativas:
-            job.status, job.concluido_em = "morto", tempo.agora_utc()
-        else:
-            job.status = "pendente"
+    liberados = 0
+    for job in Job.query.filter(Job.status == "rodando", Job.travado_em < limite).all():
+        valores = _falha(job, "abandonado: rodando há mais de 15 minutos", esperar=False)
+        liberados += (Job.query.filter(Job.id == job.id, Job.status == "rodando", Job.travado_em == job.travado_em)
+                      .update(valores, synchronize_session=False))  # quem terminou nesse meio-tempo fica como está
     db.session.commit()
-    return len(abandonados)
+    return liberados
 
 
 # ---------- agendamentos (JOB-08) ----------
