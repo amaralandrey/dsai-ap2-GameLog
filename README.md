@@ -17,7 +17,7 @@ python -m venv .venv && . .venv/bin/activate
 pip install -r requirements.txt
 cd src
 export ADMIN_EMAIL=admin@example.com ADMIN_PASSWORD=<senha>   # ver .env.example
-flask --app app seed        # 153 jogos reais (snapshot da Steam), 30 usuários fictícios com avaliações em ~30 jogos (senha: senha1234)
+flask --app app seed        # 153 jogos reais (snapshot da Steam), 30 usuários fictícios com avaliações em ~30 jogos (senha: senha1234; em produção, aleatória)
 flask --app app run
 cd .. && pytest             # 767 testes, um ou mais por critério de aceitação
 ```
@@ -39,7 +39,7 @@ O catálogo vem de `src/app/dados/jogos.json` (gerado com `flask --app app expor
 **Banco local e mudanças de esquema:** o projeto não tem ferramenta de migração (`db.create_all()` cria tabelas novas, mas não altera as existentes). Quando uma spec mudar colunas de uma tabela que já existe, recrie o banco local com `./dev.sh reset`; sem isso, o app quebra com "no such column". Exemplos: a deduplicação acrescentou `game.mesclado_em_id`; o Épico 4 acrescentou `like.created_at` e colunas em `report`, e passou `review` e `sessao_jogo` a usar `AUTOINCREMENT`. No Render o disco é efêmero e o banco é recriado a cada deploy.
 
 Deploy: `render.yaml` em <https://gamelog-92zh.onrender.com/> (Render, plano gratuito; o seed reproduzível recria o banco a cada start).
-Variáveis: `SECRET_KEY` (gerada), `ADMIN_EMAIL`, `ADMIN_PASSWORD`; opcionais `FONTES_TIMEOUT` (segundos por tentativa nas fontes, padrão 15), `RAWG_API_KEY` (liga a fonte RAWG) e `STEAM_API_KEY` (liga a importação de horas da Steam).
+Variáveis: `SECRET_KEY` (gerada), `GAMELOG_PRODUCAO=1` (contas do seed com senha aleatória), `ADMIN_EMAIL`, `ADMIN_PASSWORD`; opcionais `FONTES_TIMEOUT` (segundos por tentativa nas fontes, padrão 15), `RAWG_API_KEY` (liga a fonte RAWG) e `STEAM_API_KEY` (liga a importação de horas da Steam).
 
 ## Commits
 

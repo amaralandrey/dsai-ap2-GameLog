@@ -22,6 +22,7 @@ def create_app(config=None):
         SECRET_KEY=os.environ.get("SECRET_KEY") or secrets.token_hex(32),
         SQLALCHEMY_DATABASE_URI=os.environ.get("DATABASE_URL", "sqlite:///gamelog.db"),
         CSRF=True,
+        PRODUCAO=os.environ.get("GAMELOG_PRODUCAO") == "1",  # definida no render.yaml
     )
     app.config.update(config or {})
     db.init_app(app)
