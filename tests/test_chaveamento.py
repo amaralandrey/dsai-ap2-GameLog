@@ -211,6 +211,16 @@ def test_chv_09_correcao_na_dupla_desfaz_a_queda_para_os_perdedores():
         ch.corrigir(chave, "V1-1", ("V1-1", "p4", 0, 1))
 
 
+def test_chv_09_correcao_da_final_reabre_o_reset():
+    ps = nomes(2)
+    chave = jogar_tudo(ch.eliminacao_dupla(ps), melhor_semente(ps))
+    assert ch.campeao(chave) == "p1" and not chave.partidas["F2"].jogada  # p1 venceu a F1: reset dispensado
+    ch.corrigir(chave, "F1", ("F1", "p2", 0, 1))
+    f2 = chave.partidas["F2"]
+    assert (f2.a, f2.b, f2.decidida, ch.campeao(chave)) == ("p2", "p1", False, None)
+    assert [p.id for p in ch.proximas_partidas(chave)] == ["F2"]
+
+
 # ---------- CHV-04 ----------
 def pares(partidas):
     return [frozenset((p.a, p.b)) for p in partidas if p.b is not BYE]

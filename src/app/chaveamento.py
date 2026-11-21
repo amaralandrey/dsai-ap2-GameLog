@@ -52,6 +52,7 @@ class Partida:
     placar_a: int = None
     placar_b: int = None
     jogada: bool = False  # tem resultado registrado; bye e reset dispensado não contam como jogo
+    dispensada_se: str = None  # id da partida cujo lado A, vencendo, decide esta sem jogo (o reset)
 
     @property
     def decidida(self):
@@ -138,14 +139,14 @@ def _resolver(chave):
             if p.a is not None and p.b is not None and BYE in (p.a, p.b):
                 p.vencedor = p.b if p.a is BYE else p.a  # bye: decidida na hora, sem jogo; dois byes dão BYE
                 mudou = True
-            elif p.id == "F2" and p.a is not None and p.b is not None and _reset_dispensado(chave):
-                p.vencedor = chave.partidas["F1"].vencedor  # o campeão da chave de vencedores já ganhou a final
+            elif p.dispensada_se and p.a is not None and p.b is not None and _lado_a_venceu(chave, p.dispensada_se):
+                p.vencedor = chave.partidas[p.dispensada_se].vencedor
                 mudou = True
 
 
-def _reset_dispensado(chave):
-    f1 = chave.partidas["F1"]
-    return f1.decidida and f1.jogada and f1.vencedor == f1.a
+def _lado_a_venceu(chave, pid):
+    origem = chave.partidas[pid]
+    return origem.jogada and origem.vencedor == origem.a
 
 
 def _conferir_vencedor(p, vencedor, empate_permitido):
@@ -185,8 +186,6 @@ def _dependentes(chave, pid):
             if p.id not in alcancadas and atual in {o[1] for o in (p.origem_a, p.origem_b) if o}:
                 alcancadas.add(p.id)
                 fila.append(p.id)
-    if "F2" in chave.partidas and "F1" in alcancadas | {pid}:
-        alcancadas.add("F2")  # o reset depende do resultado da final, não só de quem a jogou
     return [p for p in chave.partidas if p in alcancadas]
 
 
@@ -214,7 +213,7 @@ def corrigir(chave, partida_id, novo_resultado):
 
 def campeao(chave):
     """O vencedor quando a chave termina; None antes disso (CHV-12)."""
-    final = chave.partidas["F2"] if "F2" in chave.partidas else list(chave.partidas.values())[-1]
+    final = list(chave.partidas.values())[-1]  # na dupla, o reset F2
     return final.vencedor if final.decidida and final.vencedor is not BYE else None
 
 
@@ -297,7 +296,8 @@ def eliminacao_dupla(participantes):
                                             origem_b=("vencedor", f"P{par}-{2 * i + 2}")))
         campeao_p = ("vencedor", f"P{2 * (rodadas_v - 1)}-1")
     chave.adicionar(Partida("F1", rodadas_v + 1, "final", origem_a=("vencedor", f"V{rodadas_v}-1"), origem_b=campeao_p))
-    chave.adicionar(Partida("F2", rodadas_v + 2, "final", origem_a=("vencedor", "F1"), origem_b=("perdedor", "F1")))
+    chave.adicionar(Partida("F2", rodadas_v + 2, "final", origem_a=("vencedor", "F1"), origem_b=("perdedor", "F1"),
+                            dispensada_se="F1"))
     _resolver(chave)
     return chave
 
@@ -508,14 +508,14 @@ def classificacao(formato, participantes, resultados, ida_e_volta=False):
     confronto = _pontos([p for p in jogadas if len(empatados[pontos[p.a]] & {p.a, p.b}) == 2], com_bye=False)
     buchholz = {x: sum(pontos[o] for o in conta[x]["adversarios"]) if formato == "suico" else 0 for x in participantes}
 
-    def chave_de(x):
-        return (-pontos[x], -confronto.get(x, 0), -conta[x]["saldo"], -buchholz[x], participantes.index(x))
-    ordem = sorted(participantes, key=chave_de)
+    chaves = {x: (-pontos[x], -confronto.get(x, 0), -conta[x]["saldo"], -buchholz[x], semente)
+              for semente, x in enumerate(participantes)}
+    ordem = sorted(participantes, key=chaves.get)
     tabela = []
     for i, x in enumerate(ordem):
         criterio = None
         if i:
-            anterior, atual = chave_de(ordem[i - 1]), chave_de(x)
+            anterior, atual = chaves[ordem[i - 1]], chaves[x]
             criterio = CRITERIOS[next(k for k in range(len(CRITERIOS)) if anterior[k] != atual[k])]
         c = conta[x]
         tabela.append(Linha(i + 1, x, pontos[x], c["v"], c["e"], c["d"], c["saldo"], buchholz[x], criterio))
