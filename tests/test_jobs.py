@@ -110,6 +110,20 @@ def test_job_06_falha_desfaz_e_espera_cresce_ate_morrer(app, tarefas, relogio):
         assert User.query.count() == 0  # o que a tarefa gravou foi desfeito
 
 
+def test_job_06_erro_no_commit_e_falha_do_job_e_o_ciclo_continua(app, tarefas):
+    @jobs.tarefa("quebra_no_commit")
+    def quebra_no_commit():  # sem flush: o NOT NULL do e-mail só estoura no commit
+        db.session.add(User(username="y", username_lower="y", password_hash="h", display_name="y"))
+
+    with app.app_context():
+        jid = jobs.enfileirar("quebra_no_commit").id
+        jobs.enfileirar("anota", n=1)
+        assert jobs.ciclo() == {"executados": 2, "ok": 1, "falhas": 1, "mortos": 0}
+        j = db.session.get(Job, jid)
+        assert (j.status, j.tentativas, j.travado_por) == ("pendente", 1, None)
+        assert j.ultimo_erro.startswith("IntegrityError") and tarefas == [{"n": 1}]
+
+
 def test_job_06_espera_tem_teto_de_6_horas():
     assert jobs.espera(1) == timedelta(seconds=30) and jobs.espera(10) == timedelta(hours=4, minutes=16)
     assert jobs.espera(11) == timedelta(hours=6) and jobs.espera(30) == timedelta(hours=6)

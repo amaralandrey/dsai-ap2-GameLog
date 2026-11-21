@@ -113,12 +113,12 @@ def executar(job_id, executor=None):
         if job.tipo not in TAREFAS:  # tarefa removida do código depois de enfileirada
             raise ErroPermanente(f"tarefa desconhecida: {job.tipo}")
         TAREFAS[job.tipo](**json.loads(job.args))
+        job.status, job.concluido_em = "ok", tempo.agora_utc()
+        job.travado_por = job.travado_em = None
+        db.session.commit()  # o que a tarefa gravou e o "ok" entram juntos; um erro aqui também é falha
     except Exception as exc:
         db.session.rollback()  # desfaz o que a tarefa gravou (JOB-06)
         return _falhar(job_id, exc)
-    job.status, job.concluido_em = "ok", tempo.agora_utc()
-    job.travado_por = job.travado_em = None
-    db.session.commit()  # o que a tarefa gravou e o "ok" entram juntos
     return "ok"
 
 
