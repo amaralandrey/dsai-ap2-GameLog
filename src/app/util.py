@@ -1,7 +1,7 @@
 import hashlib
 from functools import wraps
 
-from flask import abort, g, redirect, request, session, url_for
+from flask import abort, current_app, g, redirect, request, session, url_for
 
 from .models import User, db
 
@@ -37,7 +37,9 @@ def paginate(query, page, per_page=PER_PAGE):
 def current_user():
     if "user" not in g:
         uid = session.get("uid")
-        u = db.session.get(User, uid) if uid else None
+        # cookie de um banco anterior (o Render recria o banco a cada boot) não vale: os ids se repetem
+        mesmo_banco = session.get("inst") == current_app.config["INSTANCIA"]
+        u = db.session.get(User, uid) if uid and mesmo_banco else None
         # logout incrementa session_version e invalida cookies antigos no servidor (CAD-05)
         g.user = u if u and u.session_version == session.get("sv") else None
     return g.user
