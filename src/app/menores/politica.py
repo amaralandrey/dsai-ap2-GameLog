@@ -90,9 +90,10 @@ ACOES = {
     "conquista_por_tempo": Regra("Ganhar conquistas por tempo de jogo", SO_ADULTO),
     "aviso_engajamento": Regra("Receber aviso de sequência prestes a quebrar", SO_ADULTO,
                                nota="O widget de sequência também não aparece."),
-    # Extensão de EML/CNS (PMN-08): desligado por padrão para menores; aqui, quem pode ligar por conta própria
-    "email_engajamento": Regra("Ligar e-mails de engajamento (resumo semanal)", SEM_VINCULADO,
-                               nota="De 12 a 15 anos, só o responsável liga."),
+    # PMN-08 vive em `emails.py` (EML), que aplica a regra por faixa e também consulta esta ação: aqui ela fica
+    # liberada, senão quem tem 16 ou 17 anos nunca conseguiria ligar o resumo semanal
+    "email_engajamento": Regra("Ligar e-mails de engajamento (resumo semanal)", TODAS,
+                               nota="Desligados por padrão para menores; de 12 a 15 anos, só o responsável liga."),
     # Extensão de OFR (PMN-05): /ofertas e o POST de alerta respondem 403; o preço por loja continua visível
     "ver_ofertas": Regra("Ver ofertas", SO_ADULTO),
     "alerta_preco": Regra("Criar alerta de preço", SO_ADULTO),

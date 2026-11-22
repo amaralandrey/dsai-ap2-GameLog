@@ -73,7 +73,7 @@ MATRIZ = {  # adulto, adolescente, vinculado, pendente, sem data (sem alvo)
     "ranking_global": (S, N, N, N, N),
     "conquista_por_tempo": (S, N, N, N, N),
     "aviso_engajamento": (S, N, N, N, N),
-    "email_engajamento": (S, S, N, N, N),
+    "email_engajamento": (S, S, S, S, S),  # a faixa de PMN-08 fica em emails.py (EML)
     "ver_ofertas": (S, N, N, N, N),
     "alerta_preco": (S, N, N, N, N),
     "historico_para_terceiros": (S, N, N, N, N),
