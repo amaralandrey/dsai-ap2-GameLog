@@ -1,0 +1,3 @@
+{% extends "email/_layout.txt" %}
+{% block assunto %}Teste de envio do GameLog{% endblock %}
+{% block corpo %}Este é um e-mail de teste do GameLog. Se ele chegou, a configuração de envio está certa.{% endblock %}

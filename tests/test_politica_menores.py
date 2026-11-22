@@ -139,7 +139,7 @@ def test_pmn_02_lista_nova_de_menor_nasce_privada(app):
     criar(app, "ana")
     for nome in ("teen", "ana"):
         c = cliente(app, nome)
-        assert 'value="privada" selected' in c.get("/listas").get_data(as_text=True) or nome == "ana"
+        assert ('value="privada" selected' in c.get("/listas").get_data(as_text=True)) == (nome == "teen")
         c.post("/listas", data={"name": "Favoritos"})
     with app.app_context():
         assert {g.user.username: g.public for g in GameList.query} == {"teen": False, "ana": True}
@@ -157,6 +157,44 @@ def test_pmn_02_so_16_e_17_tornam_o_perfil_publico(app):
 
 
 # ---------- PMN-03 ----------
+def test_pmn_03_contestar_idade_de_adulto_volta_seguidor_a_pedido_pendente(app):
+    criar(app, "ana")
+    criar(app, "bia")
+    make_user(app, "chefe", role="admin")
+    seguir(app, "bia", "ana")
+    assert follow(app, "bia", "ana").aprovado_em is not None
+    with app.app_context():
+        aid = usuario("ana").id
+    cliente(app, "chefe").post(f"/admin/usuarios/{aid}/contestar-idade")
+    assert follow(app, "bia", "ana").aprovado_em is None
+    assert "Pedido enviado" in cliente(app, "bia").get("/u/ana").get_data(as_text=True)
+
+
+def test_pmn_03_verificacao_que_torna_adulto_menor_volta_seguidor_a_pedido_pendente(app, monkeypatch):
+    monkeypatch.setenv("VERIFICACAO_PROVEDOR", "simulado")
+    criar(app, "ana")
+    criar(app, "bia")
+    seguir(app, "bia", "ana")
+    cliente(app, "ana").post("/conta/idade/provedor_simulado", data={"codigo": "VINCULADO"})
+    assert follow(app, "bia", "ana").aprovado_em is None
+
+
+def test_pmn_03_pedido_pendente_de_quem_fez_18_ainda_aparece_e_se_aprova(app):
+    criar(app, "ana")
+    criar(app, "bia")
+    with app.app_context():
+        usuario("ana").nascimento = anos_atras(18)
+        db.session.add(Follow(follower_id=usuario("bia").id, followed_id=usuario("ana").id, aprovado_em=db.null()))
+        db.session.commit()
+    ana = cliente(app, "ana")
+    assert "/conta/pedidos" in ana.get("/u/ana").get_data(as_text=True)
+    assert "@bia" in ana.get("/conta/pedidos").get_data(as_text=True)
+    with app.app_context():
+        fid = Follow.query.filter_by(follower_id=usuario("bia").id).one().id
+    assert ana.post(f"/conta/pedidos/{fid}/aprovar").status_code == 302
+    assert follow(app, "bia", "ana").aprovado_em is not None
+
+
 def test_pmn_03_seguir_menor_e_pedido_pendente(app):
     criar(app, "ana")
     criar(app, "teen", "adolescente")
@@ -280,6 +318,43 @@ def test_pmn_04_ranking_global_sem_menores_e_seguindo_so_para_quem_ve(app):
         Follow.query.filter_by(follower_id=usuario("bia").id).one().aprovado_em = now()
         db.session.commit()
     assert ">teen</a>" in bia.get("/rankings?escopo=seguindo").get_data(as_text=True)
+
+
+def test_pmn_04_hall_e_premiacao_do_podio_sem_menor_contestado(app):
+    from app.conquistas_catalogo import sincronizar
+    from app.models import SnapshotRanking, Temporada, UsuarioConquista
+    from app.rankings import premiar_podio
+
+    criar(app, "ana")
+    criar(app, "bia")
+    with app.app_context():
+        sincronizar()
+        t = Temporada(nome="2026-T3", slug="2026-T3", inicio=date(2026, 7, 1), fim=date(2026, 9, 30),
+                      encerrada_em=now())
+        db.session.add(t)
+        db.session.flush()
+        for pos, nome in enumerate(("ana", "bia"), start=1):
+            db.session.add(SnapshotRanking(temporada_id=t.id, categoria="xp", posicao=pos,
+                                           user_id=usuario(nome).id, valor=50 - pos))
+        usuario("bia").idade_contestada_em = now()
+        db.session.commit()
+        premiar_podio(t)
+        assert {u.username for u in User.query.join(UsuarioConquista, UsuarioConquista.user_id == User.id)
+                .filter(UsuarioConquista.desbloqueada_em.isnot(None))} == {"ana"}
+    hall = app.test_client().get("/rankings/hall-da-fama").get_data(as_text=True)
+    assert "/u/ana" in hall and "/u/bia" not in hall
+
+
+def test_pmn_03_sugestoes_de_seguir_sem_menores(app):
+    from app.social import suggestions
+
+    criar(app, "ana")
+    criar(app, "bia")
+    criar(app, "teen", "adolescente")
+    with app.app_context():
+        db.session.add(Activity(user_id=usuario("teen").id, kind="lista"))
+        db.session.commit()
+        assert {u.username for u in suggestions(usuario("ana"))} == {"bia"}
 
 
 # ---------- PMN-05 ----------

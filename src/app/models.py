@@ -755,6 +755,27 @@ class Agendamento(db.Model):
         return cron
 
 
+EMAIL_STATUS = ("pendente", "enviado", "falhou", "suprimido")
+
+
+class EmailSaida(db.Model):
+    """Caixa de saída (EML-01): o e-mail já renderizado, gravado antes do envio pelo job `enviar_email`."""
+    __table_args__ = (db.Index("ix_email_saida_usuario", "user_id", "modelo", "criado_em"),)
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.ForeignKey("user.id"), nullable=True)  # vazio quando só há `para` (CTA-03, RSP-01)
+    para = db.Column(db.String(200), nullable=False)
+    modelo = db.Column(db.String(40), nullable=False)
+    tipo = db.Column(db.String(20), nullable=True)  # preferência que o e-mail respeita; vazio no transacional (EML-05)
+    assunto = db.Column(db.String(200), nullable=False)
+    corpo_texto = db.Column(db.Text, nullable=False)
+    corpo_html = db.Column(db.Text, nullable=False)
+    status = db.Column(db.String(10), default="pendente", nullable=False)
+    criado_em = db.Column(db.DateTime, default=now, nullable=False)
+    enviado_em = db.Column(db.DateTime, nullable=True)
+    erro = db.Column(db.String(500), nullable=True)
+    user = db.relationship(User)
+
+
 def visible_games():
     """Jogos não removidos (CAT-07)."""
     return Game.query.filter(Game.removed_at.is_(None))

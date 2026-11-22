@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% from "_macros.html" import pager %}
+{% block title %}E-mails — Admin{% endblock %}
+{% block content %}
+<h1>Caixa de saída</h1>
+<form method="get" class="row">
+  <div><label for="status">Status</label><select id="status" name="status"><option value="">todos</option>{% for s in todos_status %}<option value="{{ s }}" {{ 'selected' if s == status }}>{{ s }}</option>{% endfor %}</select></div>
+  <div><label for="modelo">Modelo</label><select id="modelo" name="modelo"><option value="">todos</option>{% for m in modelos %}<option value="{{ m }}" {{ 'selected' if m == modelo }}>{{ m }}</option>{% endfor %}</select></div>
+  <div style="align-self:end"><button class="ghost">Filtrar</button></div>
+</form>
+<table><tr><th>#</th><th>Para</th><th>Modelo</th><th>Assunto</th><th>Status</th><th>Criado</th><th>Erro</th></tr>
+{% for e in page.items %}
+<tr><td><a href="/admin/emails/{{ e.id }}">{{ e.id }}</a></td><td>{{ mascarar(e.para) }}</td><td>{{ e.modelo }}</td>
+  <td><a href="/admin/emails/{{ e.id }}">{{ e.assunto }}</a></td><td><span class="tag">{{ e.status }}</span></td>
+  <td>{{ belem(e.criado_em).strftime('%d/%m/%Y %H:%M') }}</td><td class="mut">{{ e.erro or '' }}</td></tr>
+{% else %}<tr><td colspan="7" class="mut">Nenhum e-mail{{ ' ' ~ status if status }}.</td></tr>{% endfor %}
+</table>
+{{ pager(page) }}
+{% endblock %}

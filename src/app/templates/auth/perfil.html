@@ -10,7 +10,7 @@
       <div class="mut">@{{ u.username }} · no GameLog desde {{ u.created_at.strftime('%d/%m/%Y') }}</div>
     </div>
     {% if own %}<a class="btn ghost" href="/u/{{ u.username }}/editar">Editar perfil</a>
-      {% if e_menor(u) %}<a class="btn ghost" href="/conta/pedidos">Pedidos para seguir</a>{% endif %}{# PMN-03 #}
+      {% if e_menor(u) or tem_pedidos %}<a class="btn ghost" href="/conta/pedidos">Pedidos para seguir</a>{% endif %}{# PMN-03 #}
     {% elif me %}
       <form method="post" action="/u/{{ u.username }}/{{ 'deixar-de-seguir' if following else 'seguir' }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

@@ -1,0 +1,7 @@
+{% extends "email/_layout.html" %}
+{% block corpo %}
+<p style="margin:0 0 12px">Olá, {{ user.display_name }}.</p>
+<p style="margin:0 0 12px">Você tem uma notificação nova ({{ rotulo | lower }}){% if notificacao.ator %} de <strong>{{ notificacao.ator.display_name }}</strong> (@{{ notificacao.ator.username }}){% endif %}.</p>
+{% if notificacao.texto %}<p style="margin:0 0 12px">{{ notificacao.texto }}</p>{% endif %}
+<p style="margin:0"><a href="{{ url_publica(notificacao.alvo_url or '/notificacoes') }}" style="color:#3b2f80;font-weight:bold">Ver no GameLog</a></p>
+{% endblock %}

@@ -9,11 +9,11 @@ from collections import namedtuple
 from datetime import date, datetime
 
 from flask import Blueprint, abort, flash, redirect, render_template, request, session
-from sqlalchemy import or_
+from sqlalchemy import null, or_
 
 from .. import tempo
 from ..admin import audit
-from ..models import User, VerificacaoIdade, db, now
+from ..models import Follow, User, VerificacaoIdade, db, now
 from ..util import admin_required, current_user, login_required, paginate, safe_next
 
 bp = Blueprint("idade", __name__)
@@ -135,12 +135,17 @@ def _vale(user, resultado):
     return user.nascimento, user.nascimento_confiavel
 
 
+def pedir_aprovacao_dos_seguidores(user):
+    Follow.query.filter(Follow.followed_id == user.id).update({Follow.aprovado_em: null()}, synchronize_session=False)
+
+
 def registrar(user, resultado):
     """Aplica o resultado, grava o histórico e devolve a faixa; quem chama faz o commit.
 
     Menor de 12 tem a conta suspensa (IDA-05). Uma verificação confiável encerra a contestação do admin
     (IDA-11). A conta fica aguardando responsável enquanto a faixa for a de 12 a 15 anos (IDA-04).
     """
+    era_adulto = faixa_etaria(user) == ADULTO
     divergente = user.nascimento is not None and faixa_de(user.nascimento) != faixa_de(resultado.nascimento)
     user.nascimento, user.nascimento_confiavel = _vale(user, resultado)
     if resultado.confiavel:
@@ -151,6 +156,8 @@ def registrar(user, resultado):
     user.aguardando_responsavel = faixa == VINCULADO
     if faixa != ADULTO:
         user.perfil_privado = True  # PMN-02: a configuração mais protetiva por padrão (ECA Digital art. 7º)
+        if era_adulto:
+            pedir_aprovacao_dos_seguidores(user)
     db.session.add(VerificacaoIdade(user_id=user.id, metodo=resultado.metodo, faixa_resultante=faixa,
                                     confiavel=resultado.confiavel, divergente=divergente))
     return faixa
@@ -282,6 +289,8 @@ def contestar_idade(uid):
     """Indício de idade menor: a conta vira de 12 a 15 anos, à espera do responsável, até verificação confiável."""
     alvo = _alvo(uid)
     if alvo is not None and alvo.idade_contestada_em is None:
+        if faixa_etaria(alvo) == ADULTO:
+            pedir_aprovacao_dos_seguidores(alvo)
         alvo.idade_contestada_em, alvo.aguardando_responsavel, alvo.perfil_privado = now(), True, True  # PMN-02
         _auditar("idade.contestar", alvo)
         flash(f"Idade de @{alvo.username} marcada como contestada.", "ok")
