@@ -556,3 +556,85 @@ def test_pmn_08_resumo_de_menor_so_de_16_a_17(app, consente):
         segue(app, quem, bia)
     lista_com_atividade(app, bia, "Favoritos")
     assert [e.user_id for e in rodar_resumo(app)] == [teo]
+
+
+# ---------- EML-10: caixa de saída do admin ----------
+def admin(app, client):
+    from conftest import login
+
+    make_user(app, "chefe", role="admin")
+    login(client, "chefe")
+
+
+def falhou(app, para="joana@exemplo.com"):
+    eid = enviar(app, None, para=para)
+    with app.app_context():
+        db.session.get(EmailSaida, eid).status = "falhou"
+        Job.query.update({"status": "morto"})
+        db.session.commit()
+    return eid
+
+
+def test_eml_10_so_admin(app, client):
+    from conftest import login
+
+    assert client.get("/admin/emails").status_code == 302
+    usuario(app)
+    login(client, "ana")
+    assert client.get("/admin/emails").status_code == 403
+    assert client.get("/admin/emails/1").status_code == 403
+    assert client.post("/admin/emails/1/reenviar").status_code == 403
+
+
+def test_eml_10_lista_filtra_e_mascara_o_endereco(app, client):
+    admin(app, client)
+    eid = falhou(app)
+    enviar(app, None, para="pedro@exemplo.com")
+    html = client.get("/admin/emails").get_data(as_text=True)
+    assert "j***@exemplo.com" in html and "p***@exemplo.com" in html and "joana@" not in html
+    html = client.get("/admin/emails?status=falhou").get_data(as_text=True)
+    assert "j***@exemplo.com" in html and "p***@exemplo.com" not in html
+    assert "Nenhum e-mail" in client.get("/admin/emails?modelo=notificacao").get_data(as_text=True)
+    html = client.get(f"/admin/emails/{eid}").get_data(as_text=True)
+    assert "configuração de envio" in html and "j***@exemplo.com" in html and "joana@" not in html
+
+
+def test_eml_10_lista_paginada(app, client):
+    admin(app, client)
+    for i in range(21):
+        enviar(app, None, para=f"p{i}@ex.com")
+    assert client.get("/admin/emails").get_data(as_text=True).count("/admin/emails/") == 40  # 20 linhas, 2 links
+
+
+def test_eml_10_reenviar_cria_linha_nova_e_audita(app, client, smtp):
+    from app.models import AuditLog
+
+    admin(app, client)
+    eid = falhou(app)
+    assert client.post(f"/admin/emails/{eid}/reenviar").status_code == 302
+    rodar(app)
+    with app.app_context():
+        velho, novo = EmailSaida.query.order_by(EmailSaida.id).all()
+        assert (velho.status, novo.status, novo.para, novo.corpo_texto) == ("falhou", "enviado", velho.para,
+                                                                            velho.corpo_texto)
+        log, = AuditLog.query.all()
+        assert log.action == "email.reenviar" and f"e-mail {eid}" in log.detail
+    assert client.post(f"/admin/emails/{novo.id}/reenviar").status_code == 302  # enviado: não reenvia
+    with app.app_context():
+        assert EmailSaida.query.count() == 2
+
+
+# ---------- EML-11 ----------
+def test_eml_11_comando_teste_no_console(app):
+    r = app.test_cli_runner().invoke(args=["email", "teste", "--para", "eu@ex.com"])
+    assert r.exit_code == 0 and r.output.strip() == "backend=console status=enviado"
+    e, = caixa(app)
+    assert (e.para, e.modelo, e.user_id) == ("eu@ex.com", "teste", None)
+
+
+def test_eml_11_comando_teste_no_smtp_sem_mostrar_a_senha(app, smtp):
+    smtp.erros.append(smtplib.SMTPAuthenticationError(535, f"senha {SENHA} recusada".encode()))
+    r = app.test_cli_runner().invoke(args=["email", "teste", "--para", "eu@ex.com"])
+    assert r.output.splitlines()[0] == "backend=smtp status=falhou" and SENHA not in r.output
+    r = app.test_cli_runner().invoke(args=["email", "teste", "--para", "eu@ex.com"])
+    assert r.output.strip() == "backend=smtp status=enviado" and len(smtp.enviadas) == 1

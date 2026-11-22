@@ -8,17 +8,20 @@ import smtplib
 from datetime import timedelta, timezone
 from email.message import EmailMessage
 
-from flask import Blueprint, current_app, has_request_context, render_template, request
+import click
+from flask import Blueprint, current_app, flash, has_request_context, redirect, render_template, request
 from itsdangerous import BadSignature, URLSafeSerializer
 
 from . import tempo
 from .diario import formatar_minutos
-from .jobs import ErroPermanente, agenda_padrao, enfileirar, tarefa
+from .jobs import ErroPermanente, agenda_padrao, enfileirar, executar, tarefa
 from .menores.idade import ADULTO, VINCULADO, faixa_etaria
 from .menores.politica import pode
-from .models import Activity, EmailSaida, PreferenciaNotificacao, User, db
+from .admin import audit
+from .models import EMAIL_STATUS, Activity, EmailSaida, Job, PreferenciaNotificacao, User, db
 from .notificacoes import TIPOS, preferencia
 from .social import feed_query
+from .util import admin_required, paginate
 
 bp = Blueprint("emails", __name__, cli_group="email")
 
@@ -113,13 +116,14 @@ def enviar_email(user, modelo, para=None, executar_em=None, **ctx):
     agora = tempo.agora_utc()
     email = EmailSaida(user_id=user.id if user else None, para=para or user.email, modelo=modelo, tipo=tipo,
                        assunto=assunto[:200], corpo_texto=texto, corpo_html=html, criado_em=agora)
+    enfileirar_envio(email, adiar_noite(user, executar_em or agora) if tipo else executar_em)
+    return email
+
+
+def enfileirar_envio(email, executar_em=None):
     db.session.add(email)
     db.session.flush()
-    quando = executar_em or agora
-    if tipo:
-        quando = adiar_noite(user, quando)
-    enfileirar("enviar_email", executar_em=quando, chave_unica=f"email:{email.id}", email_id=email.id)
-    return email
+    enfileirar("enviar_email", executar_em=executar_em, chave_unica=f"email:{email.id}", email_id=email.id)
 
 
 def token_descadastro(user_id, tipo):
@@ -323,3 +327,57 @@ def resumo_do_usuario(user_id, semana):
 
 
 agenda_padrao("email_resumo_semanal", "0 8 * * 1", "email_resumo_semanal")  # segunda às 08:00 de Belém
+
+
+# ---------- caixa de saída do admin (EML-10) ----------
+@bp.route("/admin/emails")
+@admin_required
+def caixa():
+    status, modelo = request.args.get("status", ""), request.args.get("modelo", "")
+    q = EmailSaida.query
+    if status in EMAIL_STATUS:
+        q = q.filter(EmailSaida.status == status)
+    if modelo:
+        q = q.filter(EmailSaida.modelo == modelo)
+    page = paginate(q.order_by(EmailSaida.criado_em.desc(), EmailSaida.id.desc()), request.args.get("page"))
+    modelos = sorted(m for (m,) in db.session.query(EmailSaida.modelo).distinct())
+    return render_template("admin/emails.html", page=page, status=status, modelo=modelo, todos_status=EMAIL_STATUS,
+                           modelos=modelos, mascarar=mascarar, belem=tempo.para_belem)
+
+
+@bp.route("/admin/emails/<int:eid>")
+@admin_required
+def ver(eid):
+    return render_template("admin/email.html", e=db.get_or_404(EmailSaida, eid), mascarar=mascarar,
+                           belem=tempo.para_belem)
+
+
+@bp.route("/admin/emails/<int:eid>/reenviar", methods=["POST"])
+@admin_required
+def reenviar(eid):
+    """Um e-mail que falhou volta como linha nova, com o mesmo corpo (EML-10, GLOBAL-17)."""
+    e = db.get_or_404(EmailSaida, eid)
+    if e.status != "falhou":
+        flash("Só um e-mail que falhou pode ser reenviado.", "erro")
+        return redirect(f"/admin/emails/{e.id}")
+    novo = EmailSaida(user_id=e.user_id, para=e.para, modelo=e.modelo, tipo=e.tipo, assunto=e.assunto,
+                      corpo_texto=e.corpo_texto, corpo_html=e.corpo_html, criado_em=tempo.agora_utc())
+    enfileirar_envio(novo)
+    audit("email.reenviar", f"e-mail {e.id} reenviado como {novo.id} ({e.modelo})")
+    db.session.commit()
+    flash(f"E-mail reenviado como #{novo.id}.", "ok")
+    return redirect("/admin/emails")
+
+
+# ---------- comando (EML-11) ----------
+@bp.cli.command("teste")
+@click.option("--para", required=True, help="endereço que recebe o e-mail de teste")
+def teste_cmd(para):
+    """Envia o modelo `teste` pelo backend configurado, sem mostrar a senha."""
+    email = enviar_email(None, "teste", para=para)
+    db.session.commit()
+    executar(Job.query.filter_by(chave_unica=f"email:{email.id}").one().id)
+    email = db.session.get(EmailSaida, email.id)
+    click.echo(f"backend={backend()} status={email.status}")
+    if email.erro:
+        click.echo(f"erro={email.erro}")
