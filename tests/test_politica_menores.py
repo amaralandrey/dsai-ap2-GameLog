@@ -157,6 +157,28 @@ def test_pmn_02_so_16_e_17_tornam_o_perfil_publico(app):
 
 
 # ---------- PMN-03 ----------
+def test_pmn_03_contestar_idade_de_adulto_volta_seguidor_a_pedido_pendente(app):
+    criar(app, "ana")
+    criar(app, "bia")
+    make_user(app, "chefe", role="admin")
+    seguir(app, "bia", "ana")
+    assert follow(app, "bia", "ana").aprovado_em is not None
+    with app.app_context():
+        aid = usuario("ana").id
+    cliente(app, "chefe").post(f"/admin/usuarios/{aid}/contestar-idade")
+    assert follow(app, "bia", "ana").aprovado_em is None
+    assert "Pedido enviado" in cliente(app, "bia").get("/u/ana").get_data(as_text=True)
+
+
+def test_pmn_03_verificacao_que_torna_adulto_menor_volta_seguidor_a_pedido_pendente(app, monkeypatch):
+    monkeypatch.setenv("VERIFICACAO_PROVEDOR", "simulado")
+    criar(app, "ana")
+    criar(app, "bia")
+    seguir(app, "bia", "ana")
+    cliente(app, "ana").post("/conta/idade/provedor_simulado", data={"codigo": "VINCULADO"})
+    assert follow(app, "bia", "ana").aprovado_em is None
+
+
 def test_pmn_03_seguir_menor_e_pedido_pendente(app):
     criar(app, "ana")
     criar(app, "teen", "adolescente")
