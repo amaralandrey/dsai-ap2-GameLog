@@ -10,7 +10,7 @@ import secrets
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 
 from . import chaveamento, gamificacao, rankings, tempo
 from .bloqueios import com_bloqueio
@@ -494,6 +494,14 @@ def concordam(r1, r2):
     return (r1.vencedor_id, *(p1 if None not in p1 else p2))
 
 
+def _contestar(linha):
+    alterou = db.session.execute(
+        update(PartidaTorneio).where(PartidaTorneio.id == linha.id, PartidaTorneio.situacao == "aguardando")
+        .values(situacao="contestada")).rowcount
+    db.session.refresh(linha)
+    return alterou == 1
+
+
 def informar(torneio, linha, user, vencedor_id, placar_a, placar_b):
     """O resultado de um dos lados; devolve a situação da partida depois dele (TRN-06, TRN-07, TRN-10)."""
     _em_jogo(torneio, linha, "aguardando")
@@ -513,7 +521,8 @@ def informar(torneio, linha, user, vencedor_id, placar_a, placar_b):
         confirmar(linha, *combinado)
         avancar(torneio)
         return "confirmada"
-    linha.situacao = "contestada"
+    if not _contestar(linha):
+        return linha.situacao
     avisar(organizadores(torneio) | {linha.a_id, linha.b_id}, torneio,
            f"Resultado contestado numa partida do torneio {torneio.nome}", linha)
     return "contestada"

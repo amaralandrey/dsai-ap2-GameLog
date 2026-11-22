@@ -792,3 +792,21 @@ def test_trn_03_lista_de_torneios_do_clube_nao_faz_uma_consulta_por_jogo(clube):
         assert cliente(clube, "ana").get("/clubes/roguelikes").status_code == 200
     assert len([s for s in feitas if "WHERE game.id" in s]) == 0
 
+
+def test_trn_06_informar_divergente_nao_sobrescreve_partida_ja_confirmada_pelo_job(base, relogio, monkeypatch):
+    iniciado(base, ("bia", "carla", "duda", "eva"))
+    pid, a, b, _, _ = partidas(base)["E1-1"]
+    informar(base, "E1-1", "a", quem="a")
+    relogio(49)
+    original = svc.concordam
+
+    def confirma_no_meio(r1, r2):
+        monkeypatch.setattr(svc, "concordam", original)
+        db.session.execute(update(PartidaTorneio).where(PartidaTorneio.id == pid).values(
+            situacao="confirmada", vencedor_id=a, confirmada_em=tempo.agora_utc()).execution_options(
+            synchronize_session=False))
+        return original(r1, r2)
+    monkeypatch.setattr(svc, "concordam", confirma_no_meio)
+    cliente(base, nome_de(base, b)).post(f"/torneios/copa-hades/partidas/{pid}", data={"vencedor": b})
+    assert partidas(base)["E1-1"][3] == "confirmada"
+
