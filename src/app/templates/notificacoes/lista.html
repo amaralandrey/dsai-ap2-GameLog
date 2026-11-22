@@ -10,7 +10,7 @@
   <div>
     {% if n.tipo == 'curtida' %}<strong>{{ n.ator.display_name }}</strong>{% if linha.outros %} e mais {{ linha.outros }} {{ 'pessoa' if linha.outros == 1 else 'pessoas' }}{% endif %} {{ 'curtiram' if linha.outros else 'curtiu' }} sua avaliação de {{ n.game.title }}
     {% elif n.tipo == 'comentario' %}<strong>{{ n.ator.display_name }}</strong> comentou sua avaliação de {{ n.game.title }}
-    {% elif n.tipo == 'seguidor' %}<strong>{{ n.ator.display_name }}</strong> começou a seguir você
+    {% elif n.tipo == 'seguidor' %}<strong>{{ n.ator.display_name }}</strong> {{ n.texto or 'começou a seguir você' }}
     {% elif n.tipo == 'amigo_zerou' %}<strong>{{ n.ator.display_name }}</strong> zerou {{ n.game.title }}, que está na sua wishlist
     {% elif n.tipo == 'conquista' %}Você desbloqueou a conquista <strong>{{ n.texto }}</strong>
     {% elif n.tipo == 'nivel' %}Você chegou ao <strong>{{ n.texto }}</strong>

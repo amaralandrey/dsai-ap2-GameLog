@@ -10,10 +10,11 @@
       <div class="mut">@{{ u.username }} · no GameLog desde {{ u.created_at.strftime('%d/%m/%Y') }}</div>
     </div>
     {% if own %}<a class="btn ghost" href="/u/{{ u.username }}/editar">Editar perfil</a>
+      {% if e_menor(u) or tem_pedidos %}<a class="btn ghost" href="/conta/pedidos">Pedidos para seguir</a>{% endif %}{# PMN-03 #}
     {% elif me %}
       <form method="post" action="/u/{{ u.username }}/{{ 'deixar-de-seguir' if following else 'seguir' }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <button class="{{ 'ghost' if following }}">{{ 'Seguindo' if following else 'Seguir' }}</button>
+        <button class="{{ 'ghost' if following }}">{{ 'Pedido enviado' if pedido else 'Seguindo' if following else 'Seguir' }}</button>
       </form>
       <details class="acoes-perfil"><summary class="link" aria-label="Mais ações">⋯</summary>
         <form method="post" action="/u/{{ u.username }}/{{ 'dessilenciar' if silenciado else 'silenciar' }}">
@@ -39,8 +40,8 @@
     <strong>{{ stats.zerados }}</strong> {{ 'jogo zerado' if stats.zerados == 1 else 'jogos zerados' }} ·
     <a href="/u/{{ u.username }}/diario">Ver diário</a> ·
     <a href="/u/{{ u.username }}/retrospectiva">Retrospectiva</a></p>
-  <p>Nível <strong>{{ progressao.nivel }}</strong> · {{ progressao.xp }} XP ·
-    sequência de <strong>{{ progressao.sequencia }}</strong> {{ 'semana' if progressao.sequencia == 1 else 'semanas' }}
+  <p>Nível <strong>{{ progressao.nivel }}</strong> · {{ progressao.xp }} XP{% if pode(u, 'aviso_engajamento') %} ·{# PMN-09 #}
+    sequência de <strong>{{ progressao.sequencia }}</strong> {{ 'semana' if progressao.sequencia == 1 else 'semanas' }}{% endif %}
     {% if own %}· <a href="/u/{{ u.username }}/xp">Extrato de XP</a>{% endif %}</p>
   <p class="mut sparkline-box">Últimas 12 semanas {{ sparkline | safe }}</p>
 </section>

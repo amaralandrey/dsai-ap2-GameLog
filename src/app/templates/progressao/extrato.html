@@ -6,8 +6,10 @@
 <section class="panel">
   <p><strong>{{ r.xp }} XP</strong> · próximo nível com {{ r.proximo }} XP</p>
   <div class="progresso" style="width:100%" role="img" aria-label="{{ r.pct }}% para o próximo nível"><span style="width:{{ r.pct }}%"></span></div>
+  {% if pode(me, 'aviso_engajamento') %}{# PMN-09: sem o widget de sequência #}
   <p>Sequência: <strong>{{ r.sequencia }}</strong> {{ 'semana' if r.sequencia == 1 else 'semanas' }} · congelamentos: <strong>{{ r.congelamentos }}</strong> de 2</p>
   <p class="mut">A sequência conta semanas com pelo menos uma sessão no diário ou uma avaliação. A cada 4 semanas seguidas você ganha um congelamento, que cobre uma semana sem registro.</p>
+  {% endif %}
 </section>
 <h2>Extrato</h2>
 <table><thead><tr><th>Data</th><th>Motivo</th><th>XP</th></tr></thead><tbody>

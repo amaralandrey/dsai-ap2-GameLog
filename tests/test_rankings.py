@@ -206,7 +206,7 @@ def test_rnk_06_cartao_fora_da_pagina(base):
     with base.app_context():
         for i in range(25):
             u = User(username=f"x{i:02d}", username_lower=f"x{i:02d}", email=f"x{i}@e.com", password_hash="x",
-                     display_name=f"x{i:02d}")
+                     display_name=f"x{i:02d}", nascimento=date(1990, 1, 1))  # adultos (PMN-04)
             db.session.add(u)
             db.session.flush()
             db.session.add(ExtratoXP(user_id=u.id, origem_tipo="ajuste", origem_id="1", xp=100 + i, motivo="t",

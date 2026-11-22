@@ -8,6 +8,7 @@ from sqlalchemy.exc import IntegrityError
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from .menores import idade
+from .menores.politica import pode
 from .models import Activity, Follow, GameList, LoginAttempt, Review, Silencio, User, db, now
 from .afinidade import resumo_com
 from .bloqueios import bloqueado_entre
@@ -134,10 +135,13 @@ def profile(username):
     own = me is not None and me.id == user.id
     if bloqueado_entre(me, user):
         abort(404)  # BLQ-03: como um perfil inexistente, sem dizer quem bloqueou
-    following = bool(me and not own and Follow.query.filter_by(follower_id=me.id, followed_id=user.id).first())
+    follow = Follow.query.filter_by(follower_id=me.id, followed_id=user.id).first() if me and not own else None
+    following, pedido = follow is not None, follow is not None and not follow.aprovado  # PMN-03
+    tem_pedidos = own and db.session.query(Follow.query.filter(Follow.followed_id == me.id, ~Follow.aprovado).exists()).scalar()
     silenciado = bool(me and not own and Silencio.query.filter_by(user_id=me.id, silenciado_id=user.id).first())
     if not pode_ver_perfil(me, user):  # DIA-12: só o cabeçalho
-        return render_template("auth/perfil_privado.html", u=user, following=following, silenciado=silenciado)
+        return render_template("auth/perfil_privado.html", u=user, following=following, pedido=pedido,
+                               silenciado=silenciado)
     lists = GameList.query.filter_by(user_id=user.id)
     if not own:
         lists = lists.filter_by(public=True)
@@ -145,17 +149,17 @@ def profile(username):
     stats = {
         "avaliacoes": extra["total"],  # PRF-06: mesmo critério das estatísticas (sem ocultas nem jogos removidos)
         "listas": lists.count(),
-        "seguidores": Follow.query.filter_by(followed_id=user.id).count(),
-        "seguindo": Follow.query.filter_by(follower_id=user.id).count(),
+        "seguidores": Follow.query.filter_by(followed_id=user.id).filter(Follow.aprovado).count(),  # PMN-03
+        "seguindo": Follow.query.filter_by(follower_id=user.id).filter(Follow.aprovado).count(),
         "minutos": minutos_registrados(user.id),  # DIA-09
         "zerados": zerados(user.id),
     }
-    afin = resumo_com(me.id, user.id) if me and not own else None  # AFI-08
+    afin = resumo_com(me.id, user.id) if me and not own and pode(user, "historico_para_terceiros") else None  # AFI-08, PMN-06
     extra["sparkline"], _ = sparkline_do_perfil(user.id)  # RET-11
-    extra["vitrine"] = vitrine(user.id)  # GAM-09: lidas, sem recalcular (CON-06)
+    extra["vitrine"] = vitrine(user.id, pode(user, "conquista_por_tempo"))  # GAM-09: lidas, sem recalcular (CON-06)
     extra["progressao"] = resumo_progressao(user.id)  # PRG-09
     return render_template(
-        "auth/perfil.html", u=user, own=own, stats=stats, following=following, silenciado=silenciado, lists=lists.limit(10).all(), afin=afin,
+        "auth/perfil.html", u=user, own=own, stats=stats, following=following, pedido=pedido, tem_pedidos=tem_pedidos, silenciado=silenciado, lists=lists.limit(10).all(), afin=afin,
         **extra,
     )
 
@@ -178,9 +182,12 @@ def edit_profile(username):
             errors["steam_id"] = "Informe o SteamID64 (17 dígitos) ou a URL steamcommunity.com/profiles/<id>."
         elif steam_id and User.query.filter(User.steam_id == steam_id, User.id != user.id).first():
             errors["steam_id"] = "Esta conta da Steam já está vinculada a outro usuário"
+        privado = bool(request.form.get("perfil_privado"))  # DIA-11
+        if user.perfil_privado and not privado and not pode(user, "perfil_publico"):
+            abort(403)  # PMN-02: de 12 a 15 anos, só o responsável abre o perfil (extensão de RSP-07)
         if not errors:
             user.display_name, user.bio = name, bio
-            user.perfil_privado = bool(request.form.get("perfil_privado"))  # DIA-11
+            user.perfil_privado = privado
             user.steam_id = steam_id or None
             db.session.commit()
             flash("Perfil atualizado.", "ok")

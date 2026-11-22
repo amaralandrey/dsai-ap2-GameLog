@@ -2,6 +2,7 @@ from flask import Blueprint, redirect, render_template, request
 from sqlalchemy.orm import selectinload
 
 from .afinidade import notas, resumo
+from .menores.idade import sql_menor
 from .models import Dismissed, Game, Review, Status, User, avg_subquery, db, visible_games
 from .util import current_user, login_required
 
@@ -19,9 +20,12 @@ def avg_map():
 def vizinhos(user_id):
     """[(afinidade 0-1, username, {game_id: nota})] das pessoas com gosto parecido (COL-01).
 
+    O histórico de um menor não recomenda nada a ninguém (PMN-06); as recomendações para um menor já não usam
+    preço, desconto nem loja.
+
     ponytail: lê as notas de todo mundo numa consulta; com muitos usuários, pré-calcular os vizinhos.
     """
-    ids = [i for (i,) in db.session.query(User.id).filter(User.id != user_id)]
+    ids = [i for (i,) in db.session.query(User.id).filter(User.id != user_id, ~sql_menor())]
     if not ids:
         return []
     n = notas(ids + [user_id])

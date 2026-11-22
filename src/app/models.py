@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import func
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import validates
 
 db = SQLAlchemy()
@@ -331,8 +332,19 @@ class Follow(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     follower_id = db.Column(db.ForeignKey("user.id"), nullable=False)
     followed_id = db.Column(db.ForeignKey("user.id"), nullable=False)
+    # PMN-03: seguir um menor nasce pendente (`sqlalchemy.null()`, porque None cairia no default); o resto, aprovado
+    aprovado_em = db.Column(db.DateTime, default=now, server_default=func.current_timestamp(), nullable=True)
     follower = db.relationship(User, foreign_keys=[follower_id])
     followed = db.relationship(User, foreign_keys=[followed_id])
+
+    @hybrid_property
+    def aprovado(self):
+        """Só o follow aprovado conta como seguidor: contagens, listas, feed e perfil privado (SOC-03, SOC-04)."""
+        return self.aprovado_em is not None
+
+    @aprovado.expression
+    def aprovado(cls):
+        return cls.aprovado_em.isnot(None)
 
 
 class Bloqueio(db.Model):
