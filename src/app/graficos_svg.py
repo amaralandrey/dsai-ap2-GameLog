@@ -138,7 +138,8 @@ def sparkline(valores, titulo, largura=160, altura=36):
 
 
 CAIXA_L, CAIXA_A, COLUNA_L, LINHA_TOPO = 150, 40, 180, 30
-NOMES_DAS_CHAVES = {"eliminacao": "Rodada", "vencedores": "Vencedores", "perdedores": "Perdedores"}
+NOMES_DAS_CHAVES = {"eliminacao": "Rodada", "vencedores": "Vencedores", "perdedores": "Perdedores",
+                    "liga": "Rodada", "suico": "Rodada"}  # liga e suíço: torneios de TRN
 
 
 def _colunas_da_chave(chave):
