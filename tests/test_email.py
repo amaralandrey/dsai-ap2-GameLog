@@ -222,3 +222,226 @@ def test_eml_04_enviado_nao_e_reenviado_por_job_repetido(app, smtp):
         db.session.commit()
     assert rodar(app)["ok"] == 1
     assert len(smtp.enviadas) == 1 and linha(app, eid).status == "enviado"
+
+
+# ---------- EML-05, EML-06: notificações, supressão e transacionais ----------
+def ligar_email(app, uid, tipo, ligado=True):
+    from app.models import PreferenciaNotificacao
+
+    with app.app_context():
+        p = PreferenciaNotificacao.query.filter_by(user_id=uid, tipo=tipo).first()
+        p = p or PreferenciaNotificacao(user_id=uid, tipo=tipo)
+        p.email = ligado
+        db.session.add(p)
+        db.session.commit()
+
+
+def notificar(app, uid, tipo="seguidor", **ctx):
+    from app.notificacoes import notificar as criar
+
+    with app.app_context():
+        n = criar(uid, tipo, **ctx)
+        db.session.commit()
+        return n is not None
+
+
+def caixa(app, **filtros):
+    with app.app_context():
+        return EmailSaida.query.filter_by(**filtros).order_by(EmailSaida.id).all()
+
+
+def test_eml_06_notificar_enfileira_o_modelo_notificacao(app):
+    ana, bia = usuario(app), usuario(app, "bia")
+    assert notificar(app, ana, ator_id=bia) and caixa(app) == []  # "por e-mail" começa desligado (NTF-09)
+    ligar_email(app, ana, "seguidor")
+    assert notificar(app, ana, ator_id=bia)
+    e, = caixa(app)
+    assert (e.user_id, e.modelo, e.tipo) == (ana, "notificacao", "seguidor")
+    assert e.assunto == "Nova notificação no GameLog: Novos seguidores" and "@bia" in e.corpo_texto
+
+
+def test_eml_02_html_escapa_o_conteudo_do_usuario(app):
+    ana, bia = usuario(app), usuario(app, "bia")
+    with app.app_context():
+        db.session.get(User, bia).display_name = "<script>alert(1)</script>"
+        db.session.commit()
+    ligar_email(app, ana, "seguidor")
+    notificar(app, ana, ator_id=bia)
+    e, = caixa(app)
+    assert "<script>" not in e.corpo_html and "&lt;script&gt;alert(1)&lt;/script&gt;" in e.corpo_html
+    assert "<script>alert(1)</script>" in e.corpo_texto  # texto puro não é HTML
+
+
+def test_eml_06_rodape_e_list_unsubscribe_com_o_mesmo_link(app, smtp, monkeypatch):
+    monkeypatch.setenv("URL_PUBLICA", "https://gamelog.exemplo")
+    ana, bia = usuario(app), usuario(app, "bia")
+    ligar_email(app, ana, "seguidor")
+    notificar(app, ana, ator_id=bia)
+    rodar(app)
+    msg, = smtp.enviadas
+    with app.app_context():
+        link = emails.link_descadastro(ana, "seguidor")
+    assert link.startswith("https://gamelog.exemplo/email/descadastro/")
+    assert msg["List-Unsubscribe"] == f"<{link}>"
+    e, = caixa(app)
+    assert link in e.corpo_texto and link in e.corpo_html
+
+
+def test_eml_05_supressao_por_preferencia_desligada_depois(app, smtp):
+    ana, bia = usuario(app), usuario(app, "bia")
+    ligar_email(app, ana, "seguidor")
+    notificar(app, ana, ator_id=bia)
+    ligar_email(app, ana, "seguidor", ligado=False)
+    assert rodar(app)["ok"] == 1
+    e, = caixa(app)
+    assert (e.status, e.erro) == ("suprimido", "preferência por e-mail desligada") and smtp.enviadas == []
+
+
+def oferta(app, uid):
+    return enviar(app, uid, "notificacao", tipo="oferta", rotulo="Ofertas da wishlist",
+                  notificacao=SimpleNamespace(ator=None, texto="", alvo_url=""))
+
+
+def test_eml_05_supressao_por_consentimento(app, smtp, monkeypatch):
+    ana = usuario(app)
+    ligar_email(app, ana, "oferta")
+    eid = oferta(app, ana)
+    rodar(app)
+    assert (linha(app, eid).status, linha(app, eid).erro) == ("suprimido", "sem consentimento ofertas")
+    monkeypatch.setattr(emails, "tem_consentimento", lambda user, finalidade: finalidade == "ofertas")
+    eid = oferta(app, ana)
+    rodar(app)
+    assert linha(app, eid).status == "enviado" and len(smtp.enviadas) == 1
+
+
+def test_eml_05_supressao_por_conta_excluida(app, smtp, monkeypatch):
+    eid = enviar(app, usuario(app))
+    monkeypatch.setattr(emails, "conta_excluida", lambda user: True)
+    rodar(app)
+    assert (linha(app, eid).status, linha(app, eid).erro) == ("suprimido", "conta excluída") and smtp.enviadas == []
+
+
+def test_eml_05_transacional_ignora_a_preferencia(app, smtp):
+    from app.notificacoes import TIPOS
+
+    ana = usuario(app)
+    for tipo in TIPOS:
+        ligar_email(app, ana, tipo, ligado=False)
+    eid = enviar(app, ana)
+    rodar(app)
+    assert linha(app, eid).status == "enviado" and len(smtp.enviadas) == 1
+
+
+def test_eml_05_confirmacao_de_exclusao_vai_ao_endereco_e_e_mascarada(app, smtp, monkeypatch):
+    monkeypatch.setattr(emails, "conta_excluida", lambda user: True)
+    eid = enviar(app, usuario(app), "conta_excluida", para="velho@ex.com")
+    rodar(app)
+    e = linha(app, eid)
+    assert (e.status, e.para) == ("enviado", "v***@ex.com") and smtp.enviadas[0]["To"] == "velho@ex.com"
+
+
+# ---------- EML-07 ----------
+def token(app, uid, tipo, sal="descadastro"):
+    from itsdangerous import URLSafeSerializer
+
+    return URLSafeSerializer(app.config["SECRET_KEY"], salt=sal).dumps({"u": uid, "t": tipo})
+
+
+def test_eml_07_descadastro_sem_login_desliga_o_tipo(app, client):
+    from app.notificacoes import preferencia
+
+    ana = usuario(app)
+    ligar_email(app, ana, "seguidor")
+    url = f"/email/descadastro/{token(app, ana, 'seguidor')}"
+    r = client.get(url)
+    assert r.status_code == 200 and "Novos seguidores" in r.get_data(as_text=True)
+    assert "ana" not in r.get_data(as_text=True)
+    assert client.post(url).status_code == 200
+    with app.app_context():
+        assert preferencia(ana, "seguidor") == (True, False)
+
+
+def test_eml_07_descadastro_do_resumo_revoga_o_consentimento(app, client, monkeypatch):
+    revogados = []
+    monkeypatch.setattr(emails, "revogar_consentimento", lambda user, fin: revogados.append((user.id, fin)))
+    ana = usuario(app)
+    assert client.post(f"/email/descadastro/{token(app, ana, 'resumo')}").status_code == 200
+    assert revogados == [(ana, "email_resumo")]
+
+
+@pytest.mark.parametrize("estrago", ["adulterado", "outro_sal", "tipo_desconhecido", "usuario_inexistente"])
+def test_eml_07_token_invalido_responde_400(app, client, estrago):
+    ana = usuario(app)
+    t = {"adulterado": token(app, ana, "seguidor")[:-2] + "xx", "outro_sal": token(app, ana, "seguidor", "senha"),
+         "tipo_desconhecido": token(app, ana, "marketing"), "usuario_inexistente": token(app, 999, "seguidor")}[estrago]
+    for metodo in (client.get, client.post):
+        r = metodo(f"/email/descadastro/{t}")
+        assert r.status_code == 400 and "Link inválido" in r.get_data(as_text=True)
+
+
+# ---------- PMN-07, PMN-08 (a parte de e-mail da política de menores) ----------
+ADOLESCENTE, VINCULADO = date(2009, 6, 1), date(2012, 6, 1)  # 17 e 14 anos em 2026-11-16
+
+
+@pytest.mark.parametrize("hora,nascimento,esperado", [
+    (23, ADOLESCENTE, datetime(2026, 11, 17, 7, 0)),
+    (3, ADOLESCENTE, datetime(2026, 11, 16, 7, 0)),
+    (22, ADOLESCENTE, datetime(2026, 11, 17, 7, 0)),
+    (7, ADOLESCENTE, None),
+    (23, None, None),  # adulto
+])
+def test_pmn_07_email_de_menor_a_noite_sai_as_7h(app, relogio, hora, nascimento, esperado):
+    relogio.momento = relogio.momento.replace(hour=hora)
+    ana, bia = usuario(app, nascimento=nascimento), usuario(app, "bia")
+    ligar_email(app, ana, "seguidor")
+    notificar(app, ana, ator_id=bia)
+    e, = caixa(app)
+    quando = job_do(app, e.id).executar_em
+    if esperado is None:
+        assert quando == tempo.agora_utc()
+    else:
+        assert tempo.para_belem(quando).replace(tzinfo=None) == esperado
+
+
+def test_pmn_07_transacional_de_menor_sai_na_hora(app, relogio):
+    relogio.momento = relogio.momento.replace(hour=23)
+    eid = enviar(app, usuario(app, nascimento=ADOLESCENTE))
+    assert job_do(app, eid).executar_em == tempo.agora_utc()
+
+
+def salvar_preferencias(app, client, nome):
+    from app.notificacoes import preferencia
+    from conftest import login
+
+    login(client, nome)
+    client.post("/notificacoes/preferencias", data={"site_seguidor": "on", "email_seguidor": "on"})
+    with app.app_context():
+        return preferencia(User.query.filter_by(username=nome).one().id, "seguidor")[1]
+
+
+def test_pmn_08_email_de_engajamento_comeca_desligado_para_menor(app):
+    from app.notificacoes import preferencia
+
+    teo = usuario(app, "teo", nascimento=ADOLESCENTE)
+    with app.app_context():
+        assert preferencia(teo, "seguidor")[1] is False
+
+
+def test_pmn_08_adolescente_liga_o_email_sozinho(app, client):
+    usuario(app, "teo", nascimento=ADOLESCENTE)
+    assert salvar_preferencias(app, client, "teo") is True
+
+
+def test_pmn_08_de_12_a_15_so_o_responsavel_liga(app, client):
+    usuario(app, "lia", nascimento=VINCULADO)
+    assert salvar_preferencias(app, client, "lia") is False
+    assert "só o responsável" in client.get("/notificacoes/preferencias").get_data(as_text=True)
+
+
+def test_pmn_08_de_12_a_15_email_de_engajamento_suprimido_no_envio(app, smtp):
+    lia, bia = usuario(app, "lia", nascimento=VINCULADO), usuario(app, "bia")
+    ligar_email(app, lia, "seguidor")  # gravado antes, por exemplo antes de a idade ser contestada
+    notificar(app, lia, ator_id=bia)
+    rodar(app)
+    e, = caixa(app)
+    assert (e.status, e.erro) == ("suprimido", "política de menores") and smtp.enviadas == []

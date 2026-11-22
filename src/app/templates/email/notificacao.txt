@@ -1,0 +1,9 @@
+{% extends "email/_layout.txt" %}
+{% block assunto %}Nova notificação no GameLog: {{ rotulo }}{% endblock %}
+{% block corpo %}Olá, {{ user.display_name }}.
+
+Você tem uma notificação nova ({{ rotulo | lower }}){% if notificacao.ator %} de {{ notificacao.ator.display_name }} (@{{ notificacao.ator.username }}){% endif %}.
+{% if notificacao.texto %}
+{{ notificacao.texto }}
+{% endif %}
+Veja no GameLog: {{ url_publica(notificacao.alvo_url or '/notificacoes') }}{% endblock %}

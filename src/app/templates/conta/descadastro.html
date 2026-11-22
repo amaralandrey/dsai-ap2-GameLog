@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Descadastro de e-mail — GameLog{% endblock %}
+{% block content %}
+<section class="center">
+{% if invalido %}
+  <h1>Link inválido</h1>
+  <p>Este link de descadastro não é válido. Copie o endereço inteiro do e-mail ou ajuste os e-mails nas preferências da sua conta.</p>
+{% elif feito %}
+  <h1>Pronto</h1>
+  <p>Você não vai mais receber por e-mail: <strong>{{ rotulo }}</strong>.</p>
+{% else %}
+  <h1>Parar de receber este e-mail?</h1>
+  <p>Você deixa de receber por e-mail: <strong>{{ rotulo }}</strong>. Os outros e-mails e os avisos no site continuam.</p>
+  <form method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button>Descadastrar</button></form>
+{% endif %}
+</section>
+{% endblock %}

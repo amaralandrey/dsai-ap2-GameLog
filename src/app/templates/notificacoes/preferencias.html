@@ -8,8 +8,9 @@
   {% for tipo, nome in tipos.items() %}{% set site, email = prefs[tipo] %}
     <tr><td>{{ nome }}</td>
       <td><input type="checkbox" name="site_{{ tipo }}" style="width:auto" aria-label="{{ nome }} no site" {{ 'checked' if site }} {{ 'disabled' if tipo in obrigatorios }}></td>
-      <td><input type="checkbox" name="email_{{ tipo }}" style="width:auto" aria-label="{{ nome }} por e-mail" {{ 'checked' if email }}></td></tr>
+      <td><input type="checkbox" name="email_{{ tipo }}" style="width:auto" aria-label="{{ nome }} por e-mail" {{ 'checked' if email }}{{ ' disabled' if not liga_email }}></td></tr>
   {% endfor %}</tbody></table>
+  {% if not liga_email %}<p class="mut">De 12 a 15 anos, só o responsável pode ligar os avisos por e-mail.</p>{% endif %}
   <p><button>Salvar preferências</button> <a href="/notificacoes">Voltar</a></p>
 </form>
 {% endblock %}

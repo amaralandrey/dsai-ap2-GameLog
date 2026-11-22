@@ -8,14 +8,14 @@ import smtplib
 from datetime import timedelta, timezone
 from email.message import EmailMessage
 
-from flask import Blueprint, current_app, has_request_context, request
+from flask import Blueprint, current_app, has_request_context, render_template, request
 from itsdangerous import BadSignature, URLSafeSerializer
 
 from . import tempo
 from .jobs import ErroPermanente, enfileirar, tarefa
 from .menores.idade import ADULTO, VINCULADO, faixa_etaria
 from .menores.politica import pode
-from .models import EmailSaida, db
+from .models import EmailSaida, PreferenciaNotificacao, User, db
 from .notificacoes import TIPOS, preferencia
 
 bp = Blueprint("emails", __name__, cli_group="email")
@@ -48,12 +48,16 @@ def conta_excluida(user):
     return user is None
 
 
-def email_engajamento_liberado(user):
-    """PMN-08: de 16 a 17 anos o próprio usuário liga; de 12 a 15, só o responsável.
-
-    Sem RSP não há responsável que ligue (RSP-07 é o ponto de extensão), então de 12 a 15 fica desligado.
+def pode_ligar_email(user):
+    """PMN-08: e-mail de engajamento começa desligado; de 16 a 17 anos o próprio usuário liga, de 12 a 15 só o
+    responsável. Sem RSP não há responsável que ligue (RSP-07 é o ponto de extensão), então de 12 a 15 fica desligado.
     """
-    return faixa_etaria(user) != VINCULADO and pode(user, "email_engajamento")
+    return faixa_etaria(user) != VINCULADO
+
+
+def email_engajamento_liberado(user):
+    """Na hora do envio: a mesma regra de PMN-08 e a política de menores (PMN-01)."""
+    return pode_ligar_email(user) and pode(user, "email_engajamento")
 
 
 # ---------- renderização e enfileiramento (EML-01, EML-02) ----------
@@ -222,3 +226,32 @@ def processar(email_id):
     if email.modelo == SEM_DESTINO:
         email.para = mascarar(email.para)  # o GameLog não guarda o endereço depois do envio (DIR-08)
     db.session.commit()  # o enviado fica gravado antes do fim do job, que então nunca o reenvia
+
+
+# ---------- notificações e descadastro (EML-06, EML-07) ----------
+def avisar_por_email(notificacao):
+    """O modelo `notificacao` para quem quer aquele tipo por e-mail; chamada por `notificar` (NTF-11)."""
+    return enviar_email(db.session.get(User, notificacao.user_id), "notificacao", tipo=notificacao.tipo,
+                        rotulo=TIPOS[notificacao.tipo], notificacao=notificacao)
+
+
+@bp.route("/email/descadastro/<token>", methods=["GET", "POST"])
+def descadastro(token):
+    """Sem login: o GET confirma, e o POST desliga aquele tipo (EML-07)."""
+    lido = ler_token(token)
+    user = db.session.get(User, lido[0]) if lido else None
+    if user is None or lido[1] not in (RESUMO, *TIPOS):  # sem dizer qual usuário seria
+        return render_template("conta/descadastro.html", invalido=True), 400
+    tipo = lido[1]
+    rotulo = "Resumo semanal" if tipo == RESUMO else TIPOS[tipo]
+    if request.method == "GET":
+        return render_template("conta/descadastro.html", rotulo=rotulo)
+    if tipo == RESUMO:
+        revogar_consentimento(user, "email_resumo")
+    else:
+        p = PreferenciaNotificacao.query.filter_by(user_id=user.id, tipo=tipo).first()
+        p = p or PreferenciaNotificacao(user_id=user.id, tipo=tipo, site=True)
+        p.email = False
+        db.session.add(p)
+    db.session.commit()
+    return render_template("conta/descadastro.html", rotulo=rotulo, feito=True)

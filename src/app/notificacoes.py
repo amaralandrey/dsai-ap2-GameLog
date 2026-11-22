@@ -1,6 +1,6 @@
 """Notificações (NTF-01..12): `notificar()` é o único jeito de avisar um usuário (GLOBAL-14).
 
-Esta spec não envia e-mail: `deve_enviar_email` só informa a preferência, e a spec de e-mail decide o envio.
+`deve_enviar_email` informa a preferência, e `notificar` entrega o e-mail à spec de e-mail (EML-06).
 """
 from datetime import timedelta
 
@@ -74,6 +74,10 @@ def notificar(user_id, tipo, **ctx):
                     alvo_url=url_interna(ctx.get("alvo_url")))
     db.session.add(n)
     db.session.flush()
+    if deve_enviar_email(n):  # EML-06
+        from .emails import avisar_por_email
+
+        avisar_por_email(n)
     return n
 
 
@@ -210,12 +214,15 @@ def ler_todas():
 @bp.route("/notificacoes/preferencias", methods=["GET", "POST"])
 @login_required
 def preferencias():
+    from .emails import pode_ligar_email
+
     me = current_user()
+    liga_email = pode_ligar_email(me)  # PMN-08
     if request.method == "POST":
         atuais = {p.tipo: p for p in PreferenciaNotificacao.query.filter_by(user_id=me.id)}
         for tipo in TIPOS:  # tipo desconhecido no formulário é ignorado
             site = tipo in OBRIGATORIOS_NO_SITE or bool(request.form.get(f"site_{tipo}"))
-            email = bool(request.form.get(f"email_{tipo}"))
+            email = liga_email and bool(request.form.get(f"email_{tipo}"))
             p = atuais.get(tipo) or PreferenciaNotificacao(user_id=me.id, tipo=tipo)
             p.site, p.email = site, email
             db.session.add(p)
@@ -223,4 +230,4 @@ def preferencias():
         return redirect("/notificacoes/preferencias")
     prefs = {tipo: preferencia(me.id, tipo) for tipo in TIPOS}
     return render_template("notificacoes/preferencias.html", tipos=TIPOS, prefs=prefs,
-                           obrigatorios=OBRIGATORIOS_NO_SITE)
+                           obrigatorios=OBRIGATORIOS_NO_SITE, liga_email=liga_email)
