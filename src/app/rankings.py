@@ -157,7 +157,7 @@ def pagina():
     sel_janela = "sempre" if request.args.get("janela") == "sempre" else (temporada.slug if temporada else "atual")
     extra, ids = {}, None
     if escopo == "seguindo":
-        ids = db.session.query(Follow.followed_id).filter(Follow.follower_id == me.id).union(
+        ids = db.session.query(Follow.followed_id).filter(Follow.follower_id == me.id, Follow.aprovado).union(
             db.session.query(User.id).filter(User.id == me.id))
     elif escopo in _escopos_extras:
         ids, extra = _escopos_extras[escopo](me, request.args)
@@ -191,7 +191,8 @@ def retrato(temporada, categoria, ids=None, visitante=None):
     if ids is not None:
         q = q.filter(User.id.in_(ids), User.id.not_in(ocultos_para(visitante)))  # RNK-05
     fora = bloqueados_com(visitante) if visitante is not None else set()
-    return [(u, v) for u, v in q.order_by(SnapshotRanking.posicao) if u.id not in fora]
+    return [(u, v) for u, v in q.order_by(SnapshotRanking.posicao)
+            if u.id not in fora and (ids is not None or pode(u, "ranking_global"))]  # PMN-04: nem no retrato
 
 
 @bp.route("/rankings/hall-da-fama")

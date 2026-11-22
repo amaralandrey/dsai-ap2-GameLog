@@ -12,7 +12,7 @@
     {% if me %}
       <form method="post" action="/u/{{ u.username }}/{{ 'deixar-de-seguir' if following else 'seguir' }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <button class="{{ 'ghost' if following }}">{{ 'Seguindo' if following else 'Seguir' }}</button>
+        <button class="{{ 'ghost' if following }}">{{ 'Pedido enviado' if pedido else 'Seguindo' if following else 'Seguir' }}</button>
       </form>
       <details class="acoes-perfil"><summary class="link" aria-label="Mais ações">⋯</summary>
         <form method="post" action="/u/{{ u.username }}/{{ 'dessilenciar' if silenciado else 'silenciar' }}">
@@ -24,6 +24,6 @@
       </details>
     {% else %}<a class="btn" href="/entrar?next=/u/{{ u.username }}">Seguir</a>{% endif %}
   </div>
-  <p class="mut">Este perfil é privado. Só quem {{ u.display_name }} segue vê o diário, as avaliações e as listas.</p>
+  <p class="mut">Este perfil é privado. Só quem {{ u.display_name }} segue{% if e_menor(u) %} ou aprovou como seguidor{% endif %} vê o diário, as avaliações e as listas.</p>
 </section>
 {% endblock %}

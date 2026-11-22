@@ -168,11 +168,11 @@ def zerados_total(user_id):
 
 
 def seguidores(user_id):
-    return _contar(Follow.query.filter_by(followed_id=user_id))
+    return _contar(Follow.query.filter_by(followed_id=user_id).filter(Follow.aprovado))  # PMN-03
 
 
 def seguindo(user_id):
-    return _contar(Follow.query.filter_by(follower_id=user_id))
+    return _contar(Follow.query.filter_by(follower_id=user_id).filter(Follow.aprovado))
 
 
 def comentarios_feitos(user_id):

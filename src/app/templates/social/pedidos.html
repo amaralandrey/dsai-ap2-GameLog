@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% from "_macros.html" import pager, avatar %}
+{% block title %}Pedidos para seguir — GameLog{% endblock %}
+{% block content %}
+<h1>Pedidos para seguir</h1>
+<p class="mut">{% if aprova %}Quem você aprovar passa a seguir você e a ver seu perfil privado.
+{% else %}Quem aprova os pedidos é o seu responsável. Você pode recusar um pedido a qualquer momento.{% endif %}</p>
+{% for f in page.items %}
+  <div class="panel">{{ avatar(f.follower) }} <a href="/u/{{ f.follower.username }}">{{ f.follower.display_name }}</a>
+    <span class="mut">@{{ f.follower.username }}</span>
+    {% if aprova %}<form class="inline" method="post" action="/conta/pedidos/{{ f.id }}/aprovar">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button>Aprovar</button></form>{% endif %}
+    <form class="inline" method="post" action="/conta/pedidos/{{ f.id }}/recusar">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="ghost">Recusar</button></form>
+  </div>
+{% else %}<p class="mut">Nenhum pedido pendente.</p>{% endfor %}
+{{ pager(page) }}
+{% endblock %}

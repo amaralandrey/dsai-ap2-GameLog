@@ -12,6 +12,8 @@ from sqlalchemy.orm import contains_eager, joinedload
 
 from .bloqueios import bloqueado_entre, sql_com_bloqueio
 from .gamificacao import emitir_evento
+from .menores.idade import sql_menor
+from .menores.politica import e_menor, segue_aprovado
 from .models import Activity, Follow, Game, SessaoJogo, Status, User, db, visible_games
 from .tempo import hoje
 from .util import current_user, login_required, paginate
@@ -26,7 +28,10 @@ DURACAO_RE = re.compile(r"^(?:(\d+)\s*h\s*(?:(\d+)\s*(?:min|m)?)?|(\d+)\s*(?:min
 
 # ---------- visibilidade do perfil (DIA-12, DIA-13) ----------
 def pode_ver_perfil(visitante, dono):
-    """Sem bloqueio entre os dois (BLQ-03): perfil público, o dono, um admin ou alguém que o dono segue."""
+    """Sem bloqueio entre os dois (BLQ-03): perfil público, o dono, um admin ou alguém que o dono segue.
+
+    Dono menor também libera quem o segue com o pedido aprovado (PMN-03); follow pendente não conta.
+    """
     if visitante is not None and visitante.id == dono.id:
         return True
     if bloqueado_entre(visitante, dono):
@@ -37,7 +42,7 @@ def pode_ver_perfil(visitante, dono):
         return False
     if visitante.is_admin:
         return True
-    return Follow.query.filter_by(follower_id=dono.id, followed_id=visitante.id).first() is not None
+    return segue_aprovado(dono, visitante) or (e_menor(dono) and segue_aprovado(visitante, dono))
 
 
 def ocultos_para(visitante):
@@ -47,8 +52,10 @@ def ocultos_para(visitante):
         return q
     if visitante.is_admin:
         return sql_com_bloqueio(visitante.id)
-    me_segue = select(Follow.follower_id).where(Follow.followed_id == visitante.id)
-    return q.where(User.id != visitante.id, User.id.not_in(me_segue)).union(sql_com_bloqueio(visitante.id))
+    me_segue = select(Follow.follower_id).where(Follow.followed_id == visitante.id, Follow.aprovado)
+    sigo = select(Follow.followed_id).where(Follow.follower_id == visitante.id, Follow.aprovado)
+    q = q.where(User.id != visitante.id, User.id.not_in(me_segue), ~(sql_menor() & User.id.in_(sigo)))  # PMN-03
+    return q.union(sql_com_bloqueio(visitante.id))
 
 
 def perfil_ou_404(username):
