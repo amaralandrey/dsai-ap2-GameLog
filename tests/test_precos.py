@@ -223,6 +223,36 @@ def test_prc_06_fonte_desconhecida_e_erro_de_uso(app, fonte):
     assert r.exit_code != 0 and "fonte desconhecida" in r.output
 
 
+def test_prc_07_tarefa_coleta_todas_as_lojas_e_esta_agendada(app, monkeypatch):
+    from app import jobs
+
+    chamadas = []
+    monkeypatch.setattr(precos, "coletar", lambda fonte, limite, mudaram: chamadas.append((fonte, limite)))
+    with app.app_context():
+        jobs.enfileirar("precos")
+        assert jobs.ciclo()["ok"] == 1 and chamadas == [("steam", 100), ("gog", 100)]
+    assert jobs.AGENDAS_PADRAO["precos"][:2] == ("0 6 * * *", "precos")
+
+
+def test_prc_07_rate_limit_numa_loja_nao_para_a_outra_e_o_job_volta(app, monkeypatch):
+    from app import jobs
+    from app.models import Job
+
+    chamadas = []
+
+    def coletar(fonte, limite, mudaram):
+        chamadas.append(fonte)
+        if fonte == "steam":
+            raise precos.Interrompido("rate-limit", (1, 1, 0, 0, 0))
+
+    monkeypatch.setattr(precos, "coletar", coletar)
+    with app.app_context():
+        jid = jobs.enfileirar("precos").id
+        assert jobs.ciclo()["falhas"] == 1 and chamadas == ["steam", "gog"]
+        j = db.session.get(Job, jid)
+        assert (j.status, j.ultimo_erro) == ("pendente", "RuntimeError: rate-limit em steam")
+
+
 def gravar(app, game_id, *linhas_):
     """Linhas (fonte, preço, base, desconto, coletado_em[, verificado_em]) direto no banco."""
     with app.app_context():

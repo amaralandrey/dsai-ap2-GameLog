@@ -365,5 +365,23 @@ def enriquecer_snapshot():
     enriquecer(arquivo.CAMINHO)
 
 
+@tarefa("precos")
+def precos(limite=100):
+    """A coleta de `atualizar-precos --fonte todas` (PRC-07); cada preço é gravado ao chegar, então repetir é seguro."""
+    from .fontes import Interrompido
+    from .precos import COLETORES, coletar
+
+    mudaram, interrompidas = set(), []
+    for fonte in COLETORES:
+        try:
+            coletar(fonte, limite, mudaram=mudaram)
+        except Interrompido:  # 429 numa loja não impede a outra; o job volta depois para a que parou
+            interrompidas.append(fonte)
+    # os alertas de preço da OFR (OFR-05, OFR-06) entram aqui, avaliados só para `mudaram`
+    if interrompidas:
+        raise RuntimeError(f"rate-limit em {', '.join(interrompidas)}")
+
+
 agenda_padrao("sync_games", "0 4 * * *", "sync_games")
+agenda_padrao("precos", "0 6 * * *", "precos")
 agenda_padrao("enriquecer_snapshot", "0 5 * * 1", "enriquecer_snapshot", ativo=False)
