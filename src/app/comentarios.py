@@ -1,5 +1,6 @@
 from flask import Blueprint, abort, flash, redirect, request
 
+from .bloqueios import bloqueado_entre
 from .models import Comment, Review, db
 from .gamificacao import emitir_evento
 from .notificacoes import avisar_comentario
@@ -19,7 +20,7 @@ def back(review, comment=None):
 @login_required
 def add(rid):
     review = db.get_or_404(Review, rid)
-    if review.hidden or review.game.removed_at:  # COM-05
+    if review.hidden or review.game.removed_at or bloqueado_entre(current_user(), review.user_id):  # COM-05, BLQ-05
         abort(404)
     text = request.form.get("text", "").strip()
     if not text:

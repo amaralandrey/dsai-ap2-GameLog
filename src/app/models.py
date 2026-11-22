@@ -335,6 +335,27 @@ class Follow(db.Model):
     followed = db.relationship(User, foreign_keys=[followed_id])
 
 
+class Bloqueio(db.Model):
+    """Corta o contato nos dois sentidos (BLQ-01); `criado_por` é o responsável quando ele bloqueia pelo adolescente."""
+    __table_args__ = (db.UniqueConstraint("bloqueador_id", "bloqueado_id"),)
+    id = db.Column(db.Integer, primary_key=True)
+    bloqueador_id = db.Column(db.ForeignKey("user.id"), nullable=False, index=True)
+    bloqueado_id = db.Column(db.ForeignKey("user.id"), nullable=False, index=True)
+    criado_por = db.Column(db.ForeignKey("user.id"), nullable=True)  # RSP-09; None = o próprio bloqueador
+    created_at = db.Column(db.DateTime, default=now, nullable=False)
+    bloqueado = db.relationship(User, foreign_keys=[bloqueado_id])
+
+
+class Silencio(db.Model):
+    """Tira o silenciado do feed e das notificações de quem silenciou, sem que ele saiba (BLQ-07)."""
+    __table_args__ = (db.UniqueConstraint("user_id", "silenciado_id"),)
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.ForeignKey("user.id"), nullable=False, index=True)
+    silenciado_id = db.Column(db.ForeignKey("user.id"), nullable=False)
+    created_at = db.Column(db.DateTime, default=now, nullable=False)
+    silenciado = db.relationship(User, foreign_keys=[silenciado_id])
+
+
 class Activity(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.ForeignKey("user.id"), nullable=False, index=True)

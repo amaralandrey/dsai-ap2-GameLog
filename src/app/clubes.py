@@ -2,11 +2,12 @@
 from datetime import date
 
 from flask import Blueprint, abort, flash, redirect, render_template, request
-from sqlalchemy import func
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import joinedload
 
 from . import gamificacao, rankings
+from .bloqueios import sql_com_bloqueio
 from .diario import consulta_minutos, ocultos_para
 from .menores.politica import pode
 from .models import (
@@ -248,10 +249,13 @@ def pagina(slug):
     mural = PostClube.query.filter_by(clube_id=clube.id)
     if not modera(m):
         mural = mural.filter(PostClube.oculto.is_(False))
+    if me is not None:
+        mural = mural.filter(PostClube.user_id.not_in(sql_com_bloqueio(me.id)))  # BLQ-06
     mural = paginate(mural.order_by(PostClube.created_at.desc(), PostClube.id.desc()), request.args.get("page"))
     pendentes = (MembroClube.query.options(joinedload(MembroClube.user))
                  .filter_by(clube_id=clube.id, situacao="pendente").all() if modera(m) else [])
-    ocultos = set(db.session.scalars(ocultos_para(me).where(User.id.in_(ids))))  # pode_ver_perfil de uma vez
+    ocultos = set(db.session.scalars(  # pode_ver_perfil de uma vez
+        select(User.id).where(User.id.in_(ids), User.id.in_(ocultos_para(me)))))
 
     def nome_visivel(user_id):
         u = usuarios.get(user_id)

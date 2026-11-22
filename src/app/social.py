@@ -3,6 +3,7 @@ from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 
+from .bloqueios import NAO_SEGUE, bloqueado_entre, com_bloqueio, sql_com_bloqueio, sql_silenciados
 from .models import Activity, Comment, Follow, Game, GameList, Review, User, db
 from .diario import ocultos_para, perfil_ou_404
 from .gamificacao import emitir_evento
@@ -22,6 +23,8 @@ def follow(username):
     target, me = get_user(username), current_user()
     if target.id == me.id:  # SOC-01
         flash("Você não pode seguir a si mesmo.", "erro")
+    elif bloqueado_entre(me, target):  # BLQ-02: a mesma mensagem nos dois sentidos
+        flash(NAO_SEGUE, "erro")
     elif not Follow.query.filter_by(follower_id=me.id, followed_id=target.id).first():  # SOC-02
         db.session.add(Follow(follower_id=me.id, followed_id=target.id))
         try:
@@ -62,7 +65,8 @@ def following(username):
 
 
 def feed_query(user_id, visitante=None):
-    """SOC-04..08: só de quem sigo; esconde lista privada, avaliação oculta, jogo removido e perfil privado (DIA-13)."""
+    """SOC-04..08: só de quem sigo; esconde lista privada, avaliação oculta, jogo removido, perfil privado (DIA-13),
+    bloqueados e silenciados (BLQ-04, BLQ-07), tudo na mesma consulta (BLQ-09)."""
     return (
         Activity.query.join(Follow, (Follow.followed_id == Activity.user_id) & (Follow.follower_id == user_id))
         .outerjoin(Review, Review.id == Activity.review_id)
@@ -73,6 +77,7 @@ def feed_query(user_id, visitante=None):
             (Activity.game_id.is_(None)) | (Game.removed_at.is_(None)),
             (Activity.list_id.is_(None)) | (GameList.public.is_(True)),
             Activity.user_id.not_in(ocultos_para(visitante)),
+            Activity.user_id.not_in(sql_silenciados(user_id)),  # BLQ-07
         )
         .order_by(Activity.created_at.desc(), Activity.id.desc())
     )
@@ -83,7 +88,7 @@ def suggestions(me, limit=5):
     followed = db.session.query(Follow.followed_id).filter(Follow.follower_id == me.id)
     return (
         User.query.outerjoin(Activity, Activity.user_id == User.id)
-        .filter(User.id != me.id, User.id.not_in(followed))
+        .filter(User.id != me.id, User.id.not_in(followed), User.id.not_in(sql_com_bloqueio(me.id)))
         .group_by(User.id)
         .order_by(func.count(Activity.id).desc(), User.username_lower)
         .limit(limit)
@@ -99,4 +104,5 @@ def feed():
         selectinload(Activity.review).selectinload(Review.comments).joinedload(Comment.user),
         selectinload(Activity.user), selectinload(Activity.game), selectinload(Activity.list))
     page = paginate(q, request.args.get("page"))
-    return render_template("social/feed.html", page=page, suggestions=suggestions(me) if not page.items else [])
+    return render_template("social/feed.html", page=page, suggestions=suggestions(me) if not page.items else [],
+                           com_bloqueio=com_bloqueio(me.id))

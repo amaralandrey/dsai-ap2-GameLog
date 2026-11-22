@@ -10,6 +10,7 @@ from flask import Blueprint, abort, current_app, flash, redirect, render_templat
 from sqlalchemy import case, func
 
 from . import gamificacao
+from .bloqueios import com_bloqueio
 from .diario import ocultos_para
 from .menores.politica import pode
 from .models import (
@@ -35,8 +36,8 @@ def registrar_escopo(nome, funcao):
 
 
 def bloqueados_com(user):
-    """Ids com bloqueio entre `user` e eles; a spec de bloqueios (BLQ) preenche (RNK-05)."""
-    return set()
+    """Ids com bloqueio entre `user` e eles (RNK-05, BLQ-06)."""
+    return com_bloqueio(user.id)
 
 
 # ---------- temporadas (RNK-01) ----------
