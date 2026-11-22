@@ -139,7 +139,7 @@ def test_pmn_02_lista_nova_de_menor_nasce_privada(app):
     criar(app, "ana")
     for nome in ("teen", "ana"):
         c = cliente(app, nome)
-        assert 'value="privada" selected' in c.get("/listas").get_data(as_text=True) or nome == "ana"
+        assert ('value="privada" selected' in c.get("/listas").get_data(as_text=True)) == (nome == "teen")
         c.post("/listas", data={"name": "Favoritos"})
     with app.app_context():
         assert {g.user.username: g.public for g in GameList.query} == {"teen": False, "ana": True}
