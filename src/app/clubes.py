@@ -12,7 +12,7 @@ from .diario import consulta_minutos, ocultos_para
 from .menores.politica import pode
 from .models import (
     REPORT_REASONS, Activity, AuditLog, Clube, ContribuinteMeta, Genre, JogoDoMes, MembroClube, MetaClube,
-    PostClube, Report, SessaoJogo, Status, User, db, now, visible_games,
+    PostClube, Report, SessaoJogo, Status, Torneio, User, db, now, visible_games,
 )
 from .notificacoes import notificar
 from .tempo import hoje
@@ -270,7 +270,8 @@ def pagina(slug):
     return render_template(
         "clubes/clube.html", clube=clube, m=m, membros=membros, jdm=jdm, minutos_jdm=minutos_jdm, metas=metas,
         mural=mural, pendentes=pendentes, tipos=TIPOS_META, nome_visivel=nome_visivel, autor=autor,
-        top=top_horas(clube),
+        top=top_horas(clube), torneios=Torneio.query.filter(Torneio.clube_id == clube.id, Torneio.situacao != "cancelado")
+        .order_by(Torneio.created_at.desc()).all(),  # TRN-02
         reasons=REPORT_REASONS, modera=modera(m), ativo=ativo(m),
     )
 
