@@ -195,3 +195,17 @@ def test_curtir_resenha_de_jogo_removido_responde_404(app, ctx):
     assert c2.post(f"/avaliacoes/{rid}/curtir").status_code == 404
     with app.app_context():
         assert Like.query.count() == 0
+
+
+def test_ava08_denuncia_duplo_envio_simultaneo_nao_da_500(app, ctx, corrida):
+    client, slug = ctx
+    make_user(app, "bia")
+    rate(client, slug, score=7)
+    c2 = app.test_client()
+    login(c2, "bia")
+    corrida("INSERT INTO report (review_id, alvo_tipo, reporter_id, reason, comment, status, created_at) "
+            "VALUES (1, 'avaliacao', 2, 'spam', '', 'pendente', '2026-01-01')")
+    r = c2.post("/avaliacoes/1/denunciar", data={"reason": "spam"}, follow_redirects=True)
+    assert r.status_code == 200 and "já denunciou" in r.get_data(as_text=True)
+    with app.app_context():
+        assert Report.query.count() == 1
