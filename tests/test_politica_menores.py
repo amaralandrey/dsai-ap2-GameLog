@@ -304,6 +304,31 @@ def test_pmn_04_ranking_global_sem_menores_e_seguindo_so_para_quem_ve(app):
     assert ">teen</a>" in bia.get("/rankings?escopo=seguindo").get_data(as_text=True)
 
 
+def test_pmn_04_hall_e_premiacao_do_podio_sem_menor_contestado(app):
+    from app.conquistas_catalogo import sincronizar
+    from app.models import SnapshotRanking, Temporada, UsuarioConquista
+    from app.rankings import premiar_podio
+
+    criar(app, "ana")
+    criar(app, "bia")
+    with app.app_context():
+        sincronizar()
+        t = Temporada(nome="2026-T3", slug="2026-T3", inicio=date(2026, 7, 1), fim=date(2026, 9, 30),
+                      encerrada_em=now())
+        db.session.add(t)
+        db.session.flush()
+        for pos, nome in enumerate(("ana", "bia"), start=1):
+            db.session.add(SnapshotRanking(temporada_id=t.id, categoria="xp", posicao=pos,
+                                           user_id=usuario(nome).id, valor=50 - pos))
+        usuario("bia").idade_contestada_em = now()
+        db.session.commit()
+        premiar_podio(t)
+        assert {u.username for u in User.query.join(UsuarioConquista, UsuarioConquista.user_id == User.id)
+                .filter(UsuarioConquista.desbloqueada_em.isnot(None))} == {"ana"}
+    hall = app.test_client().get("/rankings/hall-da-fama").get_data(as_text=True)
+    assert "/u/ana" in hall and "/u/bia" not in hall
+
+
 # ---------- PMN-05 ----------
 def test_pmn_05_ofertas_e_alerta_de_preco_negados_a_menores(app):
     criar(app, "ana")

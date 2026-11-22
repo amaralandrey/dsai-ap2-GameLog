@@ -201,7 +201,8 @@ def hall_da_fama():
     podios = {}
     for linha, user in (db.session.query(SnapshotRanking, User).join(User, User.id == SnapshotRanking.user_id)
                         .filter(SnapshotRanking.posicao <= 3).order_by(SnapshotRanking.posicao)):
-        podios.setdefault((linha.temporada_id, linha.categoria), []).append((linha, user))
+        if pode(user, "ranking_global"):
+            podios.setdefault((linha.temporada_id, linha.categoria), []).append((linha, user))
     return render_template("rankings/hall.html", encerradas=encerradas, podios=podios, categorias=CATEGORIAS,
                            mostrar=mostrar)
 
@@ -218,8 +219,11 @@ class TemporadaEmAndamento(Exception):
 
 def premiar_podio(t):
     """Concede o pódio lido do retrato; idempotente, e a falha de um premiado não impede os outros."""
-    podio = SnapshotRanking.query.filter(SnapshotRanking.temporada_id == t.id, SnapshotRanking.posicao <= 3)
-    for linha in podio.order_by(SnapshotRanking.categoria, SnapshotRanking.posicao).all():
+    podio = (db.session.query(SnapshotRanking, User).join(User, User.id == SnapshotRanking.user_id)
+             .filter(SnapshotRanking.temporada_id == t.id, SnapshotRanking.posicao <= 3))
+    for linha, user in podio.order_by(SnapshotRanking.categoria, SnapshotRanking.posicao).all():
+        if not pode(user, "ranking_global"):
+            continue
         try:
             gamificacao.conceder(linha.user_id, f"podio-{linha.categoria}")
         except Exception:
