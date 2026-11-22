@@ -1,0 +1,9 @@
+{# Campos editáveis antes do início, comuns à criação e à edição (TRN-01, TRN-12). #}
+<label for="nome">Nome (até 80)</label><input id="nome" name="nome" maxlength="80" value="{{ form.get('nome', '') }}" required>
+{% if erros.nome %}<div class="err">{{ erros.nome }}</div>{% endif %}
+<label for="prazo_inscricao">Prazo de inscrição (horário de Belém)</label><input id="prazo_inscricao" name="prazo_inscricao" type="datetime-local" value="{{ form.get('prazo_inscricao', '') }}" required>
+{% if erros.prazo_inscricao %}<div class="err">{{ erros.prazo_inscricao }}</div>{% endif %}
+<label for="prazo_rodada_dias">Prazo de cada rodada (dias)</label><input id="prazo_rodada_dias" name="prazo_rodada_dias" type="number" min="1" max="30" value="{{ form.get('prazo_rodada_dias', 7) }}">
+{% if erros.prazo_rodada_dias %}<div class="err">{{ erros.prazo_rodada_dias }}</div>{% endif %}
+<label for="regras">Regras (até 2.000)</label><textarea id="regras" name="regras" maxlength="2000">{{ form.get('regras', '') }}</textarea>
+{% if erros.regras %}<div class="err">{{ erros.regras }}</div>{% endif %}

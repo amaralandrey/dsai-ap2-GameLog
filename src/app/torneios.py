@@ -255,7 +255,7 @@ def partida(slug, pid):
     joga = me is not None and me.id in lados
     reportes = ReporteResultado.query.filter_by(partida_id=linha.id).order_by(ReporteResultado.id).all()
     nomes = nomes_de(set(lados), me, revelar=lados if joga or org else ())
-    registros = RegistroTorneio.query.options(joinedload(RegistroTorneio.autor)).filter_by(partida_id=linha.id).all()
+    registros = RegistroTorneio.query.filter_by(partida_id=linha.id).all()
     return render_template("torneios/partida.html", t=t, p=linha, nomes=nomes, joga=joga, organiza=org,
                            reportes=reportes if joga or org else [], registros=registros,
                            empate=t.formato in svc.EMPATE_PERMITIDO, prazo_vencido=linha.prazo < agora_utc(),
