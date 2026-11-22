@@ -202,10 +202,20 @@ def inscrever(torneio, user, membro_ativo):
     situacao = "pendente_responsavel" if faixa_etaria(user) == VINCULADO else "inscrito"
     if situacao == "inscrito" and vagas_ocupadas(torneio) >= torneio.limite:
         raise ErroTorneio("Não há mais vagas neste torneio.")
+    anterior = None if insc is None else insc.situacao
     if insc is None:
         insc = InscricaoTorneio(torneio_id=torneio.id, user_id=user.id)
         db.session.add(insc)
     insc.situacao = situacao
+    if situacao == "inscrito":
+        db.session.flush()
+        if vagas_ocupadas(torneio) > torneio.limite:
+            if anterior is None:
+                db.session.delete(insc)
+            else:
+                insc.situacao = anterior
+            db.session.flush()
+            raise ErroTorneio("Não há mais vagas neste torneio.")
     return insc
 
 

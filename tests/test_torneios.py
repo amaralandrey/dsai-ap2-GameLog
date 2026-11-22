@@ -810,3 +810,19 @@ def test_trn_06_informar_divergente_nao_sobrescreve_partida_ja_confirmada_pelo_j
     cliente(base, nome_de(base, b)).post(f"/torneios/copa-hades/partidas/{pid}", data={"vencedor": b})
     assert partidas(base)["E1-1"][3] == "confirmada"
 
+
+def test_trn_04_inscricao_que_estoura_o_limite_na_corrida_e_desfeita(base, monkeypatch):
+    criar(cliente(base, "ana"), limite="2")
+    inscrever(base, "copa-hades", "bia")
+    real = svc.vagas_ocupadas
+
+    def cega_na_checagem(t):
+        if not any(isinstance(o, InscricaoTorneio) for o in db.session.identity_map.values()):
+            return 0
+        return real(t)
+    monkeypatch.setattr(svc, "vagas_ocupadas", cega_na_checagem)
+    inscrever(base, "copa-hades", "carla", "duda")
+    with base.app_context():
+        t = Torneio.query.filter_by(slug="copa-hades").one()
+        assert InscricaoTorneio.query.filter_by(torneio_id=t.id, situacao="inscrito").count() == 2
+
