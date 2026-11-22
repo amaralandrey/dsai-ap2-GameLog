@@ -56,7 +56,7 @@
     <p>{{ c.text }}</p>
   </div>
   {% endfor %}
-  {% if me %}
+  {% if me and pode(me, 'comentar', r) %}{# PMN-10 #}
   <form class="comment-form" method="post" action="/avaliacoes/{{ r.id }}/comentar">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="next" value="{{ next }}">
     <label class="sr" for="com-text-{{ r.id }}">Adicionar comentário</label>

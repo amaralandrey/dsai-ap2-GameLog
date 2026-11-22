@@ -1,9 +1,11 @@
 """Comparação de gosto entre a pessoa logada e outra (AFI-01..10)."""
 from math import floor
 
-from flask import Blueprint, redirect, render_template
+from flask import Blueprint, abort, redirect, render_template
 from sqlalchemy import func
 
+from .menores.idade import sql_menor
+from .menores.politica import pode
 from .models import Follow, Game, Review, Status, User, db
 from .util import current_user, login_required
 
@@ -46,7 +48,8 @@ def indice():
     from .diario import ocultos_para
 
     seguidos = (User.query.join(Follow, Follow.followed_id == User.id)
-                .filter(Follow.follower_id == me.id, User.id.not_in(ocultos_para(me))).all())  # DIA-12
+                .filter(Follow.follower_id == me.id, Follow.aprovado, User.id.not_in(ocultos_para(me)),  # DIA-12
+                        ~sql_menor()).all())  # PMN-06: o histórico de um menor fica fora da comparação
     n = notas([me.id] + [u.id for u in seguidos])
     linhas = []
     for u in seguidos:
@@ -65,6 +68,8 @@ def comparar(username):
     me = current_user()
     if outro.id == me.id:
         return redirect(f"/u/{me.username}")  # AFI-07
+    if not pode(outro, "historico_para_terceiros"):
+        abort(404)  # PMN-06: ninguém compara o gosto com o de um menor
     n = notas([me.id, outro.id])
     pct, qtd = resumo(n[me.id], n[outro.id])
     comuns = n[me.id].keys() & n[outro.id].keys()
