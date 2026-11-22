@@ -137,6 +137,7 @@ def profile(username):
         abort(404)  # BLQ-03: como um perfil inexistente, sem dizer quem bloqueou
     follow = Follow.query.filter_by(follower_id=me.id, followed_id=user.id).first() if me and not own else None
     following, pedido = follow is not None, follow is not None and not follow.aprovado  # PMN-03
+    tem_pedidos = own and db.session.query(Follow.query.filter(Follow.followed_id == me.id, ~Follow.aprovado).exists()).scalar()
     silenciado = bool(me and not own and Silencio.query.filter_by(user_id=me.id, silenciado_id=user.id).first())
     if not pode_ver_perfil(me, user):  # DIA-12: só o cabeçalho
         return render_template("auth/perfil_privado.html", u=user, following=following, pedido=pedido,
@@ -158,7 +159,7 @@ def profile(username):
     extra["vitrine"] = vitrine(user.id, pode(user, "conquista_por_tempo"))  # GAM-09: lidas, sem recalcular (CON-06)
     extra["progressao"] = resumo_progressao(user.id)  # PRG-09
     return render_template(
-        "auth/perfil.html", u=user, own=own, stats=stats, following=following, pedido=pedido, silenciado=silenciado, lists=lists.limit(10).all(), afin=afin,
+        "auth/perfil.html", u=user, own=own, stats=stats, following=following, pedido=pedido, tem_pedidos=tem_pedidos, silenciado=silenciado, lists=lists.limit(10).all(), afin=afin,
         **extra,
     )
 

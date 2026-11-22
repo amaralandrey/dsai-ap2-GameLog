@@ -179,6 +179,22 @@ def test_pmn_03_verificacao_que_torna_adulto_menor_volta_seguidor_a_pedido_pende
     assert follow(app, "bia", "ana").aprovado_em is None
 
 
+def test_pmn_03_pedido_pendente_de_quem_fez_18_ainda_aparece_e_se_aprova(app):
+    criar(app, "ana")
+    criar(app, "bia")
+    with app.app_context():
+        usuario("ana").nascimento = anos_atras(18)
+        db.session.add(Follow(follower_id=usuario("bia").id, followed_id=usuario("ana").id, aprovado_em=db.null()))
+        db.session.commit()
+    ana = cliente(app, "ana")
+    assert "/conta/pedidos" in ana.get("/u/ana").get_data(as_text=True)
+    assert "@bia" in ana.get("/conta/pedidos").get_data(as_text=True)
+    with app.app_context():
+        fid = Follow.query.filter_by(follower_id=usuario("bia").id).one().id
+    assert ana.post(f"/conta/pedidos/{fid}/aprovar").status_code == 302
+    assert follow(app, "bia", "ana").aprovado_em is not None
+
+
 def test_pmn_03_seguir_menor_e_pedido_pendente(app):
     criar(app, "ana")
     criar(app, "teen", "adolescente")
