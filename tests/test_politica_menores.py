@@ -329,6 +329,18 @@ def test_pmn_04_hall_e_premiacao_do_podio_sem_menor_contestado(app):
     assert "/u/ana" in hall and "/u/bia" not in hall
 
 
+def test_pmn_03_sugestoes_de_seguir_sem_menores(app):
+    from app.social import suggestions
+
+    criar(app, "ana")
+    criar(app, "bia")
+    criar(app, "teen", "adolescente")
+    with app.app_context():
+        db.session.add(Activity(user_id=usuario("teen").id, kind="lista"))
+        db.session.commit()
+        assert {u.username for u in suggestions(usuario("ana"))} == {"bia"}
+
+
 # ---------- PMN-05 ----------
 def test_pmn_05_ofertas_e_alerta_de_preco_negados_a_menores(app):
     criar(app, "ana")

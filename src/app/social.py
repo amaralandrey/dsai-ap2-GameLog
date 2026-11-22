@@ -4,6 +4,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 
 from .bloqueios import NAO_SEGUE, bloqueado_entre, com_bloqueio, sql_com_bloqueio, sql_silenciados
+from .menores.idade import sql_menor
 from .menores.politica import e_menor, pode
 from .models import Activity, Comment, Follow, Game, GameList, Review, User, db, now
 from .diario import ocultos_para, perfil_ou_404
@@ -100,7 +101,8 @@ def suggestions(me, limit=5):
     followed = db.session.query(Follow.followed_id).filter(Follow.follower_id == me.id)
     return (
         User.query.outerjoin(Activity, Activity.user_id == User.id)
-        .filter(User.id != me.id, User.id.not_in(followed), User.id.not_in(sql_com_bloqueio(me.id)))
+        .filter(User.id != me.id, User.id.not_in(followed), User.id.not_in(sql_com_bloqueio(me.id)),
+                ~sql_menor())
         .group_by(User.id)
         .order_by(func.count(Activity.id).desc(), User.username_lower)
         .limit(limit)
