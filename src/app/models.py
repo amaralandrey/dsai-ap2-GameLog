@@ -371,13 +371,13 @@ class Silencio(db.Model):
 class Activity(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.ForeignKey("user.id"), nullable=False, index=True)
-    kind = db.Column(db.String(20), nullable=False)  # avaliou|jogado|lista|lista_jogo|sessao|importacao|conquista|clube
+    kind = db.Column(db.String(20), nullable=False)  # avaliou|jogado|lista|lista_jogo|sessao|importacao|conquista|clube|torneio
     game_id = db.Column(db.ForeignKey("game.id"), nullable=True)
     review_id = db.Column(db.ForeignKey("review.id"), nullable=True)
     list_id = db.Column(db.ForeignKey("game_list.id"), nullable=True)
     dia = db.Column(db.Date, nullable=True)  # sessao: o dia jogado, uma atividade por jogo e dia (DIA-10)
     valor = db.Column(db.Integer, nullable=True)  # sessao: minutos do dia; importacao: sessões criadas (HRS-10)
-    texto = db.Column(db.String(200), nullable=True)  # conquista ou clube: o que aconteceu, para o feed
+    texto = db.Column(db.String(200), nullable=True)  # conquista, clube ou torneio: o que aconteceu, para o feed
     created_at = db.Column(db.DateTime, default=now, nullable=False, index=True)
     user = db.relationship(User)
     game = db.relationship(Game)
@@ -598,6 +598,101 @@ class PostClube(db.Model):
     oculto_por = db.Column(db.ForeignKey("user.id"), nullable=True)
     created_at = db.Column(db.DateTime, default=now, nullable=False)
     user = db.relationship(User, foreign_keys=[user_id])
+
+
+class Torneio(db.Model):
+    """Torneio da comunidade (TRN-01); `clube_id` e `aberto_a_menores` são lidos por `pode` (PMN-11).
+
+    A chave não é guardada pronta: sai do CHV a partir das sementes das inscrições e dos resultados confirmados.
+    """
+    id = db.Column(db.Integer, primary_key=True)
+    slug = db.Column(db.String(90), unique=True, nullable=False)
+    nome = db.Column(db.String(80), nullable=False)
+    game_id = db.Column(db.ForeignKey("game.id"), nullable=False, index=True)
+    formato = db.Column(db.String(20), nullable=False)  # eliminacao_simples|eliminacao_dupla|suico|pontos_corridos
+    limite = db.Column(db.Integer, nullable=False)
+    prazo_inscricao = db.Column(db.DateTime, nullable=False)  # UTC
+    prazo_rodada_dias = db.Column(db.Integer, default=7, nullable=False)  # TRN-09
+    sementes = db.Column(db.String(10), default="ranking", nullable=False)  # ranking|sorteio
+    semente_sorteio = db.Column(db.Integer, nullable=True)  # CHV-11: guardada para refazer o sorteio
+    aberto_a_menores = db.Column(db.Boolean, default=False, nullable=False)
+    regras = db.Column(db.String(2000), default="", nullable=False)
+    clube_id = db.Column(db.ForeignKey("clube.id"), nullable=True, index=True)  # TRN-02
+    organizador_id = db.Column(db.ForeignKey("user.id"), nullable=False)
+    situacao = db.Column(db.String(10), default="aberto", nullable=False)  # aberto|andamento|encerrado|cancelado
+    rodadas = db.Column(db.Integer, nullable=True)  # suíço: ⌈log2 N⌉ fixado no início
+    pares_evitados = db.Column(db.Text, default="[]", nullable=False)  # JSON; bloqueios congelados no início (TRN-05)
+    motivo_cancelamento = db.Column(db.String(300), default="", nullable=False)
+    iniciado_em = db.Column(db.DateTime, nullable=True)
+    encerrado_em = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, default=now, nullable=False)
+    game = db.relationship(Game)
+    clube = db.relationship(Clube)
+    organizador = db.relationship(User)
+
+
+class InscricaoTorneio(db.Model):
+    """Inscrição (TRN-04); `semente` congela a ordem no início e `posicao_final` vem do encerramento (TRN-11).
+
+    situacao: inscrito|pendente_responsavel|desistiu|removido|descartada. Quem desiste durante o torneio guarda
+    a semente, para a chave continuar a mesma (TRN-09).
+    """
+    __table_args__ = (db.UniqueConstraint("torneio_id", "user_id"),)
+    id = db.Column(db.Integer, primary_key=True)
+    torneio_id = db.Column(db.ForeignKey("torneio.id"), nullable=False, index=True)
+    user_id = db.Column(db.ForeignKey("user.id"), nullable=False, index=True)
+    situacao = db.Column(db.String(20), default="inscrito", nullable=False)
+    semente = db.Column(db.Integer, nullable=True)
+    posicao_final = db.Column(db.Integer, nullable=True)
+    motivo = db.Column(db.String(300), default="", nullable=False)  # remoção pelo organizador
+    created_at = db.Column(db.DateTime, default=now, nullable=False)
+    user = db.relationship(User)
+
+
+class PartidaTorneio(db.Model):
+    """Partida jogável de um torneio; `codigo` é o id do CHV (`E1-1`, `S2-3`...) e os placares seguem `a` e `b`.
+
+    situacao: aguardando|contestada|confirmada (TRN-06, TRN-07).
+    """
+    __table_args__ = (db.UniqueConstraint("torneio_id", "codigo"),)
+    id = db.Column(db.Integer, primary_key=True)
+    torneio_id = db.Column(db.ForeignKey("torneio.id"), nullable=False, index=True)
+    codigo = db.Column(db.String(12), nullable=False)
+    rodada = db.Column(db.Integer, nullable=False)
+    a_id = db.Column(db.ForeignKey("user.id"), nullable=False)
+    b_id = db.Column(db.ForeignKey("user.id"), nullable=False)
+    situacao = db.Column(db.String(12), default="aguardando", nullable=False)
+    vencedor_id = db.Column(db.ForeignKey("user.id"), nullable=True)  # None confirmada: empate
+    placar_a = db.Column(db.Integer, nullable=True)
+    placar_b = db.Column(db.Integer, nullable=True)
+    wo = db.Column(db.Boolean, default=False, nullable=False)
+    prazo = db.Column(db.DateTime, nullable=False)  # fim da rodada (TRN-09), em UTC
+    confirmada_em = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, default=now, nullable=False)
+
+
+class ReporteResultado(db.Model):
+    """O resultado que um dos dois participantes informou (TRN-06); `vencedor_id` vazio é empate."""
+    __table_args__ = (db.UniqueConstraint("partida_id", "user_id"),)
+    id = db.Column(db.Integer, primary_key=True)
+    partida_id = db.Column(db.ForeignKey("partida_torneio.id"), nullable=False, index=True)
+    user_id = db.Column(db.ForeignKey("user.id"), nullable=False)
+    vencedor_id = db.Column(db.ForeignKey("user.id"), nullable=True)
+    placar_a = db.Column(db.Integer, nullable=True)
+    placar_b = db.Column(db.Integer, nullable=True)
+    created_at = db.Column(db.DateTime, nullable=False)  # tempo.agora_utc: o prazo de 48 h usa o relógio fixável
+
+
+class RegistroTorneio(db.Model):
+    """Auditoria do torneio, visível na página (TRN-07): decisão, correção, W.O., remoção e cancelamento."""
+    id = db.Column(db.Integer, primary_key=True)
+    torneio_id = db.Column(db.ForeignKey("torneio.id"), nullable=False, index=True)
+    autor_id = db.Column(db.ForeignKey("user.id"), nullable=False)
+    acao = db.Column(db.String(12), nullable=False)
+    partida_id = db.Column(db.ForeignKey("partida_torneio.id"), nullable=True)
+    justificativa = db.Column(db.String(500), nullable=False)
+    created_at = db.Column(db.DateTime, default=now, nullable=False)
+    autor = db.relationship(User)
 
 
 class Dismissed(db.Model):

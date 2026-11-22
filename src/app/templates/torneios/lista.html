@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% from "_macros.html" import pager %}
+{% block title %}Torneios — GameLog{% endblock %}
+{% block content %}
+<h1>Torneios</h1>
+<form method="get" class="panel row">
+  <div><label for="situacao">Situação</label><select id="situacao" name="situacao"><option value="">Todas</option>
+    {% for k in ('aberto', 'andamento', 'encerrado') %}<option value="{{ k }}" {{ 'selected' if situacao == k }}>{{ situacoes[k] }}</option>{% endfor %}</select></div>
+  <div><label for="jogo">Jogo (slug)</label><input id="jogo" name="jogo" value="{{ jogo }}" placeholder="ex.: hades"></div>
+  <div style="align-self:end"><button class="ghost">Filtrar</button>{% if me %} <a class="btn" href="/torneios/novo">Criar torneio</a>{% endif %}</div></form>
+{% for t in page.items %}
+<div class="panel"><a href="/torneios/{{ t.slug }}"><strong>{{ t.nome }}</strong></a> <span class="tag">{{ situacoes[t.situacao] }}</span>
+  <span class="tag">{{ formatos[t.formato] }}</span>{% if t.aberto_a_menores %} <span class="tag">aberto a menores</span>{% endif %}
+  <p class="mut"><a href="/jogos/{{ t.game.slug }}">{{ t.game.title }}</a> · até {{ t.limite }} participantes</p></div>
+{% else %}<p class="mut">Nenhum torneio encontrado.</p>{% endfor %}
+{{ pager(page) }}
+{% endblock %}

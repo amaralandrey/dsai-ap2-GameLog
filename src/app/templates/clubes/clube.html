@@ -24,6 +24,11 @@
   <p><a href="/rankings?escopo=clube&clube={{ clube.slug }}">Ranking completo do clube</a></p>
 </section>
 </div>
+<section class="panel" id="torneios"><h2>Torneios</h2>
+  {% for t in torneios %}<p><a href="/torneios/{{ t.slug }}">{{ t.nome }}</a> <span class="tag">{{ t.game.title }}</span></p>
+  {% else %}<p class="mut">Nenhum torneio ainda.</p>{% endfor %}
+  {% if modera %}<p><a href="/torneios/novo?clube={{ clube.slug }}">Criar torneio do clube</a></p>{% endif %}
+</section>
 <section class="panel"><h2>Metas</h2>
   {% for meta, total, top_meta in metas %}
   <div class="meta-clube"><strong>{{ tipos[meta.tipo] }}{% if meta.game %}: {{ meta.game.title }}{% endif %}</strong>

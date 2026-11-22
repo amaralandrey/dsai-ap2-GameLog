@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% from "_macros.html" import grafico %}
+{% set acoes = {'decisao': 'Decisão', 'correcao': 'Correção', 'wo': 'W.O.', 'remocao': 'Remoção', 'cancelamento': 'Cancelamento'} %}
+{% set estados = {'aguardando': 'aguardando resultado', 'contestada': 'contestada', 'confirmada': 'confirmada'} %}
+{% block title %}{{ t.nome }} — Torneios — GameLog{% endblock %}
+{% block content %}
+<section class="panel">
+  <h1 style="margin-top:0">{{ t.nome }} <span class="tag">{{ situacoes[t.situacao] }}</span> <span class="tag">{{ formatos[t.formato] }}</span>{% if t.aberto_a_menores %} <span class="tag">aberto a menores</span>{% endif %}</h1>
+  <p><a href="/jogos/{{ t.game.slug }}">{{ t.game.title }}</a>{% if t.clube %} · torneio do clube <a href="/clubes/{{ t.clube.slug }}">{{ t.clube.nome }}</a>{% endif %} · organizado por {{ nome(t.organizador_id) }}</p>
+  <p class="mut">{{ vagas }} de {{ t.limite }} vagas · inscrições até {{ para_belem(t.prazo_inscricao).strftime('%d/%m/%Y %H:%M') }} · sementes por {{ sementes[t.sementes] | lower }} · {{ t.prazo_rodada_dias }} dias por rodada</p>
+  {% if t.situacao == 'cancelado' %}<p class="err">Cancelado: {{ t.motivo_cancelamento }}</p>{% endif %}
+  {% if me and t.situacao == 'aberto' %}
+    {% if minha and minha.situacao in ('inscrito', 'pendente_responsavel') %}
+      <p>{{ 'Sua inscrição aguarda a autorização do responsável.' if minha.situacao == 'pendente_responsavel' else 'Você está inscrito.' }}</p>
+      <form method="post" action="/torneios/{{ t.slug }}/desistir"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="ghost">Desistir da inscrição</button></form>
+    {% elif not minha or minha.situacao == 'desistiu' %}
+      {% if pode(me, 'torneio_inscrever', t) and (not t.clube_id or ativo) %}<form method="post" action="/torneios/{{ t.slug }}/inscrever"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button>Inscrever-se</button></form>
+      {% else %}<p class="mut">{{ 'Só membros do clube se inscrevem.' if t.clube_id and not ativo else 'Este torneio não está disponível para a sua conta.' }}</p>{% endif %}
+    {% endif %}
+  {% elif t.situacao == 'andamento' and minha and minha.situacao == 'inscrito' %}
+    <form method="post" action="/torneios/{{ t.slug }}/desistir"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="ghost danger-link">Desistir do torneio (as partidas restantes viram W.O.)</button></form>
+  {% endif %}
+  {% if organiza %}<div class="row">
+    {% if t.situacao == 'aberto' %}<form method="post" action="/torneios/{{ t.slug }}/iniciar"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button>Iniciar torneio</button></form>
+    <p><a href="/torneios/{{ t.slug }}/editar">Editar</a></p>{% endif %}
+    {% if t.situacao in ('aberto', 'andamento') %}<form method="post" action="/torneios/{{ t.slug }}/cancelar"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input name="motivo" placeholder="motivo do cancelamento" style="width:auto" required> <button class="ghost danger-link">Cancelar torneio</button></form>{% endif %}
+  </div>{% endif %}
+</section>
+{% if t.regras %}<section class="panel"><h2>Regras</h2><p style="white-space:pre-wrap">{{ t.regras }}</p></section>{% endif %}
+{% if svg %}<section class="panel" style="overflow-x:auto"><h2>Chave</h2>
+  {{ grafico(svg, ['Rodada', 'Partida', 'Lado A', 'Lado B', 'Vencedor'], linhas) }}</section>
+<section class="panel"><h2>Classificação{% if t.situacao == 'encerrado' %} final{% endif %}</h2>
+  <table><thead><tr><th>#</th><th>Participante</th><th>Pontos</th><th>V</th><th>E</th><th>D</th><th>Saldo</th><th>Desempate</th></tr></thead><tbody>
+  {% for l in tabela %}<tr><td>{{ posicao[l.participante] if t.situacao == 'encerrado' else l.posicao }}</td><td>{{ nome(l.participante) }}</td><td>{{ l.pontos }}</td><td>{{ l.vitorias }}</td><td>{{ l.empates }}</td><td>{{ l.derrotas }}</td><td>{{ l.saldo }}</td><td class="mut">{{ l.criterio or '' }}</td></tr>{% endfor %}
+  </tbody></table></section>
+<section class="panel"><h2>Partidas</h2>
+  <table><tbody>{% for p in partidas %}<tr><td>{{ p.codigo }}</td><td><a href="/torneios/{{ t.slug }}/partidas/{{ p.id }}">{{ nome(p.a_id) }} × {{ nome(p.b_id) }}</a></td>
+    <td>{% if p.situacao == 'confirmada' %}{{ 'empate' if p.vencedor_id is none else nome(p.vencedor_id) }}{% if p.wo %} (W.O.){% elif p.placar_a is not none %} ({{ p.placar_a }} × {{ p.placar_b }}){% endif %}{% else %}<span class="tag">{{ estados[p.situacao] }}</span>{% endif %}</td></tr>
+  {% else %}<tr><td class="mut">Nenhuma partida ainda.</td></tr>{% endfor %}</tbody></table></section>
+{% endif %}
+<section class="panel"><h2>Inscritos</h2>
+  {% for i in inscricoes if i.situacao in ('inscrito', 'pendente_responsavel', 'desistiu') %}
+  <p>{% if i.semente %}{{ i.semente }}. {% endif %}{{ nome(i.user_id) }}{% if i.situacao != 'inscrito' %} <span class="tag">{{ 'aguarda o responsável' if i.situacao == 'pendente_responsavel' else 'desistiu' }}</span>{% endif %}
+    {% if organiza and t.situacao == 'aberto' and i.situacao != 'desistiu' %}<form class="inline" method="post" action="/torneios/{{ t.slug }}/inscritos/{{ i.user_id }}/remover"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input name="motivo" placeholder="motivo" style="width:auto" required> <button class="link danger-link">Remover</button></form>{% endif %}</p>
+  {% else %}<p class="mut">Ninguém se inscreveu ainda.</p>{% endfor %}
+</section>
+{% if registros %}<section class="panel"><h2>Registro da organização</h2>
+  {% for r in registros %}<p><strong>{{ acoes.get(r.acao, r.acao) }}</strong> por {{ nome(r.autor_id) }} em {{ para_belem(r.created_at).strftime('%d/%m/%Y %H:%M') }}: {{ r.justificativa }}</p>{% endfor %}
+</section>{% endif %}
+{% endblock %}
