@@ -122,7 +122,8 @@ CAMPOS = {
               ("clube_id texto spoiler oculto created_at", {}),
               ("motivo_ocultacao oculto_por", {"finalidade": "moderacao", "exportar": False})),
     # ---------- perfil e feed ----------
-    **_tabela("follow", SOCIAL, ("id", TECNICO), ("follower_id followed_id", {})),
+    **_tabela("follow", SOCIAL, ("id", TECNICO), ("follower_id followed_id", {}),
+              ("aprovado_em", {"finalidade": "protecao_menores", "base_legal": "obrigacao_legal"})),  # PMN-03: pedido pendente para seguir um menor
     **_tabela("bloqueio", dict(SOCIAL, categoria="preferencia"), ("id", TECNICO), ("bloqueador_id", DONO),
               ("bloqueado_id created_at", {}), ("criado_por", {"exportar": False})),  # RSP-09: o responsável
     **_tabela("silencio", dict(SOCIAL, categoria="preferencia"), ("id", TECNICO), ("user_id", DONO),
