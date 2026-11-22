@@ -368,7 +368,7 @@ def reenviar(eid):
         return redirect(f"/admin/emails/{e.id}")
     novo = EmailSaida(user_id=e.user_id, para=e.para, modelo=e.modelo, tipo=e.tipo, assunto=e.assunto,
                       corpo_texto=e.corpo_texto, corpo_html=e.corpo_html, criado_em=tempo.agora_utc())
-    enfileirar_envio(novo)
+    enfileirar_envio(novo, adiar_noite(e.user, novo.criado_em) if novo.tipo else None)
     audit("email.reenviar", f"e-mail {e.id} reenviado como {novo.id} ({e.modelo})")
     db.session.commit()
     flash(f"E-mail reenviado como #{novo.id}.", "ok")

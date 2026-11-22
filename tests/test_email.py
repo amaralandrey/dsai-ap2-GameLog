@@ -685,3 +685,19 @@ def test_eml_02_links_do_email_ignoram_o_host_da_requisicao(app, monkeypatch):
         assert emails.link_descadastro(1, "seguidor").startswith("http://localhost:5000/email/descadastro/")
         monkeypatch.setenv("URL_PUBLICA", "https://gamelog.exemplo/")
         assert emails.url_publica("/x") == "https://gamelog.exemplo/x"
+
+
+def test_pmn_07_reenvio_de_email_de_menor_a_noite_sai_as_7h(app, client, relogio):
+    relogio.momento = relogio.momento.replace(hour=23)
+    admin(app, client)
+    ana, bia = usuario(app, nascimento=ADOLESCENTE), usuario(app, "bia")
+    ligar_email(app, ana, "seguidor")
+    notificar(app, ana, ator_id=bia)
+    e, = caixa(app)
+    with app.app_context():
+        db.session.get(EmailSaida, e.id).status = "falhou"
+        db.session.commit()
+    assert client.post(f"/admin/emails/{e.id}/reenviar").status_code == 302
+    novo = caixa(app)[-1]
+    assert novo.id != e.id
+    assert tempo.para_belem(job_do(app, novo.id).executar_em).replace(tzinfo=None) == datetime(2026, 11, 17, 7, 0)
