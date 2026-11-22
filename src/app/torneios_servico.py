@@ -278,15 +278,18 @@ def afastar_bloqueados(formato, ordem, pares):
     melhorou = True
     while conflitos and melhorou:
         melhorou = False
-        for x in sorted(conflitos[0], key=ordem.index, reverse=True):
-            i = ordem.index(x)
-            for j in (i + 1, i - 1):
-                if not 0 <= j < len(ordem):
-                    continue
-                tentativa = list(ordem)
-                tentativa[i], tentativa[j] = tentativa[j], tentativa[i]
-                if len(novos := _conflitos(formato, tentativa, pares)) < len(conflitos):
-                    ordem, conflitos, melhorou = tentativa, novos, True
+        for conflito in conflitos:
+            for x in sorted(conflito, key=ordem.index, reverse=True):
+                i = ordem.index(x)
+                for j in (i + 1, i - 1):
+                    if not 0 <= j < len(ordem):
+                        continue
+                    tentativa = list(ordem)
+                    tentativa[i], tentativa[j] = tentativa[j], tentativa[i]
+                    if len(novos := _conflitos(formato, tentativa, pares)) < len(conflitos):
+                        ordem, conflitos, melhorou = tentativa, novos, True
+                        break
+                if melhorou:
                     break
             if melhorou:
                 break

@@ -3,7 +3,7 @@ from contextlib import contextmanager
 from datetime import date, datetime, timedelta
 
 import pytest
-from sqlalchemy import event
+from sqlalchemy import event, update
 
 from app import chaveamento, gamificacao, jobs, tempo
 from app import torneios_servico as svc
@@ -755,3 +755,12 @@ def test_trn_04_membros_do_clube_entram_no_menor_inscrito_por_clube(clube):
     with clube.app_context():
         assert InscricaoTorneio.query.filter_by(user_id=uid(clube, "carla")).one().situacao == "inscrito"
         assert MembroClube.query.filter_by(user_id=uid(clube, "carla")).one().situacao == "ativo"
+
+
+# ---------- revisão do PR ----------
+def test_trn_05_bloqueio_resolve_todos_os_conflitos_mesmo_se_o_primeiro_nao_melhora():
+    ordem = [1, 2, 3, 4, 5, 6, 7, 8]
+    pares = {frozenset(p) for p in ((1, 8), (2, 8), (4, 5))}
+    nova = svc.afastar_bloqueados("eliminacao_simples", ordem, pares)
+    assert frozenset((4, 5)) not in svc._conflitos("eliminacao_simples", nova, pares)
+
