@@ -764,3 +764,21 @@ def test_trn_05_bloqueio_resolve_todos_os_conflitos_mesmo_se_o_primeiro_nao_melh
     nova = svc.afastar_bloqueados("eliminacao_simples", ordem, pares)
     assert frozenset((4, 5)) not in svc._conflitos("eliminacao_simples", nova, pares)
 
+
+def test_trn_08_troca_de_lado_da_partida_pendente_renova_o_prazo(base, relogio):
+    nomes = ("bia", "carla", "duda", "eva", "fabio", "gil", "hugo", "iris")
+    iniciado(base, nomes, prazo_rodada_dias="2")
+    for codigo in ("E1-1", "E1-2", "E1-3", "E1-4"):
+        informar(base, codigo, "a")
+    relogio(24 * 3)
+    pid3, a3, b3, _, _ = partidas(base)["E1-3"]
+    cliente(base, "ana").post(f"/torneios/copa-hades/partidas/{pid3}/corrigir",
+                              data={"vencedor": b3, "justificativa": "placar trocado"})
+    pid, a, b, _, _ = partidas(base)["E2-2"]
+    assert b3 in (a, b)
+    with base.app_context():
+        assert db.session.get(PartidaTorneio, pid).prazo == tempo.agora_utc() + timedelta(days=2)
+    r = cliente(base, "ana").post(f"/torneios/copa-hades/partidas/{pid}/wo",
+                                  data={"vencedor": a, "justificativa": "x"})
+    assert partidas(base)["E2-2"][3] == "aguardando"
+

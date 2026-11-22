@@ -437,6 +437,7 @@ def sincronizar(torneio, est, partidas, inscricoes):
         else:  # a correção trocou um dos lados: os resultados informados não valem mais
             ReporteResultado.query.filter_by(partida_id=linha.id).delete()
             linha.a_id, linha.b_id, linha.situacao = p.a, p.b, "aguardando"
+            linha.prazo = tempo.agora_utc() + timedelta(days=torneio.prazo_rodada_dias)
         mudou = True
     desistiram = {i.user_id for i in inscricoes if i.situacao == "desistiu"}
     for codigo, p in jogaveis.items():
