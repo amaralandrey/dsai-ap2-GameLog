@@ -19,7 +19,7 @@ def test_tarefas_de_job_sem_dado_pessoal():
     from app import jobs
 
     assert mapa.CAMPOS["job.*"].categoria == "nao_pessoal"
-    assert set(jobs.TAREFAS) == {"sync_games", "enriquecer_snapshot", "precos"}, \
+    assert set(jobs.TAREFAS) == {"sync_games", "enriquecer_snapshot", "precos", "torneios"}, \
         "tarefa nova: se ela recebe user_id em args, anote job.args e agendamento.args como dado pessoal"
 
 
