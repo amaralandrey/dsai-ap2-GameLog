@@ -19,6 +19,7 @@ from sqlalchemy.dialects.sqlite import insert
 from . import tempo
 from .admin import audit
 from .cron import execucao_anterior, proxima_execucao
+from .gamificacao import despachar_adiados
 from .models import JOB_STATUS, Agendamento, Job, db
 from .util import admin_required, current_user, paginate
 
@@ -149,10 +150,13 @@ def executar(job_id, executor=None):
         ok = {"status": "ok", "concluido_em": tempo.agora_utc(), "travado_por": None, "travado_em": None}
         if not _gravar_se_travado(job_id, executor, ok):  # o que a tarefa gravou e o "ok" entram juntos
             db.session.rollback()
+            db.session.info.pop("eventos_adiados", None)
             return None
     except Exception as exc:
         db.session.rollback()  # desfaz o que a tarefa gravou (JOB-06)
+        db.session.info.pop("eventos_adiados", None)  # eram consequência do que foi desfeito
         return _falhar(job_id, executor, exc)
+    despachar_adiados()  # eventos de GAM que a tarefa adiou (o encerramento de um torneio, TRN-11)
     return "ok"
 
 
@@ -382,6 +386,15 @@ def precos(limite=100):
         raise RuntimeError(f"rate-limit em {', '.join(interrompidas)}")
 
 
+@tarefa("torneios")
+def torneios():
+    """Confirma os resultados informados por um lado só há 48 horas (TRN-06); sem usuário em `args`."""
+    from .torneios_servico import confirmar_vencidas
+
+    confirmar_vencidas()
+
+
 agenda_padrao("sync_games", "0 4 * * *", "sync_games")
+agenda_padrao("torneios", "0 * * * *", "torneios")
 agenda_padrao("precos", "0 6 * * *", "precos")
 agenda_padrao("enriquecer_snapshot", "0 5 * * 1", "enriquecer_snapshot", ativo=False)

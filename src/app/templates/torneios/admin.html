@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% from "_macros.html" import pager %}
+{% block title %}Torneios — Admin — GameLog{% endblock %}
+{% block content %}
+<h1>Torneios</h1>
+<table><tbody>{% for t in page.items %}<tr><td><a href="/torneios/{{ t.slug }}">{{ t.nome }}</a></td><td>{{ t.game.title }}</td><td>{{ situacoes[t.situacao] }}</td>
+  <td>{% if t.situacao in ('aberto', 'andamento') %}<form method="post" action="/admin/torneios/{{ t.id }}/cancelar"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input name="motivo" placeholder="motivo" style="width:auto" required> <button class="link danger-link">Cancelar</button></form>{% endif %}</td></tr>
+{% else %}<tr><td class="mut">Nenhum torneio.</td></tr>{% endfor %}</tbody></table>
+{{ pager(page) }}
+{% endblock %}

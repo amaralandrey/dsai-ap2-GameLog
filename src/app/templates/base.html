@@ -24,6 +24,7 @@
       <a class="nav-link{% if request.path == '/listas' %} is-active{% endif %}" href="/listas"{% if request.path == '/listas' %} aria-current="page"{% endif %}>Listas</a>
       <a class="nav-link{% if request.path == '/recomendacoes' %} is-active{% endif %}" href="/recomendacoes"{% if request.path == '/recomendacoes' %} aria-current="page"{% endif %}>Para você</a>
       <a class="nav-link{% if request.path.startswith('/clubes') %} is-active{% endif %}" href="/clubes">Clubes</a>
+      <a class="nav-link{% if request.path.startswith('/torneios') %} is-active{% endif %}" href="/torneios">Torneios</a>
       <a class="nav-link{% if request.path.startswith('/rankings') %} is-active{% endif %}" href="/rankings">Rankings</a>
       <a class="nav-link{% if request.path == '/comparar' %} is-active{% endif %}" href="/comparar"{% if request.path == '/comparar' %} aria-current="page"{% endif %}>Comparar</a>
       {% if cabecalho %}<a class="nav-link nivel-topo" href="/u/{{ me.username }}/xp" title="Nível {{ cabecalho.nivel }} · {{ cabecalho.pct }}% para o próximo">Nv {{ cabecalho.nivel }}<span class="barra-xp" aria-hidden="true"><span style="width:{{ cabecalho.pct }}%"></span></span></a>{% endif %}

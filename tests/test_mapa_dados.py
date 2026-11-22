@@ -23,7 +23,7 @@ def test_tarefas_de_job_e_dado_pessoal_nos_args():
     assert mapa.CAMPOS["job.tipo"].categoria == "nao_pessoal"
     assert mapa.retencao("job") == 30 and mapa.retencao("email_saida") == 90  # RTN-02
     assert set(jobs.TAREFAS) == {"sync_games", "enriquecer_snapshot", "precos", "enviar_email",
-                                 "email_resumo_semanal", "email_resumo"}, \
+                                 "email_resumo_semanal", "email_resumo", "torneios"}, \
         "tarefa nova: confira se o que ela leva em args está anotado em job.args e agendamento.args"
 
 

@@ -58,6 +58,10 @@ CATALOGO = [
     ("podio-horas", "Pódio de horas", "Ficou entre os 3 com mais horas numa temporada", "comunidade", "lendaria", "🥈", "concedida", 1, False, True),
     ("podio-curtidas", "Pódio de curtidas", "Ficou entre os 3 mais curtidos numa temporada", "comunidade", "lendaria", "🥉", "concedida", 1, False, False),
     ("podio-xp", "Pódio de XP", "Ficou entre os 3 com mais XP numa temporada", "comunidade", "lendaria", "🏅", "concedida", 1, False, False),
+    # torneios (TRN-11): métricas registradas por `torneios_servico`
+    ("primeiro-torneio", "Primeiro torneio", "Terminou o primeiro torneio", "comunidade", "comum", "🎟️", "torneios_jogados", 1, False, False),
+    ("podio-torneio", "Pódio", "Ficou entre os 3 primeiros de um torneio", "comunidade", "rara", "🎖️", "torneios_podio", 1, False, False),
+    ("campeao-torneio", "Campeão", "Venceu um torneio", "comunidade", "epica", "🏆", "torneios_vencidos", 1, False, False),
 ]
 CAMPOS = ("codigo", "nome", "descricao", "categoria", "raridade", "icone", "metrica", "meta", "secreta", "por_tempo")
 

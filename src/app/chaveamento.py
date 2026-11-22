@@ -390,16 +390,18 @@ def _parear_guloso(fila, ja_jogaram):
     return pares
 
 
-def _emparelhar_suico(participantes, anteriores, rodada):
+def _emparelhar_suico(participantes, anteriores, rodada, evitar=frozenset()):
     """Menos revanches primeiro (nenhuma enquanto houver alternativa); entre os pareamentos com o mesmo
-    número de revanches, o bye vai para o de menor pontuação que ainda não teve bye."""
+    número de revanches, o bye vai para o de menor pontuação que ainda não teve bye.
+
+    Os pares de `evitar` (bloqueio entre inscritos, TRN-05) contam como revanche: só se enfrentam sem alternativa."""
     pontos, semente = _pontos(anteriores, com_bye=True), {x: i for i, x in enumerate(participantes)}
     fila = sorted(participantes, key=lambda x: (-pontos.get(x, 0), semente[x]))
     tiveram = {p.a for p in anteriores if p.b is BYE}
     folgas = [None]
     if len(fila) % 2:
         folgas = [x for x in reversed(fila) if x not in tiveram] or [fila[-1]]
-    ja_jogaram = {frozenset((p.a, p.b)) for p in anteriores if p.b is not BYE}
+    ja_jogaram = {frozenset((p.a, p.b)) for p in anteriores if p.b is not BYE} | set(evitar)
     orcamento = [LIMITE_DE_TENTATIVAS]
     escolha = next(((folga, pares) for revanches in range(len(fila) // 2 + 1) for folga in folgas
                     if (pares := _parear([x for x in fila if x != folga], ja_jogaram, revanches, orcamento)) is not None),
@@ -420,7 +422,7 @@ def _rodada_suica(pid):
     return int(m[1])
 
 
-def _rodadas_do_suico(participantes, resultados, ate):
+def _rodadas_do_suico(participantes, resultados, ate, evitar=frozenset()):
     """Partidas das rodadas 1..`ate`, com os resultados aplicados; cada rodada exige a anterior completa.
 
     Resultados de rodadas depois de `ate` ficam de fora. Os das rodadas 1..`ate` precisam bater com uma
@@ -437,7 +439,7 @@ def _rodadas_do_suico(participantes, resultados, ate):
         if rodada > 1 and (faltam := [p.id for p in todas if p.rodada == rodada - 1 and p.b is not BYE
                                       and p.id not in por_id]):
             raise ResultadoInvalido(f"faltam resultados da rodada {rodada - 1}: {', '.join(faltam)}")
-        for p in _emparelhar_suico(participantes, todas, rodada):
+        for p in _emparelhar_suico(participantes, todas, rodada, evitar):
             if p.id in por_id and p.b is not BYE:
                 _aplicar(p, por_id[p.id], empate_permitido=True)
             todas.append(p)
@@ -447,10 +449,10 @@ def _rodadas_do_suico(participantes, resultados, ate):
     return todas
 
 
-def suico(participantes, resultados, rodada):
+def suico(participantes, resultados, rodada, evitar=frozenset()):
     """Partidas da `rodada`: mesma pontuação junta, sementes como desempate, sem revanche se houver saída."""
     _validar(participantes)
-    return [p for p in _rodadas_do_suico(participantes, resultados, rodada) if p.rodada == rodada]
+    return [p for p in _rodadas_do_suico(participantes, resultados, rodada, evitar) if p.rodada == rodada]
 
 
 # ---------- classificação (CHV-06, CHV-07) ----------
@@ -470,12 +472,17 @@ class Linha:
     criterio: str  # o critério que separou esta linha da de cima; None na 1ª
 
 
-def _partidas_com_resultados(formato, participantes, resultados, ida_e_volta):
+def partidas_com_resultados(formato, participantes, resultados, ida_e_volta=False, evitar=frozenset(), ate=None):
+    """Todas as partidas geradas até agora, com os resultados aplicados (o desenho e as partidas de TRN).
+
+    No suíço, `ate` pede as rodadas até ela (a rodada em curso ainda não tem resultado); sem ele, até a
+    última rodada com resultado. `evitar` vale só no suíço e precisa ser o mesmo de todas as rodadas.
+    """
     if formato in FORMATOS_DE_ELIMINACAO:
         return list(montar(formato, participantes, resultados).partidas.values())
     if formato == "suico":
-        ate = max((_rodada_suica(r[0]) for r in resultados), default=0)
-        return _rodadas_do_suico(participantes, resultados, ate)
+        ultima = max((_rodada_suica(r[0]) for r in resultados), default=0)
+        return _rodadas_do_suico(participantes, resultados, max(ultima, ate or 0), evitar)
     if formato != "pontos_corridos":
         raise ValueError(f"formato desconhecido: {formato}")
     partidas = {p.id: p for p in pontos_corridos(participantes, ida_e_volta)}
@@ -486,13 +493,13 @@ def _partidas_com_resultados(formato, participantes, resultados, ida_e_volta):
     return list(partidas.values())
 
 
-def classificacao(formato, participantes, resultados, ida_e_volta=False):
+def classificacao(formato, participantes, resultados, ida_e_volta=False, evitar=frozenset()):
     """Tabela ordenada: pontos, confronto direto, saldo, Buchholz (só no suíço) e semente, nessa ordem.
 
-    `ida_e_volta` só vale em pontos corridos e precisa ser o mesmo da geração das rodadas.
+    `ida_e_volta` só vale em pontos corridos e precisa ser o mesmo da geração das rodadas; `evitar`, no suíço.
     """
     _validar(participantes)
-    partidas = _partidas_com_resultados(formato, participantes, resultados, ida_e_volta)
+    partidas = partidas_com_resultados(formato, participantes, resultados, ida_e_volta, evitar)
     jogadas = [p for p in partidas if p.jogada]
     pontos = {x: 0 for x in participantes} | _pontos(partidas, com_bye=formato == "suico")
     conta = {x: {"v": 0, "e": 0, "d": 0, "saldo": 0, "adversarios": []} for x in participantes}

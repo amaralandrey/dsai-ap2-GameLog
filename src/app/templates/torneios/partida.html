@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% macro campos_resultado(sufixo) %}
+  <label for="vencedor-{{ sufixo }}">Vencedor</label><select id="vencedor-{{ sufixo }}" name="vencedor">
+    <option value="{{ p.a_id }}">{{ nomes[p.a_id] }}</option><option value="{{ p.b_id }}">{{ nomes[p.b_id] }}</option>
+    {% if empate %}<option value="empate">Empate</option>{% endif %}</select>
+  <div class="row"><div><label for="pa-{{ sufixo }}">Placar de {{ nomes[p.a_id] }} (opcional)</label><input id="pa-{{ sufixo }}" name="placar_a" type="number" min="0"></div>
+    <div><label for="pb-{{ sufixo }}">Placar de {{ nomes[p.b_id] }} (opcional)</label><input id="pb-{{ sufixo }}" name="placar_b" type="number" min="0"></div></div>
+{% endmacro %}
+{% macro resultado(vencedor, pa, pb) %}{{ 'empate' if vencedor is none else nomes[vencedor] }}{% if pa is not none %} ({{ pa }} × {{ pb }}){% endif %}{% endmacro %}
+{% macro justificativa(sufixo) %}<label for="just-{{ sufixo }}">Justificativa</label><textarea id="just-{{ sufixo }}" name="justificativa" maxlength="500" required></textarea>{% endmacro %}
+{% set csrf %}<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% endset %}
+{% block title %}Partida {{ p.codigo }} — {{ t.nome }} — GameLog{% endblock %}
+{% block content %}
+<p><a href="/torneios/{{ t.slug }}">← {{ t.nome }}</a></p>
+<section class="panel">
+  <h1 style="margin-top:0">{{ nomes[p.a_id] }} × {{ nomes[p.b_id] }}</h1>
+  <p class="mut">Partida {{ p.codigo }} · rodada {{ p.rodada }} · prazo {{ para_belem(p.prazo).strftime('%d/%m/%Y %H:%M') }}</p>
+  {% if p.situacao == 'confirmada' %}<p><strong>Resultado:</strong> {{ resultado(p.vencedor_id, p.placar_a, p.placar_b) }}{% if p.wo %} por W.O.{% endif %}</p>
+  {% elif p.situacao == 'contestada' %}<p class="err">Os resultados informados não batem: a organização vai decidir.</p>
+  {% else %}<p class="mut">Aguardando o resultado dos dois lados.</p>{% endif %}
+  {% for r in reportes %}<p class="mut">{{ nomes[r.user_id] }} informou: {{ resultado(r.vencedor_id, r.placar_a, r.placar_b) }}</p>{% endfor %}
+</section>
+{% if joga and p.situacao == 'aguardando' and t.situacao == 'andamento' %}
+<section class="panel"><h2>Informar resultado</h2>
+  <form method="post" action="/torneios/{{ t.slug }}/partidas/{{ p.id }}">{{ csrf }}{{ campos_resultado('informar') }}<p><button>Enviar</button></p></form>
+  <p class="mut">Quando os dois lados informarem o mesmo resultado, a partida é confirmada. Sem resposta do adversário em 48 horas, vale o seu.</p>
+</section>{% endif %}
+{% if organiza and t.situacao == 'andamento' %}
+  {% if p.situacao == 'contestada' %}<section class="panel"><h2>Decidir a contestação</h2>
+    <form method="post" action="/torneios/{{ t.slug }}/partidas/{{ p.id }}/decidir">{{ csrf }}
+      {% for r in reportes %}<label style="font-weight:400"><input type="radio" name="opcao" value="reporte-{{ r.id }}" style="width:auto" required> O resultado de {{ nomes[r.user_id] }}</label>{% endfor %}
+      <label style="font-weight:400"><input type="radio" name="opcao" value="outro" style="width:auto"> Outro resultado</label>
+      <label style="font-weight:400"><input type="radio" name="opcao" value="wo" style="width:auto"> W.O. para o vencedor escolhido</label>
+      {{ campos_resultado('decidir') }}{{ justificativa('decidir') }}<p><button>Decidir</button></p></form></section>
+  {% elif p.situacao == 'aguardando' and prazo_vencido %}<section class="panel"><h2>W.O. (prazo da rodada vencido)</h2>
+    <form method="post" action="/torneios/{{ t.slug }}/partidas/{{ p.id }}/wo">{{ csrf }}
+      <label for="vencedor-wo">Vitória por W.O. para</label><select id="vencedor-wo" name="vencedor"><option value="{{ p.a_id }}">{{ nomes[p.a_id] }}</option><option value="{{ p.b_id }}">{{ nomes[p.b_id] }}</option></select>
+      {{ justificativa('wo') }}<p><button>Dar W.O.</button></p></form></section>
+  {% elif p.situacao == 'confirmada' %}<section class="panel"><h2>Corrigir o resultado</h2>
+    <form method="post" action="/torneios/{{ t.slug }}/partidas/{{ p.id }}/corrigir">{{ csrf }}{{ campos_resultado('corrigir') }}{{ justificativa('corrigir') }}<p><button>Corrigir</button></p></form></section>{% endif %}
+{% endif %}
+{% if registros %}<section class="panel"><h2>Registro da organização</h2>
+  {% for r in registros %}<p>{{ para_belem(r.created_at).strftime('%d/%m/%Y %H:%M') }}: {{ r.justificativa }}</p>{% endfor %}</section>{% endif %}
+{% endblock %}

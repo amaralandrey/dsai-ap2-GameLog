@@ -164,6 +164,20 @@ CAMPOS = {
     **_tabela("membro_clube", ENGAJAMENTO, ("id", TECNICO), ("user_id", DONO),
               ("clube_id papel situacao entrou_em created_at", {})),
     **_tabela("contribuinte_meta", ENGAJAMENTO, ("id", TECNICO), ("user_id", DONO), ("meta_id", {})),
+    # torneios (TRN): a chave é refeita das sementes e dos resultados, então as linhas ficam com a conta excluída
+    **_tabela("torneio", dict(CONTEUDO, finalidade="engajamento"), ("id", TECNICO), ("organizador_id", DONO),
+              ("slug nome game_id formato limite prazo_inscricao prazo_rodada_dias sementes semente_sorteio "
+               "aberto_a_menores regras clube_id situacao rodadas motivo_cancelamento iniciado_em encerrado_em "
+               "created_at", {}),
+              ("pares_evitados", {"categoria": "preferencia", "exportar": False})),  # bloqueios entre inscritos
+    **_tabela("inscricao_torneio", dict(ENGAJAMENTO, anonimizar="manter"), ("id", TECNICO), ("user_id", DONO),
+              ("torneio_id situacao semente posicao_final motivo created_at", {})),
+    **_tabela("partida_torneio", dict(ENGAJAMENTO, anonimizar="manter"), ("id torneio_id codigo", TECNICO),
+              ("rodada a_id b_id situacao vencedor_id placar_a placar_b wo prazo confirmada_em created_at", {})),
+    **_tabela("reporte_resultado", dict(ENGAJAMENTO, anonimizar="manter"), ("id", TECNICO), ("user_id", DONO),
+              ("partida_id vencedor_id placar_a placar_b created_at", {})),
+    **_tabela("registro_torneio", dict(ENGAJAMENTO, anonimizar="manter"), ("id", TECNICO), ("autor_id", DONO),
+              ("torneio_id acao partida_id justificativa created_at", {})),
     # ---------- moderação e auditoria ----------
     **_tabela("report", MODERACAO, ("id", TECNICO), ("reporter_id", DONO),
               ("review_id alvo_tipo alvo_id reason comment created_at", {"exportar": True}),
