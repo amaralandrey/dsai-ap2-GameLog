@@ -1,0 +1,6 @@
+{% block corpo %}{% endblock %}
+
+--
+GameLog · {{ url_publica('/') }}
+{% if link_descadastro %}Não quer mais receber este e-mail? Descadastre-se: {{ link_descadastro }}
+{% endif %}

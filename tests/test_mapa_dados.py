@@ -14,13 +14,16 @@ from conftest import login, make_user
 VALIDO = Campo("atividade", "conteudo", "contrato", None, True, "manter")
 
 
-def test_tarefas_de_job_sem_dado_pessoal():
-    """`job` e `agendamento` são não pessoais porque nenhuma tarefa leva usuário em `args`; tarefa nova revisa o mapa."""
-    from app import jobs
+def test_tarefas_de_job_e_dado_pessoal_nos_args():
+    """Tarefas de e-mail levam o id do usuário em `args` e `chave_unica` (EML-08); tarefa nova revisa o mapa."""
+    from app import emails, jobs  # noqa: F401  (emails registra as tarefas de e-mail)
 
-    assert mapa.CAMPOS["job.*"].categoria == "nao_pessoal"
-    assert set(jobs.TAREFAS) == {"sync_games", "enriquecer_snapshot", "precos"}, \
-        "tarefa nova: se ela recebe user_id em args, anote job.args e agendamento.args como dado pessoal"
+    for chave in ("job.args", "job.chave_unica", "agendamento.args"):
+        assert mapa.CAMPOS[chave].categoria == "tecnico" and not mapa.CAMPOS[chave].exportar
+    assert mapa.CAMPOS["job.tipo"].categoria == "nao_pessoal"
+    assert mapa.retencao("job") == 30 and mapa.retencao("email_saida") == 90  # RTN-02
+    assert set(jobs.TAREFAS) == {"sync_games", "enriquecer_snapshot", "precos", "enviar_email"}, \
+        "tarefa nova: confira se o que ela leva em args está anotado em job.args e agendamento.args"
 
 
 def test_toda_coluna_do_banco_esta_no_mapa(app):  # MAP-02, MAP-03, GLOBAL-12

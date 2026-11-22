@@ -23,3 +23,16 @@ services:
         sync: false
       - key: JOBS_TOKEN
         sync: false
+      - key: URL_PUBLICA  # endereço dos links nos e-mails (descadastro), que saem dos jobs, fora de uma requisição
+        value: https://gamelog-92zh.onrender.com
+      # e-mail (EML-03): sem SMTP_HOST, o backend de console escreve o e-mail no log
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT  # 465 usa SSL; as outras, STARTTLS (padrão 587)
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: EMAIL_REMETENTE  # ex.: GameLog <nao-responda@seu-dominio>
+        sync: false
