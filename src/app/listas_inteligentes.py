@@ -16,6 +16,7 @@ from . import serializadores
 from .diario import pode_ver_perfil
 from .diario_import import sem_formula
 from .listas import MAX_ITEMS, MAX_LISTS, get_list
+from .menores.politica import visibilidade_padrao
 from .models import (
     LOJAS, NOMES_DAS_LOJAS, STATUSES, Game, GameList, Genre, JogoFonte, ListaInteligente, ListItem, Review,
     SessaoJogo, Status, db, game_genres,
@@ -282,8 +283,8 @@ def nova():
         erros["regra"] = str(exc)
     if erros:
         return _tela_nova(erros, request.form, 400)
-    lista = ListaInteligente(user_id=me.id, nome=nome, publica=request.form.get("visibilidade") != "privada",
-                             regra=json.dumps(regra))
+    publica = request.form.get("visibilidade", visibilidade_padrao(me)) != "privada"
+    lista = ListaInteligente(user_id=me.id, nome=nome, publica=publica, regra=json.dumps(regra))
     db.session.add(lista)
     db.session.commit()
     return redirect(f"/listas/inteligentes/{lista.id}")

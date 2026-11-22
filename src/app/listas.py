@@ -7,6 +7,7 @@ from sqlalchemy.orm import joinedload
 
 from .models import STATUSES, Activity, Game, GameList, ListaInteligente, ListItem, Status, db, now, visible_games
 from .gamificacao import emitir_evento
+from .menores.politica import visibilidade_padrao
 from .util import current_user, login_required, paginate
 
 bp = Blueprint("listas", __name__)
@@ -74,7 +75,8 @@ def my_lists():
         elif GameList.query.filter_by(user_id=me.id).count() >= MAX_LISTS:
             errors["name"] = f"Limite de {MAX_LISTS} listas atingido."
         if not errors:
-            gl = GameList(user_id=me.id, name=name, description=desc[:500], public=request.form.get("visibility") != "privada")
+            gl = GameList(user_id=me.id, name=name, description=desc[:500],
+                          public=request.form.get("visibility", visibilidade_padrao(me)) != "privada")
             db.session.add(gl)
             db.session.flush()
             if gl.public:

@@ -157,7 +157,7 @@ def pagina():
     sel_janela = "sempre" if request.args.get("janela") == "sempre" else (temporada.slug if temporada else "atual")
     extra, ids = {}, None
     if escopo == "seguindo":
-        ids = db.session.query(Follow.followed_id).filter(Follow.follower_id == me.id).union(
+        ids = db.session.query(Follow.followed_id).filter(Follow.follower_id == me.id, Follow.aprovado).union(
             db.session.query(User.id).filter(User.id == me.id))
     elif escopo in _escopos_extras:
         ids, extra = _escopos_extras[escopo](me, request.args)
@@ -191,7 +191,8 @@ def retrato(temporada, categoria, ids=None, visitante=None):
     if ids is not None:
         q = q.filter(User.id.in_(ids), User.id.not_in(ocultos_para(visitante)))  # RNK-05
     fora = bloqueados_com(visitante) if visitante is not None else set()
-    return [(u, v) for u, v in q.order_by(SnapshotRanking.posicao) if u.id not in fora]
+    return [(u, v) for u, v in q.order_by(SnapshotRanking.posicao)
+            if u.id not in fora and (ids is not None or pode(u, "ranking_global"))]  # PMN-04: nem no retrato
 
 
 @bp.route("/rankings/hall-da-fama")
@@ -200,7 +201,8 @@ def hall_da_fama():
     podios = {}
     for linha, user in (db.session.query(SnapshotRanking, User).join(User, User.id == SnapshotRanking.user_id)
                         .filter(SnapshotRanking.posicao <= 3).order_by(SnapshotRanking.posicao)):
-        podios.setdefault((linha.temporada_id, linha.categoria), []).append((linha, user))
+        if pode(user, "ranking_global"):
+            podios.setdefault((linha.temporada_id, linha.categoria), []).append((linha, user))
     return render_template("rankings/hall.html", encerradas=encerradas, podios=podios, categorias=CATEGORIAS,
                            mostrar=mostrar)
 
@@ -217,8 +219,11 @@ class TemporadaEmAndamento(Exception):
 
 def premiar_podio(t):
     """Concede o pódio lido do retrato; idempotente, e a falha de um premiado não impede os outros."""
-    podio = SnapshotRanking.query.filter(SnapshotRanking.temporada_id == t.id, SnapshotRanking.posicao <= 3)
-    for linha in podio.order_by(SnapshotRanking.categoria, SnapshotRanking.posicao).all():
+    podio = (db.session.query(SnapshotRanking, User).join(User, User.id == SnapshotRanking.user_id)
+             .filter(SnapshotRanking.temporada_id == t.id, SnapshotRanking.posicao <= 3))
+    for linha, user in podio.order_by(SnapshotRanking.categoria, SnapshotRanking.posicao).all():
+        if not pode(user, "ranking_global"):
+            continue
         try:
             gamificacao.conceder(linha.user_id, f"podio-{linha.categoria}")
         except Exception:

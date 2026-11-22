@@ -8,7 +8,7 @@
   {% if errors.name %}<div class="err">{{ errors.name }}</div>{% endif %}
   <label for="description">Descrição (opcional)</label><input id="description" name="description" maxlength="500" value="{{ form.get('description', '') }}">
   <label for="visibility">Visibilidade</label>
-  <select id="visibility" name="visibility"><option value="publica">Pública</option><option value="privada">Privada</option></select>
+  <select id="visibility" name="visibility"><option value="publica">Pública</option><option value="privada" {{ 'selected' if visibilidade_padrao(me) == 'privada' }}>Privada</option></select>
   <p><button>Criar lista</button></p>
 </form>
 <p><a class="btn ghost" href="/listas/inteligentes/nova">Nova lista inteligente</a></p>

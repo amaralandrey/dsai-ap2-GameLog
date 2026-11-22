@@ -13,15 +13,14 @@ MAX_ESTANTE = 3
 RECENTES = 6
 
 
-def vitrine(user_id):
-    """Estante e as 6 mais recentes do perfil, numa consulta (GAM-09, PRF-09)."""
-    desbloqueadas = (
-        db.session.query(UsuarioConquista, Conquista)
-        .join(Conquista, Conquista.id == UsuarioConquista.conquista_id)
-        .filter(UsuarioConquista.user_id == user_id, UsuarioConquista.desbloqueada_em.isnot(None))
-        .order_by(UsuarioConquista.desbloqueada_em.desc(), UsuarioConquista.id.desc())
-        .all()
-    )
+def vitrine(user_id, por_tempo=True):
+    """Estante e as 6 mais recentes do perfil, numa consulta (GAM-09, PRF-09); sem `por_tempo`, sem as por tempo."""
+    q = (db.session.query(UsuarioConquista, Conquista)
+         .join(Conquista, Conquista.id == UsuarioConquista.conquista_id)
+         .filter(UsuarioConquista.user_id == user_id, UsuarioConquista.desbloqueada_em.isnot(None)))
+    if not por_tempo:
+        q = q.filter(Conquista.por_tempo.is_(False))  # PMN-09: nem as ganhas antes aparecem
+    desbloqueadas = q.order_by(UsuarioConquista.desbloqueada_em.desc(), UsuarioConquista.id.desc()).all()
     return {"estante": [x for x in desbloqueadas if x[0].fixada][:MAX_ESTANTE],
             "recentes": desbloqueadas[:RECENTES], "total": len(desbloqueadas)}
 
@@ -44,6 +43,9 @@ def do_usuario(username):
         q = q.filter(Conquista.categoria == categoria)
     if raridade:
         q = q.filter(Conquista.raridade == raridade)
+    por_tempo = pode(dono, "conquista_por_tempo")  # GAM-14, PMN-09: nem avaliadas nem mostradas
+    if not por_tempo:
+        q = q.filter(Conquista.por_tempo.is_(False))
     desbloqueadas = (q.filter(UsuarioConquista.desbloqueada_em.isnot(None))
                      .order_by(UsuarioConquista.desbloqueada_em.desc(), UsuarioConquista.id.desc()).all())
     bloqueadas = []
@@ -55,7 +57,7 @@ def do_usuario(username):
             catalogo = catalogo.filter(Conquista.categoria == categoria)
         if raridade:
             catalogo = catalogo.filter(Conquista.raridade == raridade)
-        if not pode(dono, "conquista_por_tempo"):  # GAM-14
+        if not por_tempo:
             catalogo = catalogo.filter(Conquista.por_tempo.is_(False))
         bloqueadas = [(c, progresso.get(c.id, 0)) for c in catalogo.order_by(Conquista.categoria, Conquista.meta)
                       if c.id not in ganhas]

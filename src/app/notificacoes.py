@@ -97,10 +97,13 @@ def avisar_comentario(comment):
                      game_id=review.game_id, alvo_url=f"/jogos/{review.game.slug}#com-{comment.id}")
 
 
-def avisar_seguidor(seguido_id, seguidor):
-    """Uma vez por par a cada 24 horas, mesmo seguindo de novo (NTF-05)."""
+def avisar_seguidor(seguido_id, seguidor, pedido=False):
+    """Uma vez por par a cada 24 horas, mesmo seguindo de novo (NTF-05); o pedido leva aos pedidos (PMN-03)."""
     if _recente(seguido_id, "seguidor", ator_id=seguidor.id):
         return None
+    if pedido:
+        return notificar(seguido_id, "seguidor", ator_id=seguidor.id, texto="pediu para seguir você",
+                         alvo_url="/conta/pedidos")
     return notificar(seguido_id, "seguidor", ator_id=seguidor.id, alvo_url=f"/u/{seguidor.username}")
 
 
@@ -109,10 +112,12 @@ def avisar_amigo_zerou(quem, game):
     seguidores = (
         User.query.join(Follow, Follow.follower_id == User.id)
         .join(Status, (Status.user_id == User.id) & (Status.game_id == game.id) & (Status.value == "planejado"))
-        .filter(Follow.followed_id == quem.id)
+        .filter(Follow.followed_id == quem.id, Follow.aprovado)  # PMN-03: pedido pendente não é seguidor
     )
-    if quem.perfil_privado:  # DIA-12 (pode_ver_perfil): só admins e quem o dono segue
-        seguidos = db.session.query(Follow.followed_id).filter(Follow.follower_id == quem.id)
+    from .menores.politica import e_menor  # a política registra um filtro aqui
+
+    if quem.perfil_privado and not e_menor(quem):  # DIA-12: só admins e quem o dono segue; de menor, os aprovados
+        seguidos = db.session.query(Follow.followed_id).filter(Follow.follower_id == quem.id, Follow.aprovado)
         seguidores = seguidores.filter((User.role == "admin") | User.id.in_(seguidos))
     criadas = []
     for destinatario in seguidores.order_by(User.id).limit(MAX_AMIGO_ZEROU):

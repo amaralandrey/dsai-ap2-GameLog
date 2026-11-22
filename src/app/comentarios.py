@@ -1,6 +1,7 @@
 from flask import Blueprint, abort, flash, redirect, request
 
 from .bloqueios import bloqueado_entre
+from .menores.politica import pode
 from .models import Comment, Review, db
 from .gamificacao import emitir_evento
 from .notificacoes import avisar_comentario
@@ -22,6 +23,8 @@ def add(rid):
     review = db.get_or_404(Review, rid)
     if review.hidden or review.game.removed_at or bloqueado_entre(current_user(), review.user_id):  # COM-05, BLQ-05
         abort(404)
+    if not pode(current_user(), "comentar", review):
+        abort(403)  # PMN-10: na avaliação de um menor, só ele e quem ele aprovou
     text = request.form.get("text", "").strip()
     if not text:
         flash("O comentário não pode ficar vazio.", "erro")  # COM-04
