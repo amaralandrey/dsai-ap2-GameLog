@@ -14,6 +14,15 @@ from conftest import login, make_user
 VALIDO = Campo("atividade", "conteudo", "contrato", None, True, "manter")
 
 
+def test_tarefas_de_job_sem_dado_pessoal():
+    """`job` e `agendamento` são não pessoais porque nenhuma tarefa leva usuário em `args`; tarefa nova revisa o mapa."""
+    from app import jobs
+
+    assert mapa.CAMPOS["job.*"].categoria == "nao_pessoal"
+    assert set(jobs.TAREFAS) == {"sync_games", "enriquecer_snapshot", "precos"}, \
+        "tarefa nova: se ela recebe user_id em args, anote job.args e agendamento.args como dado pessoal"
+
+
 def test_toda_coluna_do_banco_esta_no_mapa(app):  # MAP-02, MAP-03, GLOBAL-12
     with app.app_context():
         faltando, sobrando = mapa.verificar_mapa()
