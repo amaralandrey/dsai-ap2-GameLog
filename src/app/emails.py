@@ -13,11 +13,11 @@ from flask import Blueprint, current_app, flash, has_request_context, redirect, 
 from itsdangerous import BadSignature, URLSafeSerializer
 
 from . import tempo
+from .admin import audit
 from .diario import formatar_minutos
 from .jobs import ErroPermanente, agenda_padrao, enfileirar, executar, tarefa
 from .menores.idade import ADULTO, VINCULADO, faixa_etaria
 from .menores.politica import pode
-from .admin import audit
 from .models import EMAIL_STATUS, Activity, EmailSaida, Job, PreferenciaNotificacao, User, db
 from .notificacoes import TIPOS, preferencia
 from .social import feed_query
