@@ -133,6 +133,10 @@ def report(rid):
         flash("Você já denunciou esta avaliação.", "erro")
     else:
         db.session.add(Report(review_id=rid, reporter_id=me.id, reason=reason, comment=comment))
-        db.session.commit()
-        flash("Denúncia enviada. Obrigado!", "ok")
+        try:
+            db.session.commit()
+            flash("Denúncia enviada. Obrigado!", "ok")
+        except IntegrityError:  # duplo envio: a outra requisição já gravou a denúncia
+            db.session.rollback()
+            flash("Você já denunciou esta avaliação.", "erro")
     return back(review.game, review)
