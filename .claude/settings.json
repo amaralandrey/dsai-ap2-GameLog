@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.local)",
+      "Read(./src/.env)",
+      "Read(**/*.pem)",
+      "Read(**/*.key)",
+      "Read(**/id_rsa*)",
+      "Read(**/credentials.*)",
+      "Read(**/secrets.*)",
+      "Read(~/.ssh/**)",
+      "Read(~/.aws/**)",
+      "Bash(git push:*)",
+      "Bash(git commit:*)",
+      "Bash(gh pr merge:*)",
+      "Bash(rtk git commit:*)",
+      "Bash(rtk git push:*)"
+    ]
+  }
+}
