@@ -25,6 +25,7 @@ FINALIDADES = {  # agrupam o registro das operações (MAP-08)
     "auditoria": "Registro das ações administrativas",
     "catalogo": "Catálogo de jogos, lojas e conquistas",
     "protecao_menores": "Verificação de idade e proteção de crianças e adolescentes",
+    "comunicacao": "E-mails da conta, avisos por e-mail e resumo semanal",
 }
 
 
@@ -80,6 +81,13 @@ IDADE = dict(CONTA, categoria="idade", finalidade="protecao_menores", base_legal
              anonimizar="apagar")  # ECA Digital (Lei 15.211/2025); o nascimento só vai ao próprio titular (IDA-12)
 AUDITORIA = dict(CONTA, categoria="atividade", finalidade="auditoria", base_legal="legitimo_interesse",
                  avaliacao_li=LI_AUDITORIA, exportar=False)
+# o corpo pode levar link assinado (RSN, CTA), então a caixa de saída não vai na exportação; enviado some em 90 dias (RTN-02)
+EMAIL = dict(CONTA, categoria="contato", finalidade="comunicacao", retencao_dias=90, exportar=False,
+             anonimizar="apagar_linha")
+# o job `enviar_email` leva o id da caixa de saída e o resumo leva o user_id (EML-08): histórico de 30 dias (RTN-02)
+FILA = dict(CONTA, categoria="tecnico", finalidade="comunicacao", retencao_dias=30, exportar=False)
+NAO_PESSOAL = dict(categoria="nao_pessoal", finalidade="catalogo", base_legal="nao_se_aplica", retencao_dias=None,
+                   exportar=False, anonimizar="manter")
 
 CAMPOS = {
     # ---------- conta ----------
@@ -142,6 +150,8 @@ CAMPOS = {
               ("tipo ator_id game_id review_id texto alvo_url lida_em created_at", {})),
     **_tabela("preferencia_notificacao", dict(ENGAJAMENTO, categoria="preferencia"), ("id", TECNICO),
               ("user_id", DONO), ("tipo site email", {})),
+    **_tabela("email_saida", EMAIL, ("id", TECNICO), ("user_id", DONO), ("para assunto corpo_texto corpo_html", {}),
+              ("modelo tipo status criado_em enviado_em erro", {"categoria": "tecnico"})),
     **_tabela("usuario_conquista", ENGAJAMENTO, ("id", TECNICO), ("user_id", DONO),
               ("conquista_id progresso desbloqueada_em fixada", {})),
     **_tabela("perfil_progressao", ENGAJAMENTO, ("id", TECNICO), ("user_id", DONO),
@@ -176,9 +186,12 @@ CAMPOS = {
     **_nao_pessoal("conquista", "catalogo"),
     **_nao_pessoal("preco_loja", "catalogo"),
     **_nao_pessoal("instancia", "seguranca"),  # token do banco, não identifica ninguém
-    # as tarefas de hoje só sincronizam o catálogo; tarefa com user_id em args precisa rever estas duas
-    **_nao_pessoal("job", "catalogo"),
-    **_nao_pessoal("agendamento", "catalogo"),
+    # args e chave_unica podem citar um usuário (enviar_email, email_resumo); o resto da fila não é pessoal
+    **_tabela("job", NAO_PESSOAL, ("args chave_unica", FILA),
+              ("id tipo status tentativas max_tentativas executar_em travado_por travado_em ultimo_erro criado_em "
+               "concluido_em", {})),
+    **_tabela("agendamento", NAO_PESSOAL, ("args", dict(FILA, retencao_dias=None)),
+              ("id nome cron tipo ativo ultima_execucao", {})),
     **_nao_pessoal("temporada", "engajamento"),
     **_nao_pessoal("clube", "engajamento"),
     **_nao_pessoal("jogo_do_mes", "engajamento"),
