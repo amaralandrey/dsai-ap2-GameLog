@@ -1,0 +1,3 @@
+{% extends "email/_layout.txt" %}
+{% block assunto %}Sua conta no GameLog foi excluída{% endblock %}
+{% block corpo %}Confirmamos a exclusão da sua conta no GameLog. Este é o último e-mail que enviamos para este endereço, que não fica guardado depois do envio.{% endblock %}

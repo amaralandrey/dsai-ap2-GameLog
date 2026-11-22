@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}E-mail #{{ e.id }} — Admin{% endblock %}
+{% block content %}
+<h1>E-mail #{{ e.id }}</h1>
+<section class="panel">
+  <p><strong>Para:</strong> {{ mascarar(e.para) }} · <strong>Modelo:</strong> {{ e.modelo }} · <strong>Status:</strong> <span class="tag">{{ e.status }}</span></p>
+  <p><strong>Criado:</strong> {{ belem(e.criado_em).strftime('%d/%m/%Y %H:%M') }}{% if e.enviado_em %} · <strong>Enviado:</strong> {{ belem(e.enviado_em).strftime('%d/%m/%Y %H:%M') }}{% endif %}</p>
+  {% if e.erro %}<p class="mut"><strong>Erro:</strong> {{ e.erro }}</p>{% endif %}
+  <h2>{{ e.assunto }}</h2>
+  <pre style="white-space:pre-wrap">{{ e.corpo_texto }}</pre>
+  {% if e.status == 'falhou' %}<form method="post" action="/admin/emails/{{ e.id }}/reenviar"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button>Reenviar</button></form>{% endif %}
+  <p><a href="/admin/emails">Voltar à caixa de saída</a></p>
+</section>
+{% endblock %}

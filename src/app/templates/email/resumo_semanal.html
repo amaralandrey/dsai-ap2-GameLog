@@ -1,0 +1,9 @@
+{% extends "email/_layout.html" %}
+{% block corpo %}
+<p style="margin:0 0 12px">Olá, {{ user.display_name }}.</p>
+<p style="margin:0 0 12px">O que aconteceu na semana passada entre quem você segue:</p>
+<ul style="margin:0 0 12px;padding-left:20px">
+{% for texto, caminho in itens %}<li style="margin:0 0 6px"><a href="{{ url_publica(caminho) }}" style="color:#1f2933">{{ texto }}</a></li>
+{% endfor %}</ul>
+<p style="margin:0"><a href="{{ url_publica('/feed') }}" style="color:#3b2f80;font-weight:bold">Ver o feed</a></p>
+{% endblock %}
