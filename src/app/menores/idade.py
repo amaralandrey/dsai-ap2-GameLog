@@ -9,6 +9,7 @@ from collections import namedtuple
 from datetime import date, datetime
 
 from flask import Blueprint, abort, flash, redirect, render_template, request, session
+from sqlalchemy import or_
 
 from .. import tempo
 from ..admin import audit
@@ -43,6 +44,14 @@ def faixa_etaria(user):
     if user.nascimento is None or user.idade_contestada_em is not None:
         return VINCULADO
     return faixa_de(user.nascimento)
+
+
+def sql_menor():
+    """`faixa_etaria(User) != ADULTO` em SQL, para as listagens filtrarem no banco (PMN-03, PMN-06)."""
+    hoje = tempo.hoje()
+    dia = 28 if (hoje.month, hoje.day) == (2, 29) else hoje.day  # quem nasceu em 28/02 faz 18 em 29/02
+    limite = date(hoje.year - 18, hoje.month, dia)
+    return or_(User.nascimento.is_(None), User.idade_contestada_em.isnot(None), User.nascimento > limite)
 
 
 def aguarda_responsavel(user):
@@ -140,6 +149,8 @@ def registrar(user, resultado):
         user.suspensa_em = user.suspensa_em or now()
     faixa = faixa_etaria(user)
     user.aguardando_responsavel = faixa == VINCULADO
+    if faixa != ADULTO:
+        user.perfil_privado = True  # PMN-02: a configuração mais protetiva por padrão (ECA Digital art. 7º)
     db.session.add(VerificacaoIdade(user_id=user.id, metodo=resultado.metodo, faixa_resultante=faixa,
                                     confiavel=resultado.confiavel, divergente=divergente))
     return faixa
@@ -271,7 +282,7 @@ def contestar_idade(uid):
     """Indício de idade menor: a conta vira de 12 a 15 anos, à espera do responsável, até verificação confiável."""
     alvo = _alvo(uid)
     if alvo is not None and alvo.idade_contestada_em is None:
-        alvo.idade_contestada_em, alvo.aguardando_responsavel = now(), True
+        alvo.idade_contestada_em, alvo.aguardando_responsavel, alvo.perfil_privado = now(), True, True  # PMN-02
         _auditar("idade.contestar", alvo)
         flash(f"Idade de @{alvo.username} marcada como contestada.", "ok")
     return redirect("/admin/usuarios")

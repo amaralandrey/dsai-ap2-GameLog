@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Como o GameLog protege menores — GameLog{% endblock %}
+{% block content %}
+<section class="panel">
+<h1>Como o GameLog protege quem tem menos de 18 anos</h1>
+<p>Algumas coisas funcionam de outro jeito para quem tem de 12 a 17 anos. A tabela abaixo mostra o que cada
+  faixa de idade pode fazer. Ela é montada a partir das mesmas regras que o site usa, então está sempre atualizada.</p>
+<ul>
+  <li>O perfil e as listas novas de um menor começam privados.</li>
+  <li>Quem quer seguir um menor faz um pedido, e o pedido só vale depois de aprovado.</li>
+  <li>Menores não recebem ofertas, alertas de preço, avisos para manter sequência nem prêmios por tempo de jogo.</li>
+  <li>Sem data de nascimento, a conta segue as regras de 12 a 15 anos, que são as mais protetivas.</li>
+  <li>Uma conta de 12 a 15 anos que ainda espera o responsável não segue, não comenta e não entra em clubes nem torneios.</li>
+  <li>O GameLog não tem mensagens diretas.</li>
+</ul>
+<table>
+  <thead><tr><th>O que</th>{% for f in faixas %}<th>{{ nomes[f] }}</th>{% endfor %}<th>Detalhe</th></tr></thead>
+  <tbody>{% for descricao, liberada, nota in linhas %}
+    <tr><td>{{ descricao }}</td>{% for f in faixas %}<td>{{ 'Sim' if liberada[f] else 'Não' }}</td>{% endfor %}
+      <td class="mut">{{ nota }}</td></tr>{% endfor %}
+  </tbody>
+</table>
+<p class="mut">Base legal: ECA Digital (Lei 15.211/2025) e LGPD, art. 14.</p>
+</section>
+{% endblock %}
