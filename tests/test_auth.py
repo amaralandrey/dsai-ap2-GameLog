@@ -1,7 +1,7 @@
 from app.models import User, db
 from conftest import login, make_user
 
-OK = {"username": "ana", "email": "ana@ex.com", "password": "senha1234"}
+OK = {"username": "ana", "email": "ana@ex.com", "password": "senha1234", "nascimento": "1995-06-15"}
 
 
 def signup(client, **kw):
@@ -20,8 +20,8 @@ def test_cad01_validacoes(client, app):
 
 def test_cad01_cadastro_simultaneo_mostra_erro_e_nao_500(client, app, corrida):
     corrida("INSERT INTO user (username, username_lower, email, password_hash, display_name, bio, role, "
-            "session_version, created_at, perfil_privado) "
-            "VALUES ('Ana', 'ana', 'ana@ex.com', 'x', 'Ana', '', 'jogador', 0, '2026-01-01', 0)")
+            "session_version, created_at, perfil_privado, nascimento_confiavel, aguardando_responsavel) "
+            "VALUES ('Ana', 'ana', 'ana@ex.com', 'x', 'Ana', '', 'jogador', 0, '2026-01-01', 0, 0, 0)")
     r = signup(client)
     assert r.status_code == 400
     html = r.get_data(as_text=True)

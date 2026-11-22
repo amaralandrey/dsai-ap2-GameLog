@@ -7,6 +7,7 @@ from flask import Blueprint, abort, current_app, flash, redirect, render_templat
 from sqlalchemy.exc import IntegrityError
 from werkzeug.security import check_password_hash, generate_password_hash
 
+from .menores import idade
 from .models import Activity, Follow, GameList, LoginAttempt, Review, User, db, now
 from .afinidade import resumo_com
 from .diario import minutos_registrados, pode_ver_perfil, zerados
@@ -56,6 +57,12 @@ def signup():
         f = request.form
         username, email, password = f.get("username", "").strip(), f.get("email", "").strip(), f.get("password", "")
         errors = validate_signup(username, email, password)
+        try:  # IDA-01, IDA-02: nada é gravado com data inválida ou menor de 12
+            resultado = idade.ADAPTADORES["autodeclaracao"].verificar(None, {"nascimento": f.get("nascimento")})
+            if idade.idade(resultado.nascimento) < idade.IDADE_MINIMA:
+                errors["nascimento"] = idade.MENOR_DE_12
+        except idade.IdadeInvalida as exc:
+            errors["nascimento"] = str(exc)
         if errors:
             return render_template("auth/cadastro.html", errors=errors, form=f), 400
         user = User(
@@ -68,6 +75,8 @@ def signup():
         )
         db.session.add(user)
         try:
+            db.session.flush()
+            idade.registrar(user, resultado)  # IDA-06: autodeclaração, não confiável
             db.session.commit()
         except IntegrityError:  # cadastro simultâneo: a outra requisição gravou o mesmo usuário ou e-mail
             db.session.rollback()
@@ -75,6 +84,8 @@ def signup():
             return render_template("auth/cadastro.html", errors=errors, form=f), 400
         start_session(user)
         flash("Conta criada! Bem-vindo ao GameLog.", "ok")
+        if idade.aguarda_responsavel(user):  # IDA-04
+            return redirect("/conta/pendente")
         return redirect(safe_next(request.args.get("next")))
     return render_template("auth/cadastro.html", errors={}, form={})
 
@@ -91,6 +102,9 @@ def login():
         user = User.query.filter_by(email=email).first()
         confere = check_password_hash(user.password_hash if user else hash_ficticio(), password)  # CAD-03: mesmo tempo
         if user and confere:
+            if user.suspensa_em is not None:  # IDA-05: a senha confere, mas a sessão não é criada
+                flash("Conta suspensa.", "erro")
+                return render_template("auth/login.html", form=request.form), 403
             LoginAttempt.query.filter_by(email=email).delete()
             db.session.commit()
             start_session(user)

@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Verificação de idade — GameLog{% endblock %}
+{% block content %}
+<section class="panel" style="max-width:560px;margin:0 auto">
+<h1>Verificação de idade</h1>
+<p>Faixa atual da conta: <strong>{{ faixa }}</strong>{% if contestada %} (idade contestada pela moderação){% endif %}.</p>
+<p class="mut">A data de nascimento não aparece para ninguém. Informar a data de novo só deixa a conta mais protegida; para liberar uma faixa de mais idade, use uma verificação confiável.</p>
+{% if erro %}<div class="err">{{ erro }}</div>{% endif %}
+{% for a in adaptadores %}
+<form method="post" action="/conta/idade/{{ a.nome }}" class="panel">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <h2>{{ a.rotulo }}</h2>
+  {% if a.nome == 'provedor_simulado' %}
+  <label for="codigo">Código de verificação</label><input id="codigo" name="codigo" required>
+  {% else %}
+  <label for="nascimento-{{ a.nome }}">Data de nascimento</label><input id="nascimento-{{ a.nome }}" name="nascimento" type="date" required>
+  {% endif %}
+  <p><button class="ghost">Verificar</button></p>
+</form>
+{% endfor %}
+</section>
+{% endblock %}

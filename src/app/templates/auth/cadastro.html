@@ -14,6 +14,9 @@
   <label for="password">Senha</label>
   <input id="password" name="password" type="password" required>
   {% if errors.password %}<div class="err">{{ errors.password }}</div>{% endif %}
+  <label for="nascimento">Data de nascimento</label>
+  <input id="nascimento" name="nascimento" type="date" value="{{ form.get('nascimento', '') }}" required>
+  {% if errors.nascimento %}<div class="err">{{ errors.nascimento }}</div>{% endif %}
   <p><button>Criar conta</button></p>
 </form>
 <p class="mut">Já tem conta? <a href="/entrar{{ '?next=' ~ request.args.get('next') | urlencode if request.args.get('next') }}">Entrar</a></p>

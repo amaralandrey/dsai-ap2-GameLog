@@ -97,6 +97,7 @@ def _atividade(rng, games, real):
     pw = generate_password_hash(secrets.token_urlsafe(16) if current_app.config["PRODUCAO"] else SEED_PASSWORD)
     users = [User(username=f"jogador{i:02d}", username_lower=f"jogador{i:02d}", email=f"jogador{i:02d}@example.com",
                   password_hash=pw, display_name=f"Jogador {i:02d}", bio=rng.choice(["", "Fã de RPG.", "Platina é vida.", "Casual."]),
+                  nascimento=date(1970 + i, 1 + i % 12, 1 + i % 28),  # adultos (IDA-05), sem gastar o rng do resto do seed
                   created_at=BASE - timedelta(days=rng.randint(30, 400))) for i in range(1, 31)]
     db.session.add_all(users)
     db.session.flush()

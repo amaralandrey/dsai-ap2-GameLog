@@ -24,6 +24,7 @@ FINALIDADES = {  # agrupam o registro das operações (MAP-08)
     "moderacao": "Denúncias e moderação de conteúdo",
     "auditoria": "Registro das ações administrativas",
     "catalogo": "Catálogo de jogos, lojas e conquistas",
+    "protecao_menores": "Verificação de idade e proteção de crianças e adolescentes",
 }
 
 
@@ -75,6 +76,8 @@ DIARIO = dict(CONTA, categoria="atividade", finalidade="acompanhamento", anonimi
 ENGAJAMENTO = dict(CONTA, categoria="atividade", finalidade="engajamento", anonimizar="apagar_linha")
 MODERACAO = dict(CONTA, categoria="atividade", finalidade="moderacao", base_legal="legitimo_interesse",
                  avaliacao_li=LI_MODERACAO, exportar=False)
+IDADE = dict(CONTA, categoria="idade", finalidade="protecao_menores", base_legal="obrigacao_legal",
+             anonimizar="apagar")  # ECA Digital (Lei 15.211/2025); o nascimento só vai ao próprio titular (IDA-12)
 AUDITORIA = dict(CONTA, categoria="atividade", finalidade="auditoria", base_legal="legitimo_interesse",
                  avaliacao_li=LI_AUDITORIA, exportar=False)
 
@@ -93,7 +96,11 @@ CAMPOS = {
         ("bio", {"categoria": "perfil", "finalidade": "perfil_social", "anonimizar": "apagar"}),
         ("perfil_privado", {"categoria": "preferencia", "finalidade": "perfil_social"}),
         ("steam_id", {"finalidade": "acompanhamento", "anonimizar": "apagar"}),
+        ("nascimento nascimento_confiavel aguardando_responsavel idade_contestada_em suspensa_em "
+         "revisao_idade_pedida_em", IDADE),
     ),
+    **_tabela("verificacao_idade", dict(IDADE, anonimizar="apagar_linha"), ("id", TECNICO), ("user_id", DONO),
+              ("metodo faixa_resultante confiavel divergente created_at", {})),
     **_tabela(
         "login_attempt",
         dict(CONTA, categoria="contato", finalidade="seguranca", base_legal="legitimo_interesse",
