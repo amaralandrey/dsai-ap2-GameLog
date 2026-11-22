@@ -638,3 +638,21 @@ def test_eml_11_comando_teste_no_smtp_sem_mostrar_a_senha(app, smtp):
     assert r.output.splitlines()[0] == "backend=smtp status=falhou" and SENHA not in r.output
     r = app.test_cli_runner().invoke(args=["email", "teste", "--para", "eu@ex.com"])
     assert r.output.strip() == "backend=smtp status=enviado" and len(smtp.enviadas) == 1
+
+
+def test_eml_04_endereco_nunca_aparece_no_erro(app, smtp):
+    smtp.erros.append(smtplib.SMTPRecipientsRefused({"ana@ex.com": (550, b"no such user")}))
+    eid = enviar(app, usuario(app))
+    rodar(app)
+    e, j = linha(app, eid), job_do(app, eid)
+    assert e.status == "falhou" and "550" in e.erro
+    assert "ana@ex.com" not in e.erro and "ana@ex.com" not in j.ultimo_erro and "a***@ex.com" in e.erro
+
+
+def test_eml_05_confirmacao_de_exclusao_que_falhou_mascara_o_endereco(app, smtp, monkeypatch):
+    monkeypatch.setattr(emails, "conta_excluida", lambda user: True)
+    smtp.erros.append(smtplib.SMTPRecipientsRefused({"velho@ex.com": (550, b"no such user")}))
+    eid = enviar(app, usuario(app), "conta_excluida", para="velho@ex.com")
+    rodar(app)
+    e = linha(app, eid)
+    assert (e.status, e.para) == ("falhou", "v***@ex.com") and "velho@ex.com" not in e.erro

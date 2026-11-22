@@ -4,6 +4,7 @@
 `pendente` e enfileira o job; a rota nunca espera o SMTP. Sem `SMTP_HOST`, o backend de console escreve no log.
 """
 import os
+import re
 import smtplib
 from datetime import timedelta, timezone
 from email.message import EmailMessage
@@ -32,6 +33,7 @@ CONSENTIMENTO_DO_TIPO = {RESUMO: "email_resumo", "oferta": "ofertas", "preco_alv
 SEM_DESTINO = "conta_excluida"  # vai para `para` mesmo com a conta excluída, que é mascarado depois (DIR-08)
 TIMEOUT_SMTP = 20
 MAX_ERRO = 500
+ENDERECO = re.compile(r"[^\s<>'\",;:()\[\]{}]+@[^\s<>'\",;:()\[\]{}]+")
 NOITE_INICIO, NOITE_FIM = 22, 7  # PMN-07
 MAX_ITENS_RESUMO = 10
 
@@ -188,7 +190,9 @@ def descrever(exc):
     """Tipo, código e mensagem, sem a senha do SMTP (GLOBAL-16)."""
     texto = f"{type(exc).__name__}: {exc}"
     senha = os.environ.get("SMTP_PASSWORD")
-    return (texto.replace(senha, "***") if senha else texto)[:MAX_ERRO]
+    if senha:
+        texto = texto.replace(senha, "***")
+    return ENDERECO.sub(lambda m: mascarar(m.group()), texto)[:MAX_ERRO]
 
 
 def motivo_supressao(email):
@@ -225,6 +229,8 @@ def processar(email_id):
         permanente = codigo is not None and 500 <= codigo < 600
         if permanente:
             email.status = "falhou"
+            if email.modelo == SEM_DESTINO:
+                email.para = mascarar(email.para)
         db.session.commit()  # o erro fica gravado mesmo com o rollback do job (JOB-06)
         if permanente:
             raise ErroPermanente(email.erro) from None
