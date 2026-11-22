@@ -445,3 +445,114 @@ def test_pmn_08_de_12_a_15_email_de_engajamento_suprimido_no_envio(app, smtp):
     rodar(app)
     e, = caixa(app)
     assert (e.status, e.erro) == ("suprimido", "política de menores") and smtp.enviadas == []
+
+
+# ---------- EML-08, EML-09: resumo semanal ----------
+SEMANA_PASSADA = datetime(2026, 11, 12, 15, 0)  # quinta da semana anterior à de 2026-11-16, em UTC
+
+
+@pytest.fixture
+def consente(monkeypatch):
+    """Faz de conta que CNS existe e que todo mundo consentiu o `email_resumo`."""
+    monkeypatch.setattr(emails, "tem_consentimento", lambda user, finalidade: finalidade == "email_resumo")
+
+
+def lista_com_atividade(app, uid, nome, publica=True, quando=SEMANA_PASSADA):
+    from app.models import Activity, GameList
+
+    with app.app_context():
+        lista = GameList(user_id=uid, name=nome, public=publica)
+        db.session.add(lista)
+        db.session.flush()
+        db.session.add(Activity(user_id=uid, kind="lista", list_id=lista.id, created_at=quando))
+        db.session.commit()
+
+
+def segue(app, quem, alvo):
+    from app.models import Follow
+
+    with app.app_context():
+        db.session.add(Follow(follower_id=quem, followed_id=alvo))
+        db.session.commit()
+
+
+def rodar_resumo(app):
+    """Enfileira a tarefa agendada e roda os ciclos até a fila esvaziar (resumo → resumo por usuário → envio)."""
+    with app.app_context():
+        jobs.enfileirar("email_resumo_semanal")
+        db.session.commit()
+    while rodar(app)["executados"]:
+        pass
+    return caixa(app, modelo="resumo_semanal")
+
+
+def test_eml_08_agendado_para_segunda_as_8h():
+    assert jobs.AGENDAS_PADRAO["email_resumo_semanal"][:2] == ("0 8 * * 1", "email_resumo_semanal")
+
+
+def test_eml_08_sem_cns_ninguem_recebe(app):
+    ana, bia = usuario(app), usuario(app, "bia")
+    segue(app, ana, bia)
+    lista_com_atividade(app, bia, "Favoritos")
+    assert rodar_resumo(app) == []
+    with app.app_context():
+        assert Job.query.filter_by(tipo="email_resumo").count() == 0
+
+
+def test_eml_08_resumo_uma_vez_por_semana(app, consente):
+    ana, bia = usuario(app), usuario(app, "bia")
+    segue(app, ana, bia)
+    lista_com_atividade(app, bia, "Favoritos")
+    e, = rodar_resumo(app)
+    assert (e.user_id, e.status, e.tipo) == (ana, "enviado", "resumo")
+    assert "bia criou a lista Favoritos" in e.corpo_texto and "/listas/" in e.corpo_html
+    with app.app_context():
+        assert Job.query.filter(Job.chave_unica == f"resumo:{ana}:2026-W47").count() == 1
+    assert len(rodar_resumo(app)) == 1  # o agendamento rodando de novo na mesma semana não duplica
+
+
+def test_eml_09_resumo_vazio_nao_grava_nada(app, consente):
+    ana, bia = usuario(app), usuario(app, "bia")
+    segue(app, ana, bia)
+    lista_com_atividade(app, bia, "Desta semana", quando=datetime(2026, 11, 16, 14, 0))
+    lista_com_atividade(app, bia, "Antiga", quando=datetime(2026, 11, 2, 14, 0))
+    assert rodar_resumo(app) == [] and caixa(app) == []
+
+
+def test_eml_09_resumo_sem_lista_privada_bloqueado_nem_perfil_privado(app, consente):
+    from app.models import Bloqueio
+
+    ana, bia, caio, dani = (usuario(app, n) for n in ("ana", "bia", "caio", "dani"))
+    for alvo in (bia, caio, dani):
+        segue(app, ana, alvo)
+    lista_com_atividade(app, bia, "Pública")
+    lista_com_atividade(app, bia, "Secreta", publica=False)
+    lista_com_atividade(app, caio, "Do bloqueado")
+    lista_com_atividade(app, dani, "Do perfil privado")
+    with app.app_context():
+        db.session.add(Bloqueio(bloqueador_id=caio, bloqueado_id=ana))  # o follow fica: a regra do feed esconde
+        db.session.get(User, dani).perfil_privado = True
+        db.session.commit()
+    e = next(e for e in rodar_resumo(app) if e.user_id == ana)
+    assert "Pública" in e.corpo_texto
+    for escondido in ("Secreta", "Do bloqueado", "Do perfil privado"):
+        assert escondido not in e.corpo_texto and escondido not in e.corpo_html
+
+
+def test_eml_09_resumo_ate_10_itens(app, consente):
+    ana, bia = usuario(app), usuario(app, "bia")
+    segue(app, ana, bia)
+    for i in range(12):
+        lista_com_atividade(app, bia, f"Lista {i}")
+    e, = rodar_resumo(app)
+    assert e.corpo_texto.count("criou a lista") == 10
+
+
+def test_pmn_08_resumo_de_menor_so_de_16_a_17(app, consente):
+    teo = usuario(app, "teo", nascimento=ADOLESCENTE)
+    lia = usuario(app, "lia", nascimento=VINCULADO)
+    bia = usuario(app, "bia")
+    for quem in (teo, lia):
+        segue(app, quem, bia)
+    lista_com_atividade(app, bia, "Favoritos")
+    assert [e.user_id for e in rodar_resumo(app)] == [teo]

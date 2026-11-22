@@ -12,11 +12,13 @@ from flask import Blueprint, current_app, has_request_context, render_template, 
 from itsdangerous import BadSignature, URLSafeSerializer
 
 from . import tempo
-from .jobs import ErroPermanente, enfileirar, tarefa
+from .diario import formatar_minutos
+from .jobs import ErroPermanente, agenda_padrao, enfileirar, tarefa
 from .menores.idade import ADULTO, VINCULADO, faixa_etaria
 from .menores.politica import pode
-from .models import EmailSaida, PreferenciaNotificacao, User, db
+from .models import Activity, EmailSaida, PreferenciaNotificacao, User, db
 from .notificacoes import TIPOS, preferencia
+from .social import feed_query
 
 bp = Blueprint("emails", __name__, cli_group="email")
 
@@ -28,6 +30,7 @@ SEM_DESTINO = "conta_excluida"  # vai para `para` mesmo com a conta excluída, q
 TIMEOUT_SMTP = 20
 MAX_ERRO = 500
 NOITE_INICIO, NOITE_FIM = 22, 7  # PMN-07
+MAX_ITENS_RESUMO = 10
 
 
 # ---------- ganchos das specs que ainda não estão na main ----------
@@ -255,3 +258,68 @@ def descadastro(token):
         db.session.add(p)
     db.session.commit()
     return render_template("conta/descadastro.html", rotulo=rotulo, feito=True)
+
+
+# ---------- resumo semanal (EML-08, EML-09) ----------
+def frase(a):
+    """(texto, caminho) de um item do feed, para os corpos em texto e HTML do resumo."""
+    jogo, lista = a.game.title if a.game else "", a.list.name if a.list else ""
+    textos = {
+        "avaliou": f"avaliou {jogo}" + (f" com nota {a.review.score}" if a.review else ""),
+        "jogado": f"marcou {jogo} como jogado",
+        "lista": f"criou a lista {lista}",
+        "lista_jogo": f"adicionou {jogo} à lista {lista}",
+        "sessao": f"jogou {jogo} por {formatar_minutos(a.valor or 0)}",
+        "importacao": "importou sessões para o diário",
+        "conquista": f"desbloqueou a conquista {a.texto}",
+    }
+    caminho = f"/jogos/{a.game.slug}" if a.game else f"/listas/{a.list_id}" if a.list else f"/u/{a.user.username}"
+    return f"{a.user.display_name} {textos.get(a.kind, a.texto)}", caminho
+
+
+def semana_anterior(semana):
+    """Instantes UTC do começo e do fim da semana ISO anterior à `semana` (GLOBAL-09)."""
+    segunda = tempo.segunda_da_semana(semana)
+    return tempo.inicio_do_dia_utc(segunda - timedelta(days=7)), tempo.inicio_do_dia_utc(segunda)
+
+
+def itens_do_resumo(user, semana):
+    """Até 10 itens da semana anterior pelas mesmas regras do feed: privado, bloqueio, silêncio (SOC-06/07)."""
+    de, ate = semana_anterior(semana)
+    return (feed_query(user.id, user).filter(Activity.created_at >= de, Activity.created_at < ate)
+            .limit(MAX_ITENS_RESUMO).all())
+
+
+def elegivel_ao_resumo(user):
+    """Consentimento `email_resumo` (CNS) e PMN-08; sem CNS na main, ninguém é elegível (EML-08)."""
+    return not conta_excluida(user) and tem_consentimento(user, "email_resumo") and email_engajamento_liberado(user)
+
+
+@tarefa("email_resumo_semanal")
+def resumo_semanal():
+    """Um job por usuário elegível; a chave impede dois resumos na mesma semana (EML-08, JOB-02)."""
+    semana = tempo.semana_iso(tempo.hoje())
+    for user in User.query.filter(User.suspensa_em.is_(None)).order_by(User.id):
+        if elegivel_ao_resumo(user):
+            enfileirar("email_resumo", chave_unica=f"resumo:{user.id}:{semana}", user_id=user.id, semana=semana)
+
+
+@tarefa("email_resumo")
+def resumo_do_usuario(user_id, semana):
+    """Monta e enfileira o resumo; sem item nenhum, não grava nada na caixa de saída (EML-09).
+
+    A seção de ofertas da wishlist entra com OFR: ela depende do consentimento `ofertas` (OFR-07), que só existe
+    com CNS, e de `pode(user, "ver_ofertas")` (PMN).
+    """
+    user = db.session.get(User, user_id)
+    if user is None or not elegivel_ao_resumo(user):
+        return
+    ja_enviado = EmailSaida.query.filter(  # o job já concluído não segura a chave: confere a caixa da semana
+        EmailSaida.user_id == user_id, EmailSaida.modelo == "resumo_semanal",
+        EmailSaida.criado_em >= tempo.inicio_do_dia_utc(tempo.segunda_da_semana(semana))).first()
+    itens = [] if ja_enviado else itens_do_resumo(user, semana)
+    if itens:
+        enviar_email(user, "resumo_semanal", semana=semana, itens=[frase(a) for a in itens])
+
+
+agenda_padrao("email_resumo_semanal", "0 8 * * 1", "email_resumo_semanal")  # segunda às 08:00 de Belém
