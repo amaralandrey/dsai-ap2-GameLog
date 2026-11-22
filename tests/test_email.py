@@ -677,3 +677,11 @@ def test_pmn_08_formulario_de_12_a_15_so_liga_responsavel_e_sistema(app, client)
     with app.app_context():
         ligados = {tipo for tipo in TIPOS if preferencia(lia, tipo)[1]}
     assert ligados == {"responsavel", "sistema"}
+
+
+def test_eml_02_links_do_email_ignoram_o_host_da_requisicao(app, monkeypatch):
+    with app.test_request_context("/", base_url="http://atacante.exemplo"):
+        assert emails.url_publica("/x") == "http://localhost:5000/x"
+        assert emails.link_descadastro(1, "seguidor").startswith("http://localhost:5000/email/descadastro/")
+        monkeypatch.setenv("URL_PUBLICA", "https://gamelog.exemplo/")
+        assert emails.url_publica("/x") == "https://gamelog.exemplo/x"

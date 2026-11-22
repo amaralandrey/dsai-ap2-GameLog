@@ -10,7 +10,7 @@ from datetime import timedelta, timezone
 from email.message import EmailMessage
 
 import click
-from flask import Blueprint, current_app, flash, has_request_context, redirect, render_template, request
+from flask import Blueprint, current_app, flash, redirect, render_template, request
 from itsdangerous import BadSignature, URLSafeSerializer
 
 from . import tempo
@@ -70,7 +70,7 @@ def email_engajamento_liberado(user, tipo=RESUMO):
 
 # ---------- renderização e enfileiramento (EML-01, EML-02) ----------
 def url_publica(caminho):
-    base = os.environ.get("URL_PUBLICA") or (request.host_url if has_request_context() else "http://localhost:5000")
+    base = os.environ.get("URL_PUBLICA") or "http://localhost:5000"
     return base.rstrip("/") + caminho
 
 
