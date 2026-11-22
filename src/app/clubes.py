@@ -271,7 +271,7 @@ def pagina(slug):
         "clubes/clube.html", clube=clube, m=m, membros=membros, jdm=jdm, minutos_jdm=minutos_jdm, metas=metas,
         mural=mural, pendentes=pendentes, tipos=TIPOS_META, nome_visivel=nome_visivel, autor=autor,
         top=top_horas(clube), torneios=Torneio.query.filter(Torneio.clube_id == clube.id, Torneio.situacao != "cancelado")
-        .order_by(Torneio.created_at.desc()).all(),  # TRN-02
+        .options(joinedload(Torneio.game)).order_by(Torneio.created_at.desc()).all(),  # TRN-02
         reasons=REPORT_REASONS, modera=modera(m), ativo=ativo(m),
     )
 

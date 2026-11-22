@@ -782,3 +782,13 @@ def test_trn_08_troca_de_lado_da_partida_pendente_renova_o_prazo(base, relogio):
                                   data={"vencedor": a, "justificativa": "x"})
     assert partidas(base)["E2-2"][3] == "aguardando"
 
+
+def test_trn_03_lista_de_torneios_do_clube_nao_faz_uma_consulta_por_jogo(clube):
+    ana = cliente(clube, "ana")
+    for n in range(6):
+        make_game(clube, f"Jogo {n}")
+        criar(ana, nome=f"Copa {n}", clube="roguelikes", jogo=f"jogo-{n}")
+    with consultas(clube) as feitas:
+        assert cliente(clube, "ana").get("/clubes/roguelikes").status_code == 200
+    assert len([s for s in feitas if "WHERE game.id" in s]) == 0
+
