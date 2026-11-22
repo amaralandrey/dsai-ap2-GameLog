@@ -656,3 +656,24 @@ def test_eml_05_confirmacao_de_exclusao_que_falhou_mascara_o_endereco(app, smtp,
     rodar(app)
     e = linha(app, eid)
     assert (e.status, e.para) == ("falhou", "v***@ex.com") and "velho@ex.com" not in e.erro
+
+
+def test_pmn_08_de_12_a_15_recebe_por_e_mail_os_avisos_de_vinculo_e_de_conta(app, smtp):
+    lia = usuario(app, "lia", nascimento=VINCULADO)
+    for tipo in ("responsavel", "sistema"):
+        ligar_email(app, lia, tipo)
+        assert notificar(app, lia, tipo)
+    rodar(app)
+    assert [e.status for e in caixa(app)] == ["enviado", "enviado"] and len(smtp.enviadas) == 2
+
+
+def test_pmn_08_formulario_de_12_a_15_so_liga_responsavel_e_sistema(app, client):
+    from app.notificacoes import TIPOS, preferencia
+    from conftest import login
+
+    lia = usuario(app, "lia", nascimento=VINCULADO)
+    login(client, "lia")
+    client.post("/notificacoes/preferencias", data={f"email_{tipo}": "on" for tipo in TIPOS})
+    with app.app_context():
+        ligados = {tipo for tipo in TIPOS if preferencia(lia, tipo)[1]}
+    assert ligados == {"responsavel", "sistema"}

@@ -28,6 +28,7 @@ TIPOS = {
     "sistema": "Avisos do GameLog",
 }
 OBRIGATORIOS_NO_SITE = ("sistema",)
+SEM_ENGAJAMENTO = ("responsavel", "sistema")
 JANELA = timedelta(hours=24)
 MAX_AMIGO_ZEROU = 200
 _filtros = []
@@ -217,12 +218,12 @@ def preferencias():
     from .emails import pode_ligar_email
 
     me = current_user()
-    liga_email = pode_ligar_email(me)  # PMN-08
+    liga_email = {tipo: pode_ligar_email(me, tipo) for tipo in TIPOS}  # PMN-08
     if request.method == "POST":
         atuais = {p.tipo: p for p in PreferenciaNotificacao.query.filter_by(user_id=me.id)}
         for tipo in TIPOS:  # tipo desconhecido no formulário é ignorado
             site = tipo in OBRIGATORIOS_NO_SITE or bool(request.form.get(f"site_{tipo}"))
-            email = liga_email and bool(request.form.get(f"email_{tipo}"))
+            email = liga_email[tipo] and bool(request.form.get(f"email_{tipo}"))
             p = atuais.get(tipo) or PreferenciaNotificacao(user_id=me.id, tipo=tipo)
             p.site, p.email = site, email
             db.session.add(p)
@@ -230,4 +231,4 @@ def preferencias():
         return redirect("/notificacoes/preferencias")
     prefs = {tipo: preferencia(me.id, tipo) for tipo in TIPOS}
     return render_template("notificacoes/preferencias.html", tipos=TIPOS, prefs=prefs,
-                           obrigatorios=OBRIGATORIOS_NO_SITE, liga_email=liga_email)
+                           obrigatorios=OBRIGATORIOS_NO_SITE, liga_email=liga_email, algum_bloqueado=not all(liga_email.values()))

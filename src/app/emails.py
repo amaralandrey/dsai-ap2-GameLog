@@ -20,7 +20,7 @@ from .jobs import ErroPermanente, agenda_padrao, enfileirar, executar, tarefa
 from .menores.idade import ADULTO, VINCULADO, faixa_etaria
 from .menores.politica import pode
 from .models import EMAIL_STATUS, Activity, EmailSaida, Job, PreferenciaNotificacao, User, db
-from .notificacoes import TIPOS, preferencia
+from .notificacoes import SEM_ENGAJAMENTO, TIPOS, preferencia
 from .social import feed_query
 from .util import admin_required, paginate
 
@@ -56,16 +56,16 @@ def conta_excluida(user):
     return user is None
 
 
-def pode_ligar_email(user):
+def pode_ligar_email(user, tipo=RESUMO):
     """PMN-08: e-mail de engajamento começa desligado; de 16 a 17 anos o próprio usuário liga, de 12 a 15 só o
     responsável. Sem RSP não há responsável que ligue (RSP-07 é o ponto de extensão), então de 12 a 15 fica desligado.
     """
-    return faixa_etaria(user) != VINCULADO
+    return tipo in SEM_ENGAJAMENTO or faixa_etaria(user) != VINCULADO
 
 
-def email_engajamento_liberado(user):
+def email_engajamento_liberado(user, tipo=RESUMO):
     """Na hora do envio: a mesma regra de PMN-08 e a política de menores (PMN-01)."""
-    return pode_ligar_email(user) and pode(user, "email_engajamento")
+    return tipo in SEM_ENGAJAMENTO or (pode_ligar_email(user, tipo) and pode(user, "email_engajamento"))
 
 
 # ---------- renderização e enfileiramento (EML-01, EML-02) ----------
@@ -208,7 +208,7 @@ def motivo_supressao(email):
     finalidade = CONSENTIMENTO_DO_TIPO.get(email.tipo)
     if finalidade and not tem_consentimento(email.user, finalidade):
         return f"sem consentimento {finalidade}"
-    if not email_engajamento_liberado(email.user):
+    if not email_engajamento_liberado(email.user, email.tipo):
         return "política de menores"
     return None
 
