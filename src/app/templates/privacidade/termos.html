@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% from "privacidade/_documento.html" import cabecalho, texto %}
+{% block title %}Termos de uso — GameLog{% endblock %}
+{% block content %}
+<section class="panel">
+<h1>Termos de uso</h1>
+{{ cabecalho(doc, versoes, "/termos") }}
+{{ texto(doc) }}
+<p class="mut">Como tratamos seus dados está na <a href="/privacidade">política de privacidade</a>.</p>
+</section>
+{% endblock %}

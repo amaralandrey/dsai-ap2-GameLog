@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Política e termos — Admin{% endblock %}
+{% block content %}
+<h1>Política de privacidade e termos de uso</h1>
+<table>
+  <thead><tr><th>Documento</th><th>Versão</th><th>Publicada em</th><th>Novo aceite</th><th>Contas ativas que aceitaram</th></tr></thead>
+  <tbody>{% for d in docs %}
+    <tr><td>{{ nomes[d.tipo] }}</td>
+      <td><a href="/{{ 'privacidade' if d.tipo == 'politica' else 'termos' }}?versao={{ d.versao }}">{{ d.versao }}</a></td>
+      <td>{{ d.publicado_em|dia }}</td><td>{{ 'sim' if d.exige_novo_aceite else 'não' }}</td>
+      <td>{{ contas.get(d.id, 0) }}</td></tr>{% else %}
+    <tr><td colspan="5" class="mut">Nenhuma versão publicada.</td></tr>{% endfor %}
+  </tbody>
+</table>
+<section class="panel">
+<h2>Publicar nova versão</h2>
+<p class="mut">Versão publicada não é editada: corrigir é publicar outra.</p>
+{% if erro %}<div class="err">{{ erro }}</div>{% endif %}
+<form method="post">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <label for="tipo">Documento</label>
+  <select id="tipo" name="tipo">{% for tipo, nome in nomes.items() %}<option value="{{ tipo }}"{{ ' selected' if form.get('tipo') == tipo }}>{{ nome }}</option>{% endfor %}</select>
+  <label for="texto">Texto (parágrafos separados por linha em branco; "## " começa um título)</label>
+  <textarea id="texto" name="texto" style="min-height:240px">{{ form.get('texto', '') }}</textarea>
+  <label for="resumo_mudancas">Resumo das mudanças</label>
+  <textarea id="resumo_mudancas" name="resumo_mudancas" maxlength="1000">{{ form.get('resumo_mudancas', '') }}</textarea>
+  <label style="font-weight:400"><input type="checkbox" name="exige_novo_aceite" value="1" style="width:auto"> Exige novo aceite (mudança relevante)</label>
+  <p><button>Publicar</button></p>
+</form>
+</section>
+{% endblock %}

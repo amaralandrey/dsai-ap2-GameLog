@@ -1,5 +1,6 @@
 import re
 import secrets
+from collections import namedtuple
 from datetime import timedelta
 from functools import cache
 
@@ -10,6 +11,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from . import tempo
 from .menores import idade
 from .menores.politica import pode
+from .privacidade import transparencia
 from .models import Activity, Follow, GameList, LoginAttempt, Review, Silencio, User, db, now
 from .afinidade import resumo_com
 from .bloqueios import bloqueado_entre
@@ -66,6 +68,32 @@ def start_session(user):
     session.clear()
     session["uid"], session["sv"] = user.id, user.session_version
     session["inst"] = current_app.config["INSTANCIA"]
+    transparencia.marcar_em_dia(user)  # PRV-05, PRV-06: em dia, as páginas não reconferem os documentos
+
+
+def validar_nascimento(form):
+    """IDA-01, IDA-02: data válida e 12 anos ou mais; (erros, gravar(user))."""
+    try:
+        resultado = idade.ADAPTADORES["autodeclaracao"].verificar(None, {"nascimento": form.get("nascimento")})
+    except idade.IdadeInvalida as exc:
+        return {"nascimento": str(exc)}, None
+    if idade.idade(resultado.nascimento) < idade.IDADE_MINIMA:
+        return {"nascimento": idade.MENOR_DE_12}, None
+    return {}, lambda user: idade.registrar(user, resultado)  # IDA-06: autodeclaração, não confiável
+
+
+Parte = namedtuple("Parte", "validar template")
+# PRV-04: cada parte valida o mesmo formulário e só grava se nenhuma falhar; CNS-04 entra entre a data e o aceite
+PARTES_DO_CADASTRO = [
+    Parte(validar_nascimento, "auth/_cadastro_nascimento.html"),
+    Parte(transparencia.validar_aceite, "auth/_cadastro_aceite.html"),
+]
+
+
+def _form_cadastro(errors, form, status=200):
+    recusa = errors.get("nascimento") if errors.get("nascimento") == idade.MENOR_DE_12 else None  # IDA-02 antes
+    return render_template("auth/cadastro.html", errors=errors, form=form, recusa=recusa,
+                           partes=[p.template for p in PARTES_DO_CADASTRO], resumo=transparencia.resumo()), status
 
 
 @bp.route("/cadastro", methods=["GET", "POST"])
@@ -73,15 +101,13 @@ def signup():
     if request.method == "POST":
         f = request.form
         username, email, password = f.get("username", "").strip(), f.get("email", "").strip(), f.get("password", "")
-        errors = validate_signup(username, email, password)
-        try:  # IDA-01, IDA-02: nada é gravado com data inválida ou menor de 12
-            resultado = idade.ADAPTADORES["autodeclaracao"].verificar(None, {"nascimento": f.get("nascimento")})
-            if idade.idade(resultado.nascimento) < idade.IDADE_MINIMA:
-                errors["nascimento"] = idade.MENOR_DE_12
-        except idade.IdadeInvalida as exc:
-            errors["nascimento"] = str(exc)
+        errors, gravacoes = validate_signup(username, email, password), []
+        for parte in PARTES_DO_CADASTRO:  # todos os erros juntos, por campo; nada é gravado se um falhar
+            erros_da_parte, gravar = parte.validar(f)
+            errors.update(erros_da_parte)
+            gravacoes.append(gravar)
         if errors:
-            return render_template("auth/cadastro.html", errors=errors, form=f), 400
+            return _form_cadastro(errors, f, 400)
         user = User(
             username=username,
             username_lower=username.lower(),
@@ -93,18 +119,19 @@ def signup():
         db.session.add(user)
         try:
             db.session.flush()
-            idade.registrar(user, resultado)  # IDA-06: autodeclaração, não confiável
+            for gravar in gravacoes:
+                gravar(user)
             db.session.commit()
         except IntegrityError:  # cadastro simultâneo: a outra requisição gravou o mesmo usuário ou e-mail
             db.session.rollback()
             errors = validate_signup(username, email, password) or {"email": "E-mail já cadastrado."}
-            return render_template("auth/cadastro.html", errors=errors, form=f), 400
+            return _form_cadastro(errors, f, 400)
         start_session(user)
         flash("Conta criada! Bem-vindo ao GameLog.", "ok")
         if idade.aguarda_responsavel(user):  # IDA-04
             return redirect("/conta/pendente")
         return redirect(safe_next(request.args.get("next")))
-    return render_template("auth/cadastro.html", errors={}, form={})
+    return _form_cadastro({}, {})
 
 
 @bp.route("/entrar", methods=["GET", "POST"])

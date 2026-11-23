@@ -1,0 +1,23 @@
+## Quem somos
+
+O GameLog é um catálogo de jogos com avaliações, listas, diário de jogatina e comunidade, feito como trabalho acadêmico da disciplina DSAI 2026 por Andrey e Fabrício, que são os controladores dos dados tratados aqui. Este texto é um modelo da dupla e não é orientação jurídica.
+
+## Como usamos seus dados
+
+Usamos seus dados só para as finalidades descritas nas seções acima: manter sua conta, mostrar o que você publica, calcular estatísticas, conquistas e recomendações, proteger a conta e cumprir a lei. Não vendemos dados e não usamos seus dados para publicidade.
+
+## Crianças e adolescentes
+
+O GameLog não aceita contas de menores de 12 anos. Contas de 12 a 15 anos só ficam ativas depois do vínculo com um responsável, e contas de 12 a 17 anos têm regras mais protetivas, explicadas na página "Proteção de menores".
+
+## Seus direitos
+
+Você pode confirmar se tratamos seus dados, acessá-los, corrigi-los, pedir uma cópia, pedir a exclusão da conta, se opor a um tratamento e revogar um consentimento (LGPD, art. 18). Use o canal desta página.
+
+## Segurança
+
+As senhas são guardadas só como hash, a sessão usa um cookie assinado e as ações dos administradores ficam registradas. Se um incidente puder trazer risco ou dano relevante, avisamos você e a ANPD.
+
+## Mudanças nesta política
+
+Cada versão tem número e data. Quando uma mudança altera o que fazemos com seus dados, pedimos um novo aceite no próximo acesso; mudanças menores aparecem numa faixa no topo do site. As versões antigas continuam disponíveis nesta página.

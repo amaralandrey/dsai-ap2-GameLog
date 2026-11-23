@@ -733,6 +733,60 @@ class AuditLog(db.Model):
     admin = db.relationship(User)
 
 
+class DocumentoLegal(db.Model):
+    """Política de privacidade e termos de uso por versão (PRV-01); versão publicada nunca é editada."""
+    __table_args__ = (db.UniqueConstraint("tipo", "versao"),)
+    id = db.Column(db.Integer, primary_key=True)
+    tipo = db.Column(db.String(10), nullable=False)  # politica | termos
+    versao = db.Column(db.Integer, nullable=False)
+    texto = db.Column(db.Text, nullable=False)
+    resumo_mudancas = db.Column(db.String(1000), default="", nullable=False)
+    exige_novo_aceite = db.Column(db.Boolean, default=False, nullable=False)
+    publicado_em = db.Column(db.DateTime, default=now, nullable=False)
+
+
+class AceiteDocumento(db.Model):
+    """Aceite de uma versão de documento, só de inserção (PRV-04, PRV-11)."""
+    __table_args__ = (db.UniqueConstraint("user_id", "documento_id"),)
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.ForeignKey("user.id"), nullable=False, index=True)
+    documento_id = db.Column(db.ForeignKey("documento_legal.id"), nullable=False)
+    aceito_em = db.Column(db.DateTime, default=now, nullable=False)
+    documento = db.relationship(DocumentoLegal)
+
+
+class AvisoDocumentoFechado(db.Model):
+    """A faixa de uma versão sem novo aceite fechada pela pessoa: não volta para essa versão (PRV-06)."""
+    __table_args__ = (db.UniqueConstraint("user_id", "documento_id"),)
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.ForeignKey("user.id"), nullable=False)
+    documento_id = db.Column(db.ForeignKey("documento_legal.id"), nullable=False)
+    fechado_em = db.Column(db.DateTime, default=now, nullable=False)
+
+
+@db.event.listens_for(DocumentoLegal, "before_update")
+@db.event.listens_for(AceiteDocumento, "before_update")
+def _so_insercao(*_):
+    raise ValueError("documento publicado e aceite não mudam: publique outra versão")
+
+
+class PedidoTitular(db.Model):
+    """Pedido ou mensagem do titular, com protocolo; por ora só o tipo `contato` do canal (PRV-07).
+
+    A spec de direitos do titular (DIR-01) estende este modelo com os outros tipos, o prazo
+    (`prazo_em`, `concluido_em`), a resposta, `decidido_por` e a fila do admin.
+    """
+    id = db.Column(db.Integer, primary_key=True)
+    protocolo = db.Column(db.String(20), unique=True, nullable=False)
+    tipo = db.Column(db.String(20), nullable=False)
+    user_id = db.Column(db.ForeignKey("user.id"), nullable=True)  # vazio quando quem escreve é visitante
+    email_contato = db.Column(db.String(200), nullable=False)
+    assunto = db.Column(db.String(120), nullable=False)
+    detalhe = db.Column(db.String(2000), nullable=False)
+    status = db.Column(db.String(25), default="aberto", nullable=False)
+    criado_em = db.Column(db.DateTime, default=now, nullable=False)
+
+
 JOB_STATUS = ("pendente", "rodando", "ok", "falhou", "morto")
 
 

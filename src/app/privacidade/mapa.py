@@ -26,6 +26,7 @@ FINALIDADES = {  # agrupam o registro das operações (MAP-08)
     "catalogo": "Catálogo de jogos, lojas e conquistas",
     "protecao_menores": "Verificação de idade e proteção de crianças e adolescentes",
     "comunicacao": "E-mails da conta, avisos por e-mail e resumo semanal",
+    "direitos": "Atendimento aos pedidos e às mensagens dos titulares",
 }
 
 
@@ -116,6 +117,13 @@ CAMPOS = {
               ("id", TECNICO), ("user_id", DONO), ("tipo created_at", {})),
     **_tabela("verificacao_idade", dict(IDADE, anonimizar="apagar_linha"), ("id", TECNICO), ("user_id", DONO),
               ("metodo faixa_resultante confiavel divergente created_at", {})),
+    **_tabela("aceite_documento", dict(CONTA, categoria="atividade"), ("id", TECNICO), ("user_id", DONO),
+              ("documento_id aceito_em", {})),  # PRV-04: prova do aceite, só de inserção
+    **_tabela("aviso_documento_fechado", dict(CONTA, categoria="preferencia", anonimizar="apagar_linha"),
+              ("id", TECNICO), ("user_id", DONO), ("documento_id fechado_em", {})),  # PRV-06
+    **_tabela("pedido_titular", dict(CONTA, categoria="atividade", finalidade="direitos", base_legal="obrigacao_legal"),
+              ("id", TECNICO), ("user_id", DONO), ("email_contato", {"categoria": "contato", "anonimizar": "substituir"}),
+              ("protocolo tipo assunto detalhe status criado_em", {})),  # LGPD art. 18 e 41 (PRV-07, DIR-01)
     **_tabela(
         "login_attempt",
         dict(CONTA, categoria="contato", finalidade="seguranca", base_legal="legitimo_interesse",
@@ -207,7 +215,8 @@ CAMPOS = {
     **_nao_pessoal("jogo_fonte", "catalogo"),
     **_nao_pessoal("conquista", "catalogo"),
     **_nao_pessoal("preco_loja", "catalogo"),
-    **_nao_pessoal("instancia", "seguranca"),  # token do banco, não identifica ninguém
+    **_nao_pessoal("instancia", "seguranca"),
+    **_nao_pessoal("documento_legal", "conta"),  # política e termos publicados (PRV-01)  # token do banco, não identifica ninguém
     # args e chave_unica podem citar um usuário (enviar_email, email_resumo); o resto da fila não é pessoal
     **_tabela("job", NAO_PESSOAL, ("args chave_unica", FILA),
               ("id tipo status tentativas max_tentativas executar_em travado_por travado_em ultimo_erro criado_em "

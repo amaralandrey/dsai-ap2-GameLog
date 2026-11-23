@@ -1,0 +1,9 @@
+{% macro cabecalho(doc, versoes, caminho) %}
+{% if doc %}<p class="mut">Versão {{ doc.versao }}, publicada em {{ doc.publicado_em|dia }}.
+  {% if versoes|length > 1 %}Outras versões:{% for v in versoes if v.id != doc.id %} <a href="{{ caminho }}?versao={{ v.versao }}">{{ v.versao }}</a>{% endfor %}{% endif %}</p>
+{% else %}<p class="mut">Ainda não há versão publicada.</p>{% endif %}
+{% endmacro %}
+
+{% macro texto(doc) %}
+{% if doc %}{% for bloco in doc.texto.split('\n\n') %}{% if bloco.startswith('## ') %}<h3>{{ bloco[3:] }}</h3>{% else %}<p>{{ bloco }}</p>{% endif %}{% endfor %}{% endif %}
+{% endmacro %}
