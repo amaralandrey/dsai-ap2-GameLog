@@ -1,0 +1,7 @@
+{% extends "email/_layout.txt" %}
+{% block assunto %}O e-mail da sua conta no GameLog foi trocado{% endblock %}
+{% block corpo %}Olá, {{ user.display_name }}.
+
+Em {{ quando }}, o e-mail da sua conta no GameLog foi trocado para {{ novo }}. Este endereço não recebe mais os e-mails da conta.
+
+Se não foi você, procure o canal do titular: {{ url_publica('/privacidade') }}{% endblock %}

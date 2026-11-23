@@ -44,6 +44,11 @@ class User(db.Model):
     created_at = db.Column(db.DateTime, default=now, nullable=False)
     perfil_privado = db.Column(db.Boolean, default=False, nullable=False)  # DIA-11
     steam_id = db.Column(db.String(17), unique=True, nullable=True)  # SteamID64 vinculado (HRS-01)
+    # segurança da conta (CTA): o segredo do TOTP nunca sai do servidor depois da ativação (CTA-06)
+    email_pendente = db.Column(db.String(200), nullable=True)  # espera a confirmação pelo link (CTA-03)
+    totp_segredo = db.Column(db.String(32), nullable=True)
+    totp_ativado_em = db.Column(db.DateTime, nullable=True)  # vazio: 2FA desligado ou ainda sem confirmar
+    totp_ultimo_passo = db.Column(db.Integer, nullable=True)  # o código já usado não vale de novo (CTA-07)
 
     @property
     def is_admin(self):
@@ -74,6 +79,23 @@ class LoginAttempt(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(200), index=True, nullable=False)
     at = db.Column(db.DateTime, default=now, nullable=False)
+
+
+class CodigoRecuperacao(db.Model):
+    """Código de recuperação do 2FA, de uso único; só o hash fica no banco (CTA-09)."""
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.ForeignKey("user.id"), nullable=False, index=True)
+    codigo_hash = db.Column(db.String(64), nullable=False)
+    usado_em = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, default=now, nullable=False)
+
+
+class EventoSeguranca(db.Model):
+    """Histórico de segurança da conta, sem IP (CTA-11, RSN-08)."""
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.ForeignKey("user.id"), nullable=False, index=True)
+    tipo = db.Column(db.String(30), nullable=False)
+    created_at = db.Column(db.DateTime, default=now, nullable=False)
 
 
 class NamedMixin:

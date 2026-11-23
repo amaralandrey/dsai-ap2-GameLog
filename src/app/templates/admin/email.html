@@ -7,8 +7,9 @@
   <p><strong>Criado:</strong> {{ belem(e.criado_em).strftime('%d/%m/%Y %H:%M') }}{% if e.enviado_em %} · <strong>Enviado:</strong> {{ belem(e.enviado_em).strftime('%d/%m/%Y %H:%M') }}{% endif %}</p>
   {% if e.erro %}<p class="mut"><strong>Erro:</strong> {{ e.erro }}</p>{% endif %}
   <h2>{{ e.assunto }}</h2>
-  <pre style="white-space:pre-wrap">{{ e.corpo_texto }}</pre>
-  {% if e.status == 'falhou' %}<form method="post" action="/admin/emails/{{ e.id }}/reenviar"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button>Reenviar</button></form>{% endif %}
+  {% if e.modelo in oculto %}<p class="mut">O corpo deste modelo não aparece aqui: ele leva um link de acesso à conta.</p>
+  {% else %}<pre style="white-space:pre-wrap">{{ e.corpo_texto }}</pre>{% endif %}
+  {% if e.status == 'falhou' and e.modelo not in oculto %}<form method="post" action="/admin/emails/{{ e.id }}/reenviar"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button>Reenviar</button></form>{% endif %}
   <p><a href="/admin/emails">Voltar à caixa de saída</a></p>
 </section>
 {% endblock %}

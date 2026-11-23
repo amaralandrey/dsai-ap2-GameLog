@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Esqueci minha senha — GameLog{% endblock %}
+{% block content %}
+<section class="panel" style="max-width:420px;margin:0 auto">
+<h1>Esqueci minha senha</h1>
+{% if indisponivel %}
+  <p>A recuperação de senha está indisponível no momento; fale com a gente pelo <a href="/privacidade">canal do titular</a>.</p>
+{% elif enviado %}
+  <p>{{ enviado }}</p>
+  <p class="mut">Não chegou? Confira a caixa de spam ou <a href="/senha/recuperar">peça de novo</a>.</p>
+{% else %}
+<form method="post">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <label for="email">E-mail da conta</label>
+  <input id="email" name="email" type="email" required>
+  {% if erros.email %}<div class="err">{{ erros.email }}</div>{% endif %}
+  <p><button>Enviar link</button></p>
+</form>
+{% endif %}
+<p class="mut"><a href="/entrar">Voltar ao login</a></p>
+</section>
+{% endblock %}

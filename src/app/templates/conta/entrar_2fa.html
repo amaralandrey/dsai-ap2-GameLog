@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Código de acesso — GameLog{% endblock %}
+{% block content %}
+<section class="panel" style="max-width:420px;margin:0 auto">
+<h1>Código de acesso</h1>
+<p>Digite o código de 6 dígitos do aplicativo autenticador ou um código de recuperação.</p>
+<form method="post">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <label for="codigo">Código</label>
+  <input id="codigo" name="codigo" autocomplete="one-time-code" autofocus required>
+  <p><button>Entrar</button></p>
+</form>
+<p class="mut"><a href="/entrar">Voltar ao login</a></p>
+</section>
+{% endblock %}

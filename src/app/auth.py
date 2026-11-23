@@ -7,6 +7,7 @@ from flask import Blueprint, abort, current_app, flash, redirect, render_templat
 from sqlalchemy.exc import IntegrityError
 from werkzeug.security import check_password_hash, generate_password_hash
 
+from . import tempo
 from .menores import idade
 from .menores.politica import pode
 from .models import Activity, Follow, GameList, LoginAttempt, Review, Silencio, User, db, now
@@ -24,6 +25,7 @@ bp = Blueprint("auth", __name__)
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 USER_RE = re.compile(r"^[A-Za-z0-9_]{3,20}$")
 MAX_FAILS, WINDOW = 5, timedelta(minutes=15)
+SEGUNDO_PASSO, PRAZO_SEGUNDO_PASSO = "2fa", timedelta(minutes=5)  # CTA-08
 
 
 @cache
@@ -45,6 +47,19 @@ def validate_signup(username, email, password):
     if len(password) < 8:
         errors["password"] = "A senha deve ter no mínimo 8 caracteres."
     return errors
+
+
+def falhas_recentes(email):
+    return LoginAttempt.query.filter(LoginAttempt.email == email, LoginAttempt.at >= now() - WINDOW).count()
+
+
+def iniciar_segundo_passo(user, destino):
+    """CTA-08: a senha confere, mas a sessão só nasce em `/entrar/2fa`; as tentativas falhas ainda não zeram."""
+    session.clear()
+    session[SEGUNDO_PASSO] = {"uid": user.id, "sv": user.session_version, "inst": current_app.config["INSTANCIA"],
+                              "ate": tempo.agora().timestamp() + PRAZO_SEGUNDO_PASSO.total_seconds(),
+                              "next": safe_next(destino), "erros": 0}
+    return redirect("/entrar/2fa")
 
 
 def start_session(user):
@@ -96,9 +111,7 @@ def signup():
 def login():
     if request.method == "POST":
         email, password = request.form.get("email", "").strip().lower(), request.form.get("password", "")
-        since = now() - WINDOW
-        fails = LoginAttempt.query.filter(LoginAttempt.email == email, LoginAttempt.at >= since).count()
-        if fails >= MAX_FAILS:  # CAD-04
+        if falhas_recentes(email) >= MAX_FAILS:  # CAD-04
             flash("Muitas tentativas. Tente novamente em 15 minutos.", "erro")
             return render_template("auth/login.html", form=request.form), 429
         user = User.query.filter_by(email=email).first()
@@ -107,6 +120,8 @@ def login():
             if user.suspensa_em is not None:  # IDA-05: a senha confere, mas a sessão não é criada
                 flash("Conta suspensa.", "erro")
                 return render_template("auth/login.html", form=request.form), 403
+            if user.totp_ativado_em is not None:
+                return iniciar_segundo_passo(user, request.args.get("next"))
             LoginAttempt.query.filter_by(email=email).delete()
             db.session.commit()
             start_session(user)

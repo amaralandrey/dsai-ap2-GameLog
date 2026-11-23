@@ -1,0 +1,5 @@
+{% extends "email/_layout.html" %}
+{% block corpo %}<p style="margin:0 0 12px">Olá, {{ user.display_name }}.</p>
+<p style="margin:0 0 12px">Recebemos um pedido para redefinir a senha da sua conta no GameLog. Para escolher uma senha nova, abra o link abaixo. Ele vale por 1 hora e só pode ser usado uma vez.</p>
+<p style="margin:0 0 12px"><a href="{{ link }}" style="color:#3b2f80;font-weight:bold">Redefinir a senha</a></p>
+<p style="margin:0">Se não foi você, ignore esta mensagem: a senha atual continua valendo.</p>{% endblock %}
