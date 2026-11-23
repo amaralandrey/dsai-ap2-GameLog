@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Segurança da conta — GameLog{% endblock %}
+{% macro revogar() %}{% if tem_tokens %}
+  <label style="font-weight:400"><input type="checkbox" name="revogar_tokens" value="1" style="width:auto"> Revogar também meus tokens da API</label>
+{% endif %}{% endmacro %}
+{% block content %}
+<section style="max-width:640px;margin:0 auto">
+<h1>Segurança da conta</h1>
+
+<form method="post" action="/conta/seguranca/senha" class="panel">
+  <h2>Senha</h2>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <label for="atual">Senha atual</label><input id="atual" name="atual" type="password" autocomplete="current-password" required>
+  <label for="nova">Nova senha (mínimo de 8 caracteres)</label><input id="nova" name="nova" type="password" autocomplete="new-password" minlength="8" required>
+  <label for="confirmacao">Repita a nova senha</label><input id="confirmacao" name="confirmacao" type="password" autocomplete="new-password" minlength="8" required>
+  {% if erros.senha %}<div class="err">{{ erros.senha }}</div>{% endif %}
+  {{ revogar() }}
+  <p class="mut">Trocar a senha encerra as sessões nos outros aparelhos.</p>
+  <p><button>Trocar senha</button></p>
+</form>
+
+<form method="post" action="/conta/seguranca/email" class="panel">
+  <h2>E-mail</h2>
+  <p>E-mail atual: <strong>{{ u.email }}</strong></p>
+  {% if u.email_pendente %}<p class="mut">Aguardando a confirmação de {{ u.email_pendente }}. Até lá, o e-mail atual continua valendo.</p>{% endif %}
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <label for="email">Novo e-mail</label><input id="email" name="email" type="email" required>
+  <label for="senha-email">Senha atual</label><input id="senha-email" name="senha" type="password" autocomplete="current-password" required>
+  {% if erros.email %}<div class="err">{{ erros.email }}</div>{% endif %}
+  <p class="mut">Enviamos um link para o endereço novo. O e-mail só muda quando você abrir esse link.</p>
+  <p><button>Trocar e-mail</button></p>
+</form>
+
+<form method="post" action="/conta/seguranca/sessoes" class="panel">
+  <h2>Sessões</h2>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <p>Esqueceu a conta aberta em outro computador? Encerre as outras sessões e continue conectado só aqui.</p>
+  {{ revogar() }}
+  <p><button class="ghost">Sair de todos os outros aparelhos</button></p>
+</form>
+
+<section class="panel">
+  <h2>Dois fatores</h2>
+  {% if erros['2fa'] %}<div class="err">{{ erros['2fa'] }}</div>{% endif %}
+  {% if dois_fatores %}
+  <p>Ligado. Ao entrar, pedimos o código do aplicativo autenticador depois da senha. Códigos de recuperação ainda não usados: <strong>{{ restantes }}</strong>.</p>
+  <form method="post" action="/conta/seguranca/2fa/codigos">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <h3>Gerar códigos de recuperação novos</h3>
+    <label for="senha-codigos">Senha atual</label><input id="senha-codigos" name="senha" type="password" autocomplete="current-password" required>
+    {{ revogar() }}
+    <p class="mut">Os códigos anteriores deixam de valer.</p>
+    <p><button class="ghost">Gerar códigos novos</button></p>
+  </form>
+  <form method="post" action="/conta/seguranca/2fa/desligar">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <h3>Desligar</h3>
+    <label for="senha-desligar">Senha atual</label><input id="senha-desligar" name="senha" type="password" autocomplete="current-password" required>
+    <label for="codigo-desligar">Código do aplicativo ou de recuperação</label><input id="codigo-desligar" name="codigo" autocomplete="one-time-code" required>
+    {{ revogar() }}
+    <p><button class="ghost">Desligar dois fatores</button></p>
+  </form>
+  {% else %}
+  <p>Desligado. Com os dois fatores, entrar exige a senha e um código de 6 dígitos de um aplicativo autenticador.</p>
+  <form method="post" action="/conta/seguranca/2fa/ativar">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <p><button>Ligar dois fatores</button></p>
+  </form>
+  {% endif %}
+</section>
+
+<section class="panel">
+  <h2>Histórico de segurança</h2>
+  {% if eventos %}<ul>
+  {% for e in eventos %}<li>{{ belem(e.created_at).strftime('%d/%m/%Y %H:%M') }} · {{ nomes[e.tipo] }}</li>{% endfor %}
+  </ul>{% else %}<p class="mut">Nenhuma mudança registrada ainda.</p>{% endif %}
+  <p class="mut">Não reconhece alguma mudança? Troque a senha e fale com a gente pelo <a href="/privacidade">canal do titular</a>.</p>
+</section>
+</section>
+{% endblock %}

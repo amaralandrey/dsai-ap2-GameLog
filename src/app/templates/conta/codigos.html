@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Códigos de recuperação — GameLog{% endblock %}
+{% block content %}
+<section class="panel" style="max-width:560px;margin:0 auto">
+<h1>{% if novo %}Dois fatores ligados{% else %}Códigos de recuperação novos{% endif %}</h1>
+<p>Guarde estes códigos num lugar seguro. Cada um substitui o código do aplicativo uma única vez, caso você perca o celular.</p>
+<p><strong>Eles aparecem só agora.</strong> Se perder, gere outros na página de segurança.</p>
+<ol>{% for c in codigos %}<li><code>{{ c }}</code></li>{% endfor %}</ol>
+<p><a href="/conta/seguranca">Voltar à segurança da conta</a></p>
+</section>
+{% endblock %}
