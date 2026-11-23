@@ -21,6 +21,7 @@ from .menores.idade import ADULTO, VINCULADO, faixa_etaria
 from .menores.politica import pode
 from .models import EMAIL_STATUS, Activity, EmailSaida, Job, PreferenciaNotificacao, User, db
 from .notificacoes import SEM_ENGAJAMENTO, TIPOS, preferencia
+from .privacidade.anonimizar import anonimizada
 from .social import feed_query
 from .util import admin_required, paginate
 
@@ -52,8 +53,8 @@ def revogar_consentimento(user, finalidade):
 
 
 def conta_excluida(user):
-    """DIR: troque pela marca de conta excluída ou anonimizada quando DIR entrar; hoje só a linha apagada conta."""
-    return user is None
+    """Linha apagada ou conta anonimizada (DIR, RTN-06): nenhum e-mail sai para ela (EML-05)."""
+    return user is None or anonimizada(user)
 
 
 def pode_ligar_email(user, tipo=RESUMO):
