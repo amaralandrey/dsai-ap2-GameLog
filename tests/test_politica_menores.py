@@ -126,10 +126,10 @@ def test_pmn_01_sql_menor_igual_a_faixa_nos_limites(app):
 
 # ---------- PMN-02 ----------
 def test_pmn_02_cadastro_de_menor_nasce_privado(app, client):
-    client.post("/cadastro", data={"username": "teen", "email": "teen@ex.com", "password": "senha1234",
+    client.post("/cadastro", data={"username": "teen", "email": "teen@ex.com", "password": "senha1234", "aceite": "1",
                                    "nascimento": anos_atras(17).isoformat()})
     app.test_client().post("/cadastro", data={"username": "adulta", "email": "adulta@ex.com",
-                                              "password": "senha1234", "nascimento": "1990-01-01"})
+                                              "password": "senha1234", "nascimento": "1990-01-01", "aceite": "1"})
     with app.app_context():
         assert usuario("teen").perfil_privado and not usuario("adulta").perfil_privado
 

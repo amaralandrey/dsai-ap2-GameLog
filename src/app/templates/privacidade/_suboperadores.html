@@ -1,0 +1,4 @@
+<table>
+  <thead><tr><th>Quem</th><th>Para quê</th><th>País</th><th>Transferência internacional</th></tr></thead>
+  <tbody>{% for s in suboperadores %}<tr><td>{{ s.nome }}</td><td>{{ s.finalidade }}</td><td>{{ s.pais }}</td><td>{{ s.mecanismo }}</td></tr>{% endfor %}</tbody>
+</table>

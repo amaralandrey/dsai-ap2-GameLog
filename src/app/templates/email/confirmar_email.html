@@ -1,0 +1,5 @@
+{% extends "email/_layout.html" %}
+{% block corpo %}<p style="margin:0 0 12px">Olá, {{ user.display_name }}.</p>
+<p style="margin:0 0 12px">Você pediu para trocar o e-mail da sua conta no GameLog para este endereço. Para confirmar, abra o link abaixo. Ele vale por 24 horas e só pode ser usado uma vez.</p>
+<p style="margin:0 0 12px"><a href="{{ link }}" style="color:#3b2f80;font-weight:bold">Confirmar o novo e-mail</a></p>
+<p style="margin:0">Se não foi você, ignore esta mensagem: o e-mail da conta não muda.</p>{% endblock %}

@@ -39,11 +39,16 @@
   </nav>
 </header>
 <main>
+  {% for d in avisos_legais %}
+    <div class="flash aviso-legal" role="status">{{ aviso_mudanca[d.tipo] }} {{ d.publicado_em|dia }}.{% if d.resumo_mudancas %} {{ d.resumo_mudancas }}{% endif %}
+      <a href="/{{ 'privacidade' if d.tipo == 'politica' else 'termos' }}">Ler</a>
+      <form method="post" action="/privacidade/aviso/{{ d.id }}/fechar" class="inline"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="next" value="{{ request.full_path.rstrip('?') }}"><button class="link">Fechar</button></form></div>
+  {% endfor %}
   {% for cat, msg in get_flashed_messages(with_categories=true) %}
     <div class="flash {{ cat }}" role="status">{{ msg }}</div>
   {% endfor %}
   {% block content %}{% endblock %}
 </main>
-<footer><a href="/estatisticas">Estatísticas do catálogo</a> · <a href="/privacidade/menores">Proteção de menores</a> · GameLog — Projeto AP2 DSAI 2026.</footer>
+<footer><a href="/estatisticas">Estatísticas do catálogo</a> · <a href="/privacidade">Privacidade</a> · <a href="/termos">Termos</a> · <a href="/privacidade/menores">Proteção de menores</a> · GameLog — Projeto AP2 DSAI 2026.</footer>
 </body>
 </html>
