@@ -10,6 +10,7 @@ from sqlalchemy import event
 from sqlalchemy.dialects.sqlite import insert
 from sqlalchemy.engine import Engine
 
+from .cabecalhos import CAPAS_HOSTS_PADRAO, aplicar as cabecalhos_de_seguranca
 from .models import Instancia, db
 from .util import avatar_style, current_user, fold
 
@@ -25,6 +26,9 @@ def create_app(config=None):
         CSRF=True,
         PRODUCAO=os.environ.get("GAMELOG_PRODUCAO") == "1",  # definida no render.yaml
         SESSION_COOKIE_SAMESITE="Lax",
+        SESSION_COOKIE_HTTPONLY=True,
+        CAPAS_HOSTS_PERMITIDOS=CAPAS_HOSTS_PADRAO,  # INC-10 e o proxy de capas (RTN-08)
+        PROXY_CAPAS_ATIVO=False,
     )
     app.config.update(config or {})
     if app.config["PRODUCAO"]:
@@ -50,6 +54,7 @@ def create_app(config=None):
             if not token or not secrets.compare_digest(token.encode(), request.form.get("csrf_token", "").encode()):
                 abort(400, "Token CSRF inválido")
 
+    app.after_request(cabecalhos_de_seguranca)  # INC-10
     app.jinja_env.globals["avatar_style"] = avatar_style
 
     def page_url(n):  # preserva filtros multi-valor na paginação (BUS-05)
