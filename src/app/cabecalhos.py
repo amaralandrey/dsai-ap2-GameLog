@@ -52,6 +52,6 @@ def aplicar(resposta):
         resposta.headers["Strict-Transport-Security"] = HSTS
     if resposta.mimetype == "text/html":
         resposta.headers["Content-Security-Policy"] = politica(request.path)
-        resposta.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        resposta.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
         resposta.headers["Permissions-Policy"] = PERMISSOES
     return resposta
