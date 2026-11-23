@@ -9,7 +9,7 @@
   <input id="email" name="email" type="email" value="{{ form.get('email', '') }}" required>
   <label for="password">Senha</label>
   <input id="password" name="password" type="password" required>
-  <p><button>Entrar</button></p>
+  <p><button>Entrar</button> <a href="/senha/recuperar">Esqueci minha senha</a></p>
 </form>
 <p class="mut">Novo por aqui? <a href="/cadastro{{ '?next=' ~ request.args.get('next') | urlencode if request.args.get('next') }}">Criar conta</a></p>
 </section>

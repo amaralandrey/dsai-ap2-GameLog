@@ -87,6 +87,8 @@ EMAIL = dict(CONTA, categoria="contato", finalidade="comunicacao", retencao_dias
              anonimizar="apagar_linha")
 # o job `enviar_email` leva o id da caixa de saída e o resumo leva o user_id (EML-08): histórico de 30 dias (RTN-02)
 FILA = dict(CONTA, categoria="tecnico", finalidade="comunicacao", retencao_dias=30, exportar=False)
+# segredo do TOTP, códigos de recuperação e e-mail à espera de confirmação (CTA): nunca exportados
+AUTENTICACAO = dict(CONTA, categoria="autenticacao", exportar=False, anonimizar="apagar")
 NAO_PESSOAL = dict(categoria="nao_pessoal", finalidade="catalogo", base_legal="nao_se_aplica", retencao_dias=None,
                    exportar=False, anonimizar="manter")
 
@@ -105,9 +107,14 @@ CAMPOS = {
         ("bio", {"categoria": "perfil", "finalidade": "perfil_social", "anonimizar": "apagar"}),
         ("perfil_privado", {"categoria": "preferencia", "finalidade": "perfil_social"}),
         ("steam_id", {"finalidade": "acompanhamento", "anonimizar": "apagar"}),
+        ("email_pendente totp_segredo totp_ativado_em totp_ultimo_passo", AUTENTICACAO),
         ("nascimento nascimento_confiavel aguardando_responsavel idade_contestada_em suspensa_em "
          "revisao_idade_pedida_em", IDADE),
     ),
+    **_tabela("codigo_recuperacao", dict(AUTENTICACAO, anonimizar="apagar_linha"), ("id", TECNICO), ("user_id", DONO),
+              ("codigo_hash usado_em created_at", {})),
+    **_tabela("evento_seguranca", dict(CONTA, categoria="atividade", anonimizar="apagar_linha"),
+              ("id", TECNICO), ("user_id", DONO), ("tipo created_at", {})),
     **_tabela("verificacao_idade", dict(IDADE, anonimizar="apagar_linha"), ("id", TECNICO), ("user_id", DONO),
               ("metodo faixa_resultante confiavel divergente created_at", {})),
     **_tabela("aceite_documento", dict(CONTA, categoria="atividade"), ("id", TECNICO), ("user_id", DONO),
