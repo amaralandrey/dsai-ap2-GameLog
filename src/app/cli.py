@@ -213,7 +213,7 @@ def register(app):
 
     app.cli.add_command(rankings_cli)
 
-    privacidade_cli = AppGroup("privacidade", help="Mapa de dados e privacidade (MAP).")
+    privacidade_cli = AppGroup("privacidade", help="Mapa de dados, retenção e privacidade (MAP, RTN).")
 
     @privacidade_cli.command("verificar-mapa")
     def verificar_mapa_cmd():
@@ -229,6 +229,14 @@ def register(app):
             click.echo(linha)
         if faltando or sobrando or invalidas:
             raise SystemExit(1)
+
+    @privacidade_cli.command("expurgar")
+    @click.option("--simular", is_flag=True, help="só conta o que seria apagado, sem apagar")
+    def expurgar_cmd(simular):
+        """Roda o expurgo de retenção na hora, fora da fila (RTN-04)."""
+        from .privacidade.retencao import expurgar, linha
+
+        click.echo(linha(expurgar(simular)))
 
     app.cli.add_command(privacidade_cli)
 
