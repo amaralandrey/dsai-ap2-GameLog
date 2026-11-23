@@ -39,6 +39,7 @@ def make_user(app, username="ana", email=None, password="senha1234", role="jogad
     from werkzeug.security import generate_password_hash
 
     from app.models import User
+    from app.privacidade.transparencia import aceitar_atuais
 
     with app.app_context():
         u = User(
@@ -51,6 +52,8 @@ def make_user(app, username="ana", email=None, password="senha1234", role="jogad
             nascimento=date(1990, 1, 1),  # adulto: sem data, todo login cairia em /conta/nascimento (IDA-05)
         )
         db.session.add(u)
+        db.session.flush()
+        aceitar_atuais(u)  # com política e termos publicados (seed), a conta nasce sem aceite pendente (PRV-05)
         db.session.commit()
         return u.id
 

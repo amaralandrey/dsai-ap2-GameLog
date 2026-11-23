@@ -121,7 +121,7 @@ def test_ida_05_verificacao_de_menor_de_12_suspende(app):
 
 # ---------- IDA-01, IDA-02, IDA-04 (cadastro) ----------
 def cadastrar(client, nascimento, nome="novo"):
-    return client.post("/cadastro", data={"username": nome, "email": f"{nome}@ex.com", "password": "senha1234",
+    return client.post("/cadastro", data={"username": nome, "email": f"{nome}@ex.com", "password": "senha1234", "aceite": "1",
                                           "nascimento": nascimento.isoformat() if isinstance(nascimento, date) else nascimento})
 
 
