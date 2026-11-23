@@ -44,6 +44,8 @@ class User(db.Model):
     created_at = db.Column(db.DateTime, default=now, nullable=False)
     perfil_privado = db.Column(db.Boolean, default=False, nullable=False)  # DIA-11
     steam_id = db.Column(db.String(17), unique=True, nullable=True)  # SteamID64 vinculado (HRS-01)
+    ultimo_acesso = db.Column(db.DateTime, nullable=True)  # RTN-05: login e, no máximo uma vez por dia, a navegação
+    aviso_inatividade_em = db.Column(db.DateTime, nullable=True)  # RTN-06: e-mail `conta_inativa` enviado
 
     @property
     def is_admin(self):
@@ -117,7 +119,8 @@ class Game(db.Model):
 
     @property
     def cover(self):
-        return self.cover_url or f"/capa/{self.slug}.svg"
+        """A capa externa passa pelo proxy do GameLog (RTN-07, RTN-09); `cover_url` guarda a origem (CAP)."""
+        return f"/capas/{self.slug}" if self.cover_url else f"/capa/{self.slug}.svg"
 
     @property
     def principal(self):
@@ -704,7 +707,7 @@ class Dismissed(db.Model):
 
 class AuditLog(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    admin_id = db.Column(db.ForeignKey("user.id"), nullable=False)
+    admin_id = db.Column(db.ForeignKey("user.id"), nullable=True)  # vazio: tarefa do sistema, como o expurgo (RTN-01)
     action = db.Column(db.String(60), nullable=False)
     detail = db.Column(db.String(300), default="", nullable=False)
     created_at = db.Column(db.DateTime, default=now, nullable=False)

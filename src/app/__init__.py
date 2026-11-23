@@ -15,6 +15,13 @@ from .util import avatar_style, current_user, fold
 
 BLUEPRINTS = []  # preenchido por register_blueprints(); um módulo por spec
 CSRF_ISENTAS = {"/jobs/ciclo"}  # autenticadas por Bearer, sem cookie (JOB-11)
+# CDNs de onde o proxy de capas baixa (RTN-08); a CSP de `img-src` (INC-10) lê a mesma lista
+CAPAS_HOSTS_PERMITIDOS = (
+    "cdn.cloudflare.steamstatic.com", "shared.cloudflare.steamstatic.com", "cdn.akamai.steamstatic.com",
+    "shared.akamai.steamstatic.com", "shared.fastly.steamstatic.com", "steamcdn-a.akamaihd.net",
+    "images.gog-statics.com", "images-1.gog-statics.com", "images-2.gog-statics.com", "images-3.gog-statics.com",
+    "images-4.gog-statics.com", "media.rawg.io",
+)
 
 
 def create_app(config=None):
@@ -25,6 +32,8 @@ def create_app(config=None):
         CSRF=True,
         PRODUCAO=os.environ.get("GAMELOG_PRODUCAO") == "1",  # definida no render.yaml
         SESSION_COOKIE_SAMESITE="Lax",
+        CAPAS_HOSTS_PERMITIDOS=CAPAS_HOSTS_PERMITIDOS,
+        CAPAS_CACHE_DIR=os.environ.get("CAPAS_CACHE_DIR") or os.path.join(app.instance_path, "capas"),
     )
     app.config.update(config or {})
     if app.config["PRODUCAO"]:
