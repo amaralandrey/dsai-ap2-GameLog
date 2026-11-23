@@ -10,6 +10,7 @@ from .models import (
     Activity, Developer, Follow, Game, GameList, Genre, ListItem, Platform, Report, Review, Like, Status, User, db,
 )
 from .fontes import importar, vincular_existentes
+from .privacidade.transparencia import aceitar_atuais, publicar_iniciais
 from .util import slugify
 
 GENRES = ["Ação", "Aventura", "RPG", "Estratégia", "Simulação", "Esportes", "Corrida", "Puzzle", "Plataforma",
@@ -50,6 +51,7 @@ DESTAQUES = 30  # jogos reais que recebem avaliações (CRE-06)
 
 
 def run(seed=42, real=False):
+    publicar_iniciais()  # PRV-01: versão 1 da política e dos termos
     if Game.query.first():
         vincular_existentes()  # banco anterior a JogoFonte: a tabela é criada vazia por create_all (FNT-05)
         return False  # idempotente: não duplica
@@ -101,6 +103,8 @@ def _atividade(rng, games, real):
                   created_at=BASE - timedelta(days=rng.randint(30, 400))) for i in range(1, 31)]
     db.session.add_all(users)
     db.session.flush()
+    for u in users:
+        aceitar_atuais(u)  # PRV-01
 
     quality = {g.id: rng.gauss(6.5, 1.6) for g in games}
     reviews = []
