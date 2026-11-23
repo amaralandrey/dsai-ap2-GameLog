@@ -3,6 +3,7 @@
 {% block content %}
 <section class="panel" style="max-width:420px;margin:0 auto">
 <h1>Criar conta</h1>
+{% if recusa %}<div class="flash erro" role="alert">{{ recusa }}</div>{% endif %}
 <form method="post">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <label for="username">Nome de usuário</label>
@@ -14,9 +15,7 @@
   <label for="password">Senha</label>
   <input id="password" name="password" type="password" required>
   {% if errors.password %}<div class="err">{{ errors.password }}</div>{% endif %}
-  <label for="nascimento">Data de nascimento</label>
-  <input id="nascimento" name="nascimento" type="date" value="{{ form.get('nascimento', '') }}" required>
-  {% if errors.nascimento %}<div class="err">{{ errors.nascimento }}</div>{% endif %}
+  {% for parte in partes %}{% include parte %}{% endfor %}
   <p><button>Criar conta</button></p>
 </form>
 <p class="mut">Já tem conta? <a href="/entrar{{ '?next=' ~ request.args.get('next') | urlencode if request.args.get('next') }}">Entrar</a></p>

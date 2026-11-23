@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Novos termos — GameLog{% endblock %}
+{% block content %}
+<section class="panel" style="max-width:620px;margin:0 auto">
+<h1>Atualizamos nossos documentos</h1>
+<p>Para continuar usando o GameLog, leia o que mudou e aceite a nova versão.</p>
+{% for d in pendentes %}
+<h2>{{ nomes[d.tipo] }}, versão {{ d.versao }}</h2>
+<p class="mut">Publicada em {{ d.publicado_em|dia }}. <a href="/{{ 'privacidade' if d.tipo == 'politica' else 'termos' }}?versao={{ d.versao }}" target="_blank">Ler o texto completo</a></p>
+<p>{{ d.resumo_mudancas or "Sem resumo das mudanças." }}</p>
+{% endfor %}
+<form method="post" class="inline">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <button>Aceitar</button>
+</form>
+<a class="btn ghost" href="{{ nao_aceito }}">Não aceito</a>
+<p class="mut">Sem aceitar, você pode pedir a exclusão da conta e continua podendo exercer seus direitos sobre seus dados em <a href="/conta/privacidade">Minha privacidade</a>.</p>
+</section>
+{% endblock %}

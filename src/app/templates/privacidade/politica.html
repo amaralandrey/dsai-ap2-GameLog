@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% from "privacidade/_documento.html" import cabecalho, texto %}
+{% block title %}Política de privacidade — GameLog{% endblock %}
+{% block content %}
+<section class="panel">
+<h1>Política de privacidade</h1>
+{{ cabecalho(doc, versoes, "/privacidade") }}
+<h2>Em poucas palavras</h2>
+<ul class="resumo-politica">{% for titulo, item in resumo %}<li><strong>{{ titulo }}:</strong> {{ item }}</li>{% endfor %}</ul>
+</section>
+{% if menor %}<details class="panel"><summary>Ver a política completa</summary>{% endif %}
+<section class="panel" id="dados">
+<h2>Quais dados tratamos e por quê</h2>
+<table>
+  <thead><tr><th>Para quê</th><th>Quais dados</th><th>Base legal</th><th>Por quanto tempo</th></tr></thead>
+  <tbody>{% for s in secoes %}
+    <tr><td>{{ s.descricao }}</td><td>{{ s.categorias|join(", ") }}</td><td>{{ s.bases|join(", ") }}</td>
+      <td>{{ s.retencoes|join(", ") }}</td></tr>{% endfor %}
+  </tbody>
+</table>
+<p class="mut">Esta tabela é gerada do mapa de dados do próprio site, então acompanha o que o código grava.</p>
+</section>
+<section class="panel" id="suboperadores">
+<h2>Com quem compartilhamos</h2>
+{% include "privacidade/_suboperadores.html" %}
+</section>
+<section class="panel" id="cookies">
+<h2>Cookies</h2>
+<table>
+  <thead><tr><th>Cookie</th><th>Para quê</th><th>Duração</th><th>Tipo</th></tr></thead>
+  <tbody>{% for c in cookies %}<tr><td><code>{{ c.nome }}</code></td><td>{{ c.finalidade }}</td><td>{{ c.duracao }}</td><td>{{ c.tipo }}</td></tr>{% endfor %}</tbody>
+</table>
+<p class="mut">Como só usamos cookies estritamente necessários, não pedimos consentimento para cookies.</p>
+</section>
+<section class="panel" id="contato">
+<h2>Fale com a gente sobre seus dados</h2>
+{% if encarregado %}<p>Encarregado pelo tratamento de dados: {{ encarregado.nome }}, <a href="mailto:{{ encarregado.email }}">{{ encarregado.email }}</a>.</p>
+{% else %}<p>Pedidos, dúvidas e reclamações sobre seus dados vão pelo nosso canal de comunicação: <a href="/privacidade/contato">escreva para a gente</a> e guarde o número do protocolo.</p>{% endif %}
+</section>
+<section class="panel" id="texto">
+{{ texto(doc) }}
+</section>
+{% if menor %}</details>{% endif %}
+{% endblock %}
