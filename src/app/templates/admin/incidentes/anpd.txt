@@ -1,0 +1,47 @@
+COMUNICAÇÃO DE INCIDENTE DE SEGURANÇA À ANPD
+Resolução CD/ANPD nº 15/2024, art. 6º, § 2º — incidente #{{ inc.id }} do GameLog
+Os trechos marcados com [PREENCHER] precisam ser completados antes do envio pelo peticionamento eletrônico.
+
+I. Natureza e categorias de dados pessoais afetados
+{% for c in inc.lista_categorias %}- {{ rotulos[c] }}
+{% endfor %}
+II. Número de titulares afetados
+Estimativa: {{ inc.titulares_estimados }} titulares.
+Crianças e adolescentes: {{ 'sim, há dados de crianças ou adolescentes entre os afetados [PREENCHER: quantos]' if inc.envolve_menores else 'não há indício de dados de crianças ou adolescentes' }}.
+Idosos: [PREENCHER: quantos, se houver]
+
+III. Medidas técnicas e de segurança usadas para proteger os dados
+Senhas guardadas só como hash (werkzeug.security), tokens e códigos só como hash, cookie de sessão HttpOnly e Secure, cabeçalhos de segurança (CSP, HSTS), proteção CSRF e bloqueio de tentativas de login.
+[PREENCHER: outras medidas, observados os segredos comercial e industrial]
+
+IV. Riscos e possíveis impactos aos titulares
+Avaliação de risco: {{ riscos[inc.risco] }}{% if motivos %} ({{ motivos | join(', ') }}){% endif %}.
+{% if inc.justificativa_risco %}Justificativa: {{ inc.justificativa_risco }}
+{% endif %}[PREENCHER: possíveis impactos aos titulares]
+
+V. Motivos da demora
+{{ '[PREENCHER: a comunicação passou do prazo; explique os motivos]' if atrasado else 'Comunicação dentro do prazo.' }}
+
+VI. Medidas adotadas ou que serão adotadas para reverter ou mitigar os efeitos
+{{ inc.medidas }}
+
+VII. Datas
+Ocorrência: {{ inc.ocorrencia_em.strftime('%d/%m/%Y') if inc.ocorrencia_em else '[PREENCHER: data da ocorrência, se for possível determiná-la]' }}
+Ciência pelo controlador: {{ belem(inc.ciencia_em).strftime('%d/%m/%Y %H:%M') }} (horário de Brasília/Belém)
+
+VIII. Encarregado ou representante do controlador
+[PREENCHER: nome e contato do encarregado]
+
+IX. Controlador
+GameLog — [PREENCHER: identificação do controlador]
+{{ 'Declaração: o GameLog é agente de tratamento de pequeno porte (Res. CD/ANPD nº 2/2022).' if pequeno_porte else 'Agente de tratamento que não se enquadra como de pequeno porte.' }}
+
+X. Operador
+[PREENCHER: identificação do operador, quando aplicável (ex.: provedor de hospedagem)]
+
+XI. Descrição do incidente e causa principal
+{{ inc.descricao }}
+Causa principal: [PREENCHER: causa, se for possível identificá-la]
+
+XII. Total de titulares cujos dados são tratados nas atividades afetadas
+[PREENCHER: total de contas no GameLog]

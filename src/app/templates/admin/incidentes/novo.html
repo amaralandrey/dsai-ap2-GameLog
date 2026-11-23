@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Registrar incidente — Admin{% endblock %}
+{% block content %}
+<section class="panel" style="max-width:640px;margin:0 auto">
+<h1>Registrar incidente</h1>
+<p class="mut">O risco é relevante quando há dados de autenticação, dados de crianças e adolescentes ou {{ larga_escala }} titulares ou mais (Res. CD/ANPD 15/2024). Nos outros casos, ele fica "a avaliar".</p>
+<form method="post" action="/admin/incidentes/novo">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <label for="descricao">Descrição do incidente</label><textarea id="descricao" name="descricao" maxlength="5000" required>{{ form.get('descricao', '') }}</textarea>
+  {% if erros.descricao %}<div class="err">{{ erros.descricao }}</div>{% endif %}
+  <label for="ciencia_em">Ciência pelo GameLog (horário de Belém)</label><input id="ciencia_em" name="ciencia_em" type="datetime-local" value="{{ form.get('ciencia_em', '') }}" required>
+  {% if erros.ciencia_em %}<div class="err">{{ erros.ciencia_em }}</div>{% endif %}
+  <label for="ocorrencia_em">Data provável da ocorrência (opcional)</label><input id="ocorrencia_em" name="ocorrencia_em" type="date" value="{{ form.get('ocorrencia_em', '') }}">
+  {% if erros.ocorrencia_em %}<div class="err">{{ erros.ocorrencia_em }}</div>{% endif %}
+  <fieldset><legend>Categorias de dados afetados</legend>
+  {% for c in categorias %}<label style="font-weight:400"><input type="checkbox" name="categorias" value="{{ c }}" style="width:auto" {{ 'checked' if c in marcadas }}> {{ rotulos[c] }}</label>{% endfor %}
+  </fieldset>
+  {% if erros.categorias %}<div class="err">{{ erros.categorias }}</div>{% endif %}
+  <label for="titulares_estimados">Número estimado de titulares</label><input id="titulares_estimados" name="titulares_estimados" type="number" min="1" value="{{ form.get('titulares_estimados', '') }}" required>
+  {% if erros.titulares_estimados %}<div class="err">{{ erros.titulares_estimados }}</div>{% endif %}
+  <label style="font-weight:400"><input type="checkbox" name="envolve_menores" value="1" style="width:auto" {{ 'checked' if form.get('envolve_menores') }}> Há dados de crianças ou adolescentes</label>
+  <label for="medidas">Medidas tomadas</label><textarea id="medidas" name="medidas" maxlength="5000" required>{{ form.get('medidas', '') }}</textarea>
+  {% if erros.medidas %}<div class="err">{{ erros.medidas }}</div>{% endif %}
+  <p><button>Registrar</button> <a href="/admin/incidentes">Cancelar</a></p>
+</form>
+</section>
+{% endblock %}
