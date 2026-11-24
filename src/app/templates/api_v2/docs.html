@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}API v2 — GameLog{% endblock %}
+{% block content %}
+<section style="max-width:760px;margin:0 auto">
+<h1>API v2</h1>
+<p>A API v2 responde em JSON em <code>{{ base }}</code>. A leitura do catálogo é pública. Os dados da sua conta e a escrita exigem um token pessoal, criado na página "Tokens da API" do seu perfil, enviado no cabeçalho <code>Authorization: Bearer &lt;token&gt;</code>. O cookie do navegador não vale na v2.</p>
+<p>Cada token tem os escopos <code>ler</code> e/ou <code>escrever</code> e um limite de 60 requisições por minuto (cabeçalhos <code>X-RateLimit-Limit</code> e <code>X-RateLimit-Remaining</code>; ao passar do limite, 429 com <code>Retry-After</code>). As listagens aceitam <code>page</code> e <code>per_page</code> (até 50) e trazem <code>proxima</code>.</p>
+<h2>Exemplos</h2>
+<pre>curl {{ base }}/jogos?q=hades&amp;loja=gog
+curl -H "Authorization: Bearer glp_..." {{ base }}/eu/diario?de=2026-11-01
+curl -X PUT -H "Authorization: Bearer glp_..." -H "Content-Type: application/json" \
+     -d '{"status": "jogando"}' {{ base }}/eu/status/hades
+curl -X POST -H "Authorization: Bearer glp_..." -H "Content-Type: application/json" \
+     -d '{"jogo": "hades", "jogada_em": "2026-11-20", "duracao": "1h30"}' {{ base }}/eu/diario</pre>
+<p>Entrada inválida responde 422 com <code>{"erro", "campos"}</code>.</p>
+<h2>Endpoints</h2>
+<table><tr><th>Método</th><th>Rota</th><th>Escopo</th></tr>
+{% for m, r, e in endpoints %}<tr><td>{{ m }}</td><td><code>{{ r }}</code></td><td>{{ e or 'público' }}</td></tr>{% endfor %}</table>
+</section>
+{% endblock %}
