@@ -736,6 +736,39 @@ class AuditLog(db.Model):
     admin = db.relationship(User)
 
 
+class TokenApi(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.ForeignKey("user.id"), nullable=False, index=True)
+    nome = db.Column(db.String(60), nullable=False)
+    prefixo = db.Column(db.String(10), nullable=False)
+    token_hash = db.Column(db.String(64), unique=True, nullable=False)
+    escopos = db.Column(db.String(20), nullable=False)
+    criado_em = db.Column(db.DateTime, nullable=False)
+    expira_em = db.Column(db.DateTime, nullable=False)
+    ultimo_uso_em = db.Column(db.DateTime, nullable=True)
+    revogado_em = db.Column(db.DateTime, nullable=True)
+    user = db.relationship(User)
+
+
+class LimiteTaxaToken(db.Model):
+    __table_args__ = (db.UniqueConstraint("token_id", "janela"),)
+    id = db.Column(db.Integer, primary_key=True)
+    token_id = db.Column(db.ForeignKey("token_api.id"), nullable=False)
+    janela = db.Column(db.DateTime, nullable=False)
+    contagem = db.Column(db.Integer, default=0, nullable=False)
+
+
+class AuditoriaToken(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    token_id = db.Column(db.ForeignKey("token_api.id"), nullable=False, index=True)
+    user_id = db.Column(db.ForeignKey("user.id"), nullable=False, index=True)
+    acao = db.Column(db.String(10), nullable=False)
+    metodo = db.Column(db.String(10), default="", nullable=False)
+    rota = db.Column(db.String(200), default="", nullable=False)
+    status_http = db.Column(db.Integer, nullable=True)
+    criado_em = db.Column(db.DateTime, nullable=False)
+
+
 class DocumentoLegal(db.Model):
     """Política de privacidade e termos de uso por versão (PRV-01); versão publicada nunca é editada."""
     __table_args__ = (db.UniqueConstraint("tipo", "versao"),)
