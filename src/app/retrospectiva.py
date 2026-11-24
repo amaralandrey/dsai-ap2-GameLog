@@ -165,4 +165,7 @@ def horas_por_semana(user_id):
 
 def sparkline_do_perfil(user_id):
     valores = horas_por_semana(user_id)
-    return graficos_svg.sparkline(valores, "Horas nas últimas 12 semanas"), valores
+    fim = hoje()
+    segundas = [fim - timedelta(days=fim.weekday() + 7 * i) for i in reversed(range(SEMANAS_SPARKLINE))]
+    linhas = [(f"Semana de {s:%d/%m}", h) for s, h in zip(segundas, valores)]
+    return graficos_svg.sparkline(valores, "Horas nas últimas 12 semanas"), linhas

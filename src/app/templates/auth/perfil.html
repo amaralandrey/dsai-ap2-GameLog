@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import avatar, pager, stars, conquista_tag %}
+{% from "_macros.html" import avatar, grafico, pager, stars, conquista_tag %}
 {% block title %}{{ u.display_name }} (@{{ u.username }}) — GameLog{% endblock %}
 {% block content %}
 <section class="panel">
@@ -43,7 +43,7 @@
   <p>Nível <strong>{{ progressao.nivel }}</strong> · {{ progressao.xp }} XP{% if pode(u, 'aviso_engajamento') %} ·{# PMN-09 #}
     sequência de <strong>{{ progressao.sequencia }}</strong> {{ 'semana' if progressao.sequencia == 1 else 'semanas' }}{% endif %}
     {% if own %}· <a href="/u/{{ u.username }}/xp">Extrato de XP</a>{% endif %}</p>
-  <p class="mut sparkline-box">Últimas 12 semanas {{ sparkline | safe }}</p>
+  <div class="mut sparkline-box">Últimas 12 semanas {{ grafico(sparkline, ["Semana", "Horas"], semanas) }}</div>
 </section>
 <section class="panel"><h2>Jogos por status</h2>
   <p>{% for k, (nome, n) in status.items() %}<span class="tag">{{ nome }}: <strong>{{ n }}</strong></span>{% endfor %}</p>
