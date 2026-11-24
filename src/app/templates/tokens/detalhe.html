@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% from "_macros.html" import pager %}
+{% block title %}Token {{ token.nome }} — GameLog{% endblock %}
+{% block content %}
+<section style="max-width:720px;margin:0 auto">
+<p><a href="/u/{{ me.username }}/tokens">← Tokens da API</a></p>
+<h1>{{ token.nome }} <code>{{ token.prefixo }}…</code></h1>
+<p class="mut">Escopos: {{ token.escopos }} · expira em {{ token.expira_em.strftime('%d/%m/%Y') }}{% if token.revogado_em %} · revogado em {{ token.revogado_em.strftime('%d/%m/%Y') }}{% endif %}</p>
+<table><tr><th>Quando</th><th>Ação</th><th>Método</th><th>Rota</th><th>HTTP</th></tr>
+{% for a in page.items %}<tr><td>{{ a.criado_em.strftime('%d/%m/%Y %H:%M') }}</td><td>{{ a.acao }}</td><td>{{ a.metodo }}</td><td>{{ a.rota }}</td><td>{{ a.status_http or '' }}</td></tr>{% endfor %}</table>
+{{ pager(page) }}
+</section>
+{% endblock %}

@@ -1,6 +1,6 @@
 import importlib
 
-MODULES = ["auth", "catalogo", "busca", "jogo", "avaliacoes", "comentarios", "listas", "social", "recomendacoes", "afinidade", "api", "estatisticas", "admin", "diario", "diario_import", "retrospectiva", "listas_inteligentes", "notificacoes", "conquistas", "progressao", "rankings", "clubes", "menores.idade", "menores.politica", "jobs", "bloqueios", "emails", "torneios", "conta", "recuperacao", "privacidade.transparencia", "privacidade.incidentes", "privacidade.retencao", "privacidade.capas"]
+MODULES = ["auth", "catalogo", "busca", "jogo", "avaliacoes", "comentarios", "listas", "social", "recomendacoes", "afinidade", "api", "estatisticas", "admin", "diario", "diario_import", "retrospectiva", "listas_inteligentes", "notificacoes", "conquistas", "progressao", "rankings", "clubes", "menores.idade", "menores.politica", "jobs", "bloqueios", "emails", "torneios", "conta", "recuperacao", "privacidade.transparencia", "privacidade.incidentes", "privacidade.retencao", "privacidade.capas", "tokens", "api_v2"]
 
 
 def register(app):
