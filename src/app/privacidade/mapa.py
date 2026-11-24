@@ -29,7 +29,9 @@ FINALIDADES = {  # agrupam o registro das operações (MAP-08)
     "incidentes": "Registro e comunicação de incidentes de segurança",
     "direitos": "Atendimento aos pedidos e às mensagens dos titulares",
     "integracoes": "Tokens pessoais, API v2 e servidor MCP",
+    "continuidade": "Cópia de segurança do banco (backup)",
 }
+BACKUPS_MANTIDOS = 7
 
 
 @dataclass(frozen=True)
@@ -384,4 +386,15 @@ def registro_operacoes():
             "anonimizacao": sorted({c.anonimizar for c in campos.values()}),
             "suboperadores": [s.nome for s in subs if not s.finalidades or finalidade in s.finalidades],
         })
+    linhas.append({
+        "finalidade": "continuidade",
+        "descricao": FINALIDADES["continuidade"],
+        "categorias": sorted(c for c in CATEGORIAS if c != "nao_pessoal"),
+        "tabelas": ["todas"],
+        "bases_legais": ["legitimo_interesse"],
+        "retencoes": [f"{BACKUPS_MANTIDOS} arquivos mais recentes"],
+        "exportado": "não",
+        "anonimizacao": ["manter"],
+        "suboperadores": [s.nome for s in subs if not s.finalidades or "continuidade" in s.finalidades],
+    })
     return linhas
