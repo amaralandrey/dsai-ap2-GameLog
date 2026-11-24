@@ -1,0 +1,23 @@
+Olá,
+
+Queremos contar a você sobre um incidente de segurança no GameLog que pode ter atingido os seus dados.
+
+O que aconteceu: {{ inc.descricao }}
+
+Quais dados podem ter sido afetados: {% for c in inc.lista_categorias %}{{ rotulos[c] }}{{ ', ' if not loop.last else '.' }}{% endfor %}
+
+Quando soubemos: {{ belem(inc.ciencia_em).strftime('%d/%m/%Y') }}.
+
+Como protegemos os seus dados: as senhas ficam guardadas só de forma cifrada (hash), e o site usa conexão segura.
+
+Quais são os riscos para você: [PREENCHER: o que pode acontecer, em linguagem simples]
+
+O que já fizemos e o que vamos fazer: {{ inc.medidas }}
+{% if atrasado %}
+Por que este aviso demorou: [PREENCHER: motivos da demora]
+{% endif %}
+O que você pode fazer: [PREENCHER: por exemplo, trocar a senha do GameLog e de outros sites onde usa a mesma senha]
+
+Dúvidas: [PREENCHER: contato do encarregado de dados]
+
+Equipe do GameLog

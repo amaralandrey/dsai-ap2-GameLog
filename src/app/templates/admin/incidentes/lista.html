@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Incidentes — Admin{% endblock %}
+{% block content %}
+<h1>Incidentes de segurança</h1>
+<p><a class="btn btn-primary" href="/admin/incidentes/novo">Registrar incidente</a></p>
+<table><tr><th>#</th><th>Ciência (Belém)</th><th>Risco</th><th>Situação</th><th>Prazo da ANPD</th></tr>
+{% for i in incidentes %}{% set p = prazos(i)[0] %}
+<tr><td><a href="/admin/incidentes/{{ i.id }}">#{{ i.id }}</a></td><td>{{ belem(i.ciencia_em).strftime('%d/%m/%Y %H:%M') }}</td>
+  <td><span class="tag">{{ riscos[i.risco] }}</span>{% if i.envolve_menores %} <span class="tag">dados de menores</span>{% endif %}</td>
+  <td>{{ situacoes[i.situacao] }}</td>
+  <td>{{ p.limite.strftime('%d/%m/%Y') }} · {{ 'comunicado' if p.cumprido else p.faltam }}</td></tr>
+{% else %}<tr><td colspan="5" class="mut">Nenhum incidente registrado.</td></tr>{% endfor %}
+</table>
+{% endblock %}

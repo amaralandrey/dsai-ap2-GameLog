@@ -1,0 +1,7 @@
+{% extends "email/_layout.txt" %}
+{% block assunto %}A senha da sua conta no GameLog foi redefinida{% endblock %}
+{% block corpo %}Olá, {{ user.display_name }}.
+
+Em {{ quando }}, a senha da sua conta no GameLog foi redefinida pelo link enviado a este e-mail. As sessões abertas foram encerradas.
+
+Se não foi você, procure o canal do titular: {{ url_publica('/privacidade') }}{% endblock %}

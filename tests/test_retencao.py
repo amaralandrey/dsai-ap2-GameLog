@@ -12,8 +12,8 @@ from sqlalchemy import Column, DateTime, Integer, MetaData, Table
 from app import tempo
 from app.fontes import base
 from app.jobs import AGENDAS_PADRAO, TAREFAS, enfileirar, executar
-from app.models import (AuditLog, EmailSaida, Follow, Game, GameList, Job, ListItem, LoginAttempt, Notificacao, Review,
-                        Status, User, VerificacaoIdade, db)
+from app.models import (AnotacaoIncidente, AuditLog, EmailSaida, Follow, Game, GameList, Incidente, Job, ListItem,
+                        LoginAttempt, Notificacao, Review, Status, User, VerificacaoIdade, db)
 from app.privacidade import anonimizar, capas, mapa, retencao
 from conftest import login, make_game, make_user
 
@@ -86,7 +86,7 @@ def test_rtn01_expurgo_apaga_so_o_vencido_de_cada_modelo_e_audita(app, relogio):
         db.session.commit()
     conta = expurgar(app)
     assert {k: conta[k] for k in retencao.REGRAS} == {"login_attempt": 1, "notificacao": 1, "email_saida": 1,
-                                                      "job": 2, "audit_log": 1}
+                                                      "job": 2, "audit_log": 1, "incidente": 0}
     assert contar(app, LoginAttempt) == 1 and contar(app, Notificacao) == 1 and contar(app, EmailSaida) == 1
     with app.app_context():
         assert sorted(j.status for j in Job.query) == ["falhou", "pendente"]
@@ -141,8 +141,25 @@ def test_rtn01_preservar_ate_no_futuro_nunca_e_apagado(app, relogio, monkeypatch
 
 def test_rtn02_prazos_iniciais_vem_do_mapa():
     assert {t: mapa.retencao(t) for t in retencao.REGRAS} == {
-        "login_attempt": 30, "notificacao": 180, "email_saida": 90, "job": 30, "audit_log": 730}
+        "login_attempt": 30, "notificacao": 180, "email_saida": 90, "job": 30, "audit_log": 730, "incidente": 1826}
     assert mapa.retencao("user") == 730  # conta inativa (RTN-05)
+
+
+def test_rtn02_incidente_sai_5_anos_depois_de_encerrado_com_as_anotacoes(app, relogio):
+    admin = make_user(app, "chefe", role="admin")
+    with app.app_context():
+        for i, encerrado in enumerate((atras(days=1827), atras(days=1825), None)):
+            inc = Incidente(descricao=f"i{i}", ciencia_em=atras(days=4000), categorias="contato", titulares_estimados=1,
+                            medidas="m", risco="baixo", registrado_por=admin, encerrado_em=encerrado)
+            db.session.add(inc)
+            db.session.flush()
+            db.session.add(AnotacaoIncidente(incidente_id=inc.id, autor_id=admin, texto="t",
+                                             created_at=atras(days=4000)))
+        db.session.commit()
+    assert expurgar(app)["incidente"] == 1
+    with app.app_context():
+        assert sorted(i.descricao for i in Incidente.query) == ["i1", "i2"]
+        assert AnotacaoIncidente.query.count() == 2
 
 
 def test_rtn02_prazo_alterado_no_mapa_muda_o_expurgo(app, relogio, monkeypatch):
@@ -584,4 +601,4 @@ def test_rtn12_toda_tabela_com_prazo_no_mapa_tem_regra_de_expurgo(app):
     with app.app_context():
         tabelas = {t.name for t in db.metadata.sorted_tables}
     com_prazo = {t for t in tabelas if mapa.retencao(t) is not None}
-    assert com_prazo == set(retencao.REGRAS) | {"user"}
+    assert com_prazo == set(retencao.REGRAS) | {"user", "anotacao_incidente"}

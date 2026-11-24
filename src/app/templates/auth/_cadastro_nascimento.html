@@ -1,0 +1,3 @@
+  <label for="nascimento">Data de nascimento</label>
+  <input id="nascimento" name="nascimento" type="date" value="{{ form.get('nascimento', '') }}" required>
+  {% if errors.nascimento and errors.nascimento != recusa %}<div class="err">{{ errors.nascimento }}</div>{% endif %}

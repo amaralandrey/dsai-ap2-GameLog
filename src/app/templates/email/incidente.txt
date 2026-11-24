@@ -1,0 +1,3 @@
+{% extends "email/_layout.txt" %}
+{% block assunto %}Aviso de incidente de segurança no GameLog{% endblock %}
+{% block corpo %}{{ mensagem }}{% endblock %}

@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Comunicar titulares — Incidente #{{ inc.id }}{% endblock %}
+{% block content %}
+<section class="panel" style="max-width:720px;margin:0 auto">
+<h1>Comunicar titulares — incidente #{{ inc.id }}</h1>
+<p class="mut">A mensagem chega a cada titular por e-mail e como aviso do GameLog. Use linguagem simples e preencha os trechos marcados com [PREENCHER].</p>
+<form method="post" action="/admin/incidentes/{{ inc.id }}/titulares">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <label for="mensagem">Mensagem</label><textarea id="mensagem" name="mensagem" rows="18" maxlength="5000" required>{{ form.get('mensagem', '') }}</textarea>
+  {% if erros.mensagem %}<div class="err">{{ erros.mensagem }}</div>{% endif %}
+  <fieldset><legend>Destinatários</legend>
+    <label style="font-weight:400"><input type="radio" name="destino" value="lista" style="width:auto" {{ 'checked' if form.get('destino') != 'todos' }}> Lista de nomes de usuário</label>
+    <label style="font-weight:400"><input type="radio" name="destino" value="todos" style="width:auto" {{ 'checked' if form.get('destino') == 'todos' }}> Todos os usuários</label>
+  </fieldset>
+  <label for="nomes">Nomes de usuário (um por linha, ou separados por vírgula)</label><textarea id="nomes" name="nomes" rows="5">{{ form.get('nomes', '') }}</textarea>
+  {% if erros.nomes %}<div class="err">{{ erros.nomes }}</div>{% endif %}
+  <p><button>Enviar comunicação</button> <a href="/admin/incidentes/{{ inc.id }}">Cancelar</a></p>
+</form>
+</section>
+{% endblock %}

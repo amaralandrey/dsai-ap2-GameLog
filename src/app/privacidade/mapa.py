@@ -26,6 +26,8 @@ FINALIDADES = {  # agrupam o registro das operações (MAP-08)
     "catalogo": "Catálogo de jogos, lojas e conquistas",
     "protecao_menores": "Verificação de idade e proteção de crianças e adolescentes",
     "comunicacao": "E-mails da conta, avisos por e-mail e resumo semanal",
+    "incidentes": "Registro e comunicação de incidentes de segurança",
+    "direitos": "Atendimento aos pedidos e às mensagens dos titulares",
 }
 
 
@@ -86,6 +88,11 @@ EMAIL = dict(CONTA, categoria="contato", finalidade="comunicacao", retencao_dias
              anonimizar="apagar_linha")
 # o job `enviar_email` leva o id da caixa de saída e o resumo leva o user_id (EML-08): histórico de 30 dias (RTN-02)
 FILA = dict(CONTA, categoria="tecnico", finalidade="comunicacao", retencao_dias=30, exportar=False)
+RETENCAO_INCIDENTE_DIAS = 5 * 365 + 1  # Res. CD/ANPD 15/2024, art. 10; o expurgo conta do encerramento (INC-08)
+INCIDENTE = dict(CONTA, categoria="atividade", finalidade="incidentes", base_legal="obrigacao_legal",
+                 retencao_dias=RETENCAO_INCIDENTE_DIAS, exportar=False)
+# segredo do TOTP, códigos de recuperação e e-mail à espera de confirmação (CTA): nunca exportados
+AUTENTICACAO = dict(CONTA, categoria="autenticacao", exportar=False, anonimizar="apagar")
 NAO_PESSOAL = dict(categoria="nao_pessoal", finalidade="catalogo", base_legal="nao_se_aplica", retencao_dias=None,
                    exportar=False, anonimizar="manter")
 
@@ -104,14 +111,26 @@ CAMPOS = {
         ("bio", {"categoria": "perfil", "finalidade": "perfil_social", "anonimizar": "apagar"}),
         ("perfil_privado", {"categoria": "preferencia", "finalidade": "perfil_social"}),
         ("steam_id", {"finalidade": "acompanhamento", "anonimizar": "apagar"}),
+        ("email_pendente totp_segredo totp_ativado_em totp_ultimo_passo", AUTENTICACAO),
         # RTN-05, RTN-06: o prazo de `ultimo_acesso` é o da conta inativa, que o expurgo anonimiza depois do aviso
         ("ultimo_acesso", {"categoria": "atividade", "retencao_dias": 730, "anonimizar": "apagar"}),
         ("aviso_inatividade_em", {"categoria": "atividade", "exportar": False, "anonimizar": "apagar"}),
         ("nascimento nascimento_confiavel aguardando_responsavel idade_contestada_em suspensa_em "
          "revisao_idade_pedida_em", IDADE),
     ),
+    **_tabela("codigo_recuperacao", dict(AUTENTICACAO, anonimizar="apagar_linha"), ("id", TECNICO), ("user_id", DONO),
+              ("codigo_hash usado_em created_at", {})),
+    **_tabela("evento_seguranca", dict(CONTA, categoria="atividade", anonimizar="apagar_linha"),
+              ("id", TECNICO), ("user_id", DONO), ("tipo created_at", {})),
     **_tabela("verificacao_idade", dict(IDADE, anonimizar="apagar_linha"), ("id", TECNICO), ("user_id", DONO),
               ("metodo faixa_resultante confiavel divergente created_at", {})),
+    **_tabela("aceite_documento", dict(CONTA, categoria="atividade"), ("id", TECNICO), ("user_id", DONO),
+              ("documento_id aceito_em", {})),  # PRV-04: prova do aceite, só de inserção
+    **_tabela("aviso_documento_fechado", dict(CONTA, categoria="preferencia", anonimizar="apagar_linha"),
+              ("id", TECNICO), ("user_id", DONO), ("documento_id fechado_em", {})),  # PRV-06
+    **_tabela("pedido_titular", dict(CONTA, categoria="atividade", finalidade="direitos", base_legal="obrigacao_legal"),
+              ("id", TECNICO), ("user_id", DONO), ("email_contato", {"categoria": "contato", "anonimizar": "substituir"}),
+              ("protocolo tipo assunto detalhe status criado_em", {})),  # LGPD art. 18 e 41 (PRV-07, DIR-01)
     **_tabela(
         "login_attempt",
         dict(CONTA, categoria="contato", finalidade="seguranca", base_legal="legitimo_interesse",
@@ -189,6 +208,12 @@ CAMPOS = {
               ("categoria motivo created_at revertida_em", {"exportar": True}), ("admin_id", {})),
     **_tabela("audit_log", dict(AUDITORIA, retencao_dias=730), ("id", TECNICO),
               ("admin_id action detail created_at", {})),
+    **_tabela("incidente", INCIDENTE, ("id", TECNICO), ("registrado_por", DONO),
+              ("descricao ciencia_em ocorrencia_em categorias titulares_estimados envolve_menores medidas risco "
+               "justificativa_risco situacao anpd_enviado_em titulares_avisados titulares_avisados_em "
+               "texto_titulares lembrete_em created_at encerrado_em", {})),
+    **_tabela("anotacao_incidente", INCIDENTE, ("id incidente_id", TECNICO), ("autor_id", DONO),
+              ("texto created_at", {})),
     **_tabela("pendencia_merge", dict(CONTA, categoria="nao_pessoal", finalidade="catalogo",
                                       base_legal="nao_se_aplica", exportar=False),
               ("id jogo_a_id jogo_b_id semelhanca status created_at decidida_em", {}),
@@ -203,7 +228,8 @@ CAMPOS = {
     **_nao_pessoal("jogo_fonte", "catalogo"),
     **_nao_pessoal("conquista", "catalogo"),
     **_nao_pessoal("preco_loja", "catalogo"),
-    **_nao_pessoal("instancia", "seguranca"),  # token do banco, não identifica ninguém
+    **_nao_pessoal("instancia", "seguranca"),
+    **_nao_pessoal("documento_legal", "conta"),  # política e termos publicados (PRV-01)  # token do banco, não identifica ninguém
     # args e chave_unica podem citar um usuário (enviar_email, email_resumo); o resto da fila não é pessoal
     **_tabela("job", NAO_PESSOAL, ("args chave_unica", FILA),
               ("id tipo status tentativas max_tentativas executar_em travado_por travado_em ultimo_erro criado_em "

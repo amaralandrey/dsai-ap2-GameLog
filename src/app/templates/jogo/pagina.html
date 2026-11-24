@@ -58,11 +58,12 @@
   {% if me %}
     <form method="post" action="/jogos/{{ game.slug }}/status" class="inline">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <select name="status" onchange="this.form.submit()" aria-label="Status">
+      <select name="status" data-envio-automatico aria-label="Status">
         <option value="" {{ 'selected' if not status }}>— sem status —</option>
         {% for k, v in statuses.items() %}<option value="{{ k }}" {{ 'selected' if k == status }}>{{ v }}</option>{% endfor %}
       </select><noscript><button>Salvar status</button></noscript>
     </form>
+    <script src="{{ url_for('static', filename='envio-automatico.js') }}" defer></script>
     {% if my_lists %}
     <form method="post" action="/jogos/{{ game.slug }}/adicionar-a-lista" style="margin-top:8px">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

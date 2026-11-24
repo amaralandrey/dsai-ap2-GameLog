@@ -1,0 +1,9 @@
+{% extends "email/_layout.txt" %}
+{% block assunto %}Confirme o novo e-mail da sua conta no GameLog{% endblock %}
+{% block corpo %}Olá, {{ user.display_name }}.
+
+Você pediu para trocar o e-mail da sua conta no GameLog para este endereço. Para confirmar, abra o link abaixo. Ele vale por 24 horas e só pode ser usado uma vez:
+
+{{ link }}
+
+Se não foi você, ignore esta mensagem: o e-mail da conta não muda.{% endblock %}

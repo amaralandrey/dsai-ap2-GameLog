@@ -1,0 +1,4 @@
+{% extends "email/_layout.html" %}
+{% block corpo %}<p style="margin:0 0 12px">Olá, {{ user.display_name }}.</p>
+<p style="margin:0 0 12px">Em {{ quando }}, o e-mail da sua conta no GameLog foi trocado para {{ novo }}. Este endereço não recebe mais os e-mails da conta.</p>
+<p style="margin:0">Se não foi você, procure o <a href="{{ url_publica('/privacidade') }}" style="color:#3b2f80">canal do titular</a>.</p>{% endblock %}

@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Troca de e-mail — GameLog{% endblock %}
+{% block content %}
+<section class="panel" style="max-width:520px;margin:0 auto">
+{% if erro %}
+  <h1>{{ erro }}</h1>
+  <p>O e-mail da conta não mudou. Entre e peça a troca de novo na <a href="/conta/seguranca">segurança da conta</a>.</p>
+{% else %}
+  <h1>E-mail confirmado</h1>
+  <p>O e-mail da sua conta agora é <strong>{{ novo }}</strong>. Use esse endereço para entrar.</p>
+{% endif %}
+</section>
+{% endblock %}

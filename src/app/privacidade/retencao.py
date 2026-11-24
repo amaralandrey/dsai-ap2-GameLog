@@ -2,7 +2,7 @@
 
 Nenhum prazo mora aqui: `REGRAS` só diz qual coluna data cada linha e quais linhas contam (a notificação lida, o
 e-mail enviado, o job terminado). Uma tabela sem prazo no mapa nunca é tocada, e mudar o prazo no mapa muda o
-expurgo. O modelo `Incidente` entra em `REGRAS` com INC (5 anos depois de encerrado, INC-08), e os pedidos de
+expurgo. O `Incidente` conta do encerramento (INC-08) e leva as anotações junto (ON DELETE CASCADE); os pedidos de
 exclusão adiados pela preservação (DIR-07) entram em `contas` com DIR.
 """
 from collections import namedtuple
@@ -15,7 +15,7 @@ from .. import tempo
 from ..emails import enviar_email
 from ..jobs import agenda_padrao, tarefa
 from ..menores.idade import aguarda_responsavel
-from ..models import AuditLog, EmailSaida, Job, LoginAttempt, Notificacao, User, db
+from ..models import AuditLog, EmailSaida, Incidente, Job, LoginAttempt, Notificacao, User, db
 from ..util import admin_required, current_user
 from . import mapa
 from .anonimizar import DOMINIO, anonimizar_conta, apagar_conta
@@ -29,6 +29,7 @@ REGRAS = {
     "email_saida": Regra(EmailSaida.__table__, "enviado_em", lambda t: t.c.status == "enviado"),
     "job": Regra(Job.__table__, "concluido_em", lambda t: t.c.status.in_(("ok", "morto"))),
     "audit_log": Regra(AuditLog.__table__, "created_at"),
+    "incidente": Regra(Incidente.__table__, "encerrado_em"),
 }
 LOTE = 500
 AVISO_DIAS = 30  # RTN-06

@@ -46,15 +46,23 @@ def current_user():
     return g.user
 
 
+# Páginas de direitos e de exclusão de conta (DIR): livres de todo redirecionamento; rota nova da DIR entra aqui
+ROTAS_DO_TITULAR = ("/conta/privacidade", "/conta/excluir")
+# Rotas que respondem mesmo com novo aceite pendente (PRV-05)
+LIVRES_DO_ACEITE = ("/sair", "/privacidade", "/termos", *ROTAS_DO_TITULAR)
 # Rotas que respondem mesmo com a idade pendente (IDA-04, IDA-05)
-LIVRES_DA_IDADE = ("/sair", "/privacidade", "/termos", "/conta/privacidade", "/conta/excluir", "/conta/pendente",
-                   "/conta/nascimento", "/conta/idade")
+LIVRES_DA_IDADE = (*LIVRES_DO_ACEITE, "/conta/pendente", "/conta/nascimento", "/conta/idade")
+
+
+def rota_livre(livres):
+    """Caminho exato ou seguido de "/": `/termos-de-clube` não é livre."""
+    return request.path in livres or request.path.startswith(tuple(f"{p}/" for p in livres))
 
 
 def _pendencia_de_idade(u):
     """Para onde vai quem ainda não pode usar o site logado: conta antiga sem data ou à espera do responsável."""
-    if request.path in LIVRES_DA_IDADE or request.path.startswith(tuple(f"{p}/" for p in LIVRES_DA_IDADE)):
-        return None  # caminho exato ou seguido de "/": `/termos-de-clube` não é livre
+    if rota_livre(LIVRES_DA_IDADE):
+        return None
     if u.nascimento is None:
         return redirect(url_for("idade.nascimento", next=_destino()))
     from .menores.idade import aguarda_responsavel  # menores.idade importa util

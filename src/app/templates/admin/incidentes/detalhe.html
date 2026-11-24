@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Incidente #{{ inc.id }} — Admin{% endblock %}
+{% block content %}
+{% set aberto = inc.encerrado_em is none %}
+<h1>Incidente #{{ inc.id }} <span class="tag">{{ situacoes[inc.situacao] }}</span></h1>
+<section class="panel">
+  <p>{{ inc.descricao }}</p>
+  <p><strong>Ciência:</strong> {{ belem(inc.ciencia_em).strftime('%d/%m/%Y %H:%M') }} · <strong>Ocorrência provável:</strong> {{ inc.ocorrencia_em.strftime('%d/%m/%Y') if inc.ocorrencia_em else 'não determinada' }}</p>
+  <p><strong>Dados afetados:</strong> {% for c in inc.lista_categorias %}<span class="tag">{{ rotulos[c] }}</span>{% endfor %}</p>
+  <p><strong>Titulares estimados:</strong> {{ inc.titulares_estimados }}{% if inc.envolve_menores %} · <span class="tag">dados de menores</span>{% endif %}</p>
+  <p><strong>Medidas tomadas:</strong> {{ inc.medidas }}</p>
+  <p class="mut">Registrado por @{{ inc.autor.username }} em {{ belem(inc.created_at).strftime('%d/%m/%Y %H:%M') }}{% if inc.encerrado_em %} · encerrado em {{ belem(inc.encerrado_em).strftime('%d/%m/%Y %H:%M') }}{% endif %}</p>
+</section>
+
+<section class="panel"><h2>Avaliação de risco: {{ riscos[inc.risco] }}</h2>
+  {% if motivos %}<p>Risco relevante por: {{ motivos | join(', ') }}.</p>{% endif %}
+  {% if inc.justificativa_risco %}<p><strong>Justificativa:</strong> {{ inc.justificativa_risco }}</p>{% endif %}
+  {% if aberto and inc.risco != 'relevante' %}
+  <form method="post" action="/admin/incidentes/{{ inc.id }}/risco">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label for="justificativa">Justificativa (obrigatória)</label><textarea id="justificativa" name="justificativa" maxlength="5000" required></textarea>
+    <p><button name="decisao" value="confirmar">Confirmar risco relevante</button>{% if inc.risco == 'a_avaliar' %} <button class="ghost" name="decisao" value="descartar">Descartar risco</button>{% endif %}</p>
+  </form>
+  {% endif %}
+</section>
+
+<section class="panel"><h2>Prazos de comunicação</h2>
+  <div class="row">
+  {% for p in prazos %}
+    <div class="panel{{ ' prazo-destaque' if p.destaque }}"><strong>{{ p.nome }}</strong>{% if p.destaque %} <span class="tag">mais próximo</span>{% endif %}<br>
+      {{ p.limite.strftime('%d/%m/%Y %H:%M') }}<br><span class="{{ 'err' if p.vencido and not p.cumprido else 'mut' }}">{{ 'cumprido' if p.cumprido else p.faltam }}</span></div>
+  {% endfor %}
+  </div>
+  <p class="mut">{{ dias_prazo }} dias úteis a partir da ciência, sem sábados, domingos e feriados nacionais fixos{{ ' (em dobro: agente de pequeno porte)' if pequeno_porte }}.</p>
+</section>
+
+<section class="panel"><h2>Comunicação à ANPD</h2>
+  <p><a class="btn" href="/admin/incidentes/{{ inc.id }}/anpd.txt">Baixar o modelo (.txt)</a> <span class="mut">Envie pelo peticionamento eletrônico da ANPD e registre a data aqui.</span></p>
+  {% if inc.anpd_enviado_em %}<p><strong>Enviado em:</strong> {{ inc.anpd_enviado_em.strftime('%d/%m/%Y') }}</p>
+  {% elif aberto %}
+  <form method="post" action="/admin/incidentes/{{ inc.id }}/anpd" class="row">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div><label for="enviado_em">Data do envio</label><input id="enviado_em" name="enviado_em" type="date" required></div>
+    <div style="align-self:end"><button>Registrar envio</button></div>
+  </form>{% endif %}
+</section>
+
+<section class="panel"><h2>Comunicação aos titulares</h2>
+  {% if inc.titulares_avisados_em %}<p>{{ inc.titulares_avisados }} titular{{ 'es' if inc.titulares_avisados != 1 }} avisado{{ 's' if inc.titulares_avisados != 1 }}; último envio em {{ belem(inc.titulares_avisados_em).strftime('%d/%m/%Y %H:%M') }}.</p>{% endif %}
+  {% if aberto %}<p><a class="btn" href="/admin/incidentes/{{ inc.id }}/titulares">Comunicar titulares</a></p>{% endif %}
+</section>
+
+<section class="panel"><h2>Anotações</h2>
+  {% for a in anotacoes %}<p><strong>@{{ a.autor.username }}</strong> <span class="mut">{{ belem(a.created_at).strftime('%d/%m/%Y %H:%M') }}</span><br>{{ a.texto }}</p>
+  {% else %}<p class="mut">Nenhuma anotação.</p>{% endfor %}
+  <form method="post" action="/admin/incidentes/{{ inc.id }}/anotacoes">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label for="texto">Nova anotação ou correção</label><textarea id="texto" name="texto" maxlength="5000" required></textarea>
+    <p><button class="ghost">Anotar</button></p>
+  </form>
+</section>
+
+{% if aberto %}<form method="post" action="/admin/incidentes/{{ inc.id }}/encerrar"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="ghost">Encerrar incidente</button> <span class="mut">Depois de encerrado, o registro não muda mais e fica guardado por 5 anos.</span></form>{% endif %}
+<p><a href="/admin/incidentes">Voltar aos incidentes</a></p>
+{% endblock %}

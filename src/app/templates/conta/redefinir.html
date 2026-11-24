@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Nova senha — GameLog{% endblock %}
+{% block content %}
+<section class="panel" style="max-width:420px;margin:0 auto">
+{% if invalido %}
+  <h1>{{ invalido }}</h1>
+  <p>O link já foi usado, venceu ou está incompleto. <a href="/senha/recuperar">Peça outro link</a>.</p>
+{% else %}
+<h1>Nova senha</h1>
+<form method="post">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <label for="nova">Nova senha (mínimo de 8 caracteres)</label>
+  <input id="nova" name="nova" type="password" autocomplete="new-password" minlength="8" required>
+  <label for="confirmacao">Repita a nova senha</label>
+  <input id="confirmacao" name="confirmacao" type="password" autocomplete="new-password" minlength="8" required>
+  {% if erros.nova %}<div class="err">{{ erros.nova }}</div>{% endif %}
+  <p><button>Salvar nova senha</button></p>
+</form>
+{% endif %}
+</section>
+{% endblock %}

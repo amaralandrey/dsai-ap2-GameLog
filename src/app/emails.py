@@ -37,6 +37,8 @@ MAX_ERRO = 500
 ENDERECO = re.compile(r"[^\s<>'\",;:()\[\]{}]+@[^\s<>'\",;:()\[\]{}]+")
 NOITE_INICIO, NOITE_FIM = 22, 7  # PMN-07
 MAX_ITENS_RESUMO = 10
+CORPO_OCULTO = ("recuperar_senha",)  # o corpo leva link de acesso à conta: some depois do envio (RSN-09)
+CORPO_REMOVIDO = "[link removido após o envio]"
 
 
 # ---------- ganchos das specs que ainda não estão na main ----------
@@ -214,6 +216,11 @@ def motivo_supressao(email):
     return None
 
 
+def remover_corpo(email):
+    if email.modelo in CORPO_OCULTO:
+        email.corpo_texto = email.corpo_html = CORPO_REMOVIDO
+
+
 @tarefa("enviar_email")
 def processar(email_id):
     """Envia um e-mail `pendente`; um já enviado (ou suprimido) não sai de novo num job repetido (EML-04)."""
@@ -222,6 +229,7 @@ def processar(email_id):
         return
     if motivo := motivo_supressao(email):
         email.status, email.erro = "suprimido", motivo
+        remover_corpo(email)
         return
     try:
         (entregar_smtp if backend() == "smtp" else entregar_console)(mensagem(email))
@@ -230,6 +238,7 @@ def processar(email_id):
         permanente = codigo is not None and 500 <= codigo < 600
         if permanente:
             email.status = "falhou"
+            remover_corpo(email)
             if email.modelo == SEM_DESTINO:
                 email.para = mascarar(email.para)
         db.session.commit()  # o erro fica gravado mesmo com o rollback do job (JOB-06)
@@ -237,6 +246,7 @@ def processar(email_id):
             raise ErroPermanente(email.erro) from None
         raise RuntimeError(email.erro) from None  # 4xx, conexão ou timeout: nova tentativa com espera (JOB-06)
     email.status, email.enviado_em, email.erro = "enviado", tempo.agora_utc(), None
+    remover_corpo(email)
     if email.modelo == SEM_DESTINO:
         email.para = mascarar(email.para)  # o GameLog não guarda o endereço depois do envio (DIR-08)
     db.session.commit()  # o enviado fica gravado antes do fim do job, que então nunca o reenvia
@@ -356,7 +366,7 @@ def caixa():
 @admin_required
 def ver(eid):
     return render_template("admin/email.html", e=db.get_or_404(EmailSaida, eid), mascarar=mascarar,
-                           belem=tempo.para_belem)
+                           belem=tempo.para_belem, oculto=CORPO_OCULTO)
 
 
 @bp.route("/admin/emails/<int:eid>/reenviar", methods=["POST"])
@@ -364,7 +374,7 @@ def ver(eid):
 def reenviar(eid):
     """Um e-mail que falhou volta como linha nova, com o mesmo corpo (EML-10, GLOBAL-17)."""
     e = db.get_or_404(EmailSaida, eid)
-    if e.status != "falhou":
+    if e.status != "falhou" or e.modelo in CORPO_OCULTO:  # o link removido não serve: a pessoa pede outro (RSN-09)
         flash("Só um e-mail que falhou pode ser reenviado.", "erro")
         return redirect(f"/admin/emails/{e.id}")
     novo = EmailSaida(user_id=e.user_id, para=e.para, modelo=e.modelo, tipo=e.tipo, assunto=e.assunto,

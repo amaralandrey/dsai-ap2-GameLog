@@ -1,7 +1,7 @@
 from app.models import User, db
 from conftest import login, make_user
 
-OK = {"username": "ana", "email": "ana@ex.com", "password": "senha1234", "nascimento": "1995-06-15"}
+OK = {"username": "ana", "email": "ana@ex.com", "password": "senha1234", "nascimento": "1995-06-15", "aceite": "1"}
 
 
 def signup(client, **kw):

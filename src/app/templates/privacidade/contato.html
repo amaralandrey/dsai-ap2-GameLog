@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Fale com a gente sobre seus dados — GameLog{% endblock %}
+{% block content %}
+<section class="panel" style="max-width:560px;margin:0 auto">
+<h1>Fale com a gente sobre seus dados</h1>
+{% if encarregado %}<p>Você também pode escrever direto para o encarregado, {{ encarregado.nome }} (<a href="mailto:{{ encarregado.email }}">{{ encarregado.email }}</a>).</p>{% endif %}
+<p class="mut">Cada mensagem recebe um número de protocolo para você acompanhar a resposta.</p>
+<form method="post">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <label for="assunto">Assunto</label>
+  <input id="assunto" name="assunto" maxlength="120" value="{{ form.get('assunto', '') }}" required>
+  {% if erros.assunto %}<div class="err">{{ erros.assunto }}</div>{% endif %}
+  <label for="mensagem">Mensagem</label>
+  <textarea id="mensagem" name="mensagem" maxlength="2000" required>{{ form.get('mensagem', '') }}</textarea>
+  {% if erros.mensagem %}<div class="err">{{ erros.mensagem }}</div>{% endif %}
+  <label for="email">E-mail para a resposta{% if me %} <span class="mut">(vazio: {{ me.email }})</span>{% endif %}</label>
+  <input id="email" name="email" type="email" value="{{ form.get('email', '') }}"{{ ' required' if not me }}>
+  {% if erros.email %}<div class="err">{{ erros.email }}</div>{% endif %}
+  <p><button>Enviar</button></p>
+</form>
+</section>
+{% endblock %}
