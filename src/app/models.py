@@ -852,6 +852,44 @@ class EmailSaida(db.Model):
     user = db.relationship(User)
 
 
+class Incidente(db.Model):
+    """Registro de incidente de segurança (INC-01): guardado por 5 anos depois de encerrado (INC-08, RTN)."""
+    id = db.Column(db.Integer, primary_key=True)
+    descricao = db.Column(db.Text, nullable=False)
+    ciencia_em = db.Column(db.DateTime, nullable=False)
+    ocorrencia_em = db.Column(db.Date, nullable=True)
+    categorias = db.Column(db.String(200), nullable=False)  # categorias do mapa de dados, separadas por vírgula
+    titulares_estimados = db.Column(db.Integer, nullable=False)
+    envolve_menores = db.Column(db.Boolean, default=False, nullable=False)
+    medidas = db.Column(db.Text, nullable=False)
+    risco = db.Column(db.String(10), nullable=False)
+    justificativa_risco = db.Column(db.Text, nullable=True)
+    situacao = db.Column(db.String(20), default="aberto", nullable=False)
+    anpd_enviado_em = db.Column(db.Date, nullable=True)
+    titulares_avisados = db.Column(db.Integer, nullable=True)
+    titulares_avisados_em = db.Column(db.DateTime, nullable=True)
+    texto_titulares = db.Column(db.Text, nullable=True)
+    lembrete_em = db.Column(db.Date, nullable=True)  # dia (Belém) do último aviso de prazo (INC-07)
+    registrado_por = db.Column(db.ForeignKey("user.id"), nullable=False)
+    created_at = db.Column(db.DateTime, default=now, nullable=False)
+    encerrado_em = db.Column(db.DateTime, nullable=True)
+    autor = db.relationship(User)
+
+    @property
+    def lista_categorias(self):
+        return [c for c in self.categorias.split(",") if c]
+
+
+class AnotacaoIncidente(db.Model):
+    """Correção ou complemento datado de um incidente, que nunca é editado depois de encerrado (INC-08)."""
+    id = db.Column(db.Integer, primary_key=True)
+    incidente_id = db.Column(db.ForeignKey("incidente.id"), nullable=False, index=True)
+    autor_id = db.Column(db.ForeignKey("user.id"), nullable=False)
+    texto = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=now, nullable=False)
+    autor = db.relationship(User)
+
+
 def visible_games():
     """Jogos não removidos (CAT-07)."""
     return Game.query.filter(Game.removed_at.is_(None))

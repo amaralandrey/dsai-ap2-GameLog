@@ -26,6 +26,7 @@ FINALIDADES = {  # agrupam o registro das operações (MAP-08)
     "catalogo": "Catálogo de jogos, lojas e conquistas",
     "protecao_menores": "Verificação de idade e proteção de crianças e adolescentes",
     "comunicacao": "E-mails da conta, avisos por e-mail e resumo semanal",
+    "incidentes": "Registro e comunicação de incidentes de segurança",
     "direitos": "Atendimento aos pedidos e às mensagens dos titulares",
 }
 
@@ -87,6 +88,9 @@ EMAIL = dict(CONTA, categoria="contato", finalidade="comunicacao", retencao_dias
              anonimizar="apagar_linha")
 # o job `enviar_email` leva o id da caixa de saída e o resumo leva o user_id (EML-08): histórico de 30 dias (RTN-02)
 FILA = dict(CONTA, categoria="tecnico", finalidade="comunicacao", retencao_dias=30, exportar=False)
+RETENCAO_INCIDENTE_DIAS = 5 * 365 + 1  # Res. CD/ANPD 15/2024, art. 10; o expurgo conta do encerramento (INC-08)
+INCIDENTE = dict(CONTA, categoria="atividade", finalidade="incidentes", base_legal="obrigacao_legal",
+                 retencao_dias=RETENCAO_INCIDENTE_DIAS, exportar=False)
 # segredo do TOTP, códigos de recuperação e e-mail à espera de confirmação (CTA): nunca exportados
 AUTENTICACAO = dict(CONTA, categoria="autenticacao", exportar=False, anonimizar="apagar")
 NAO_PESSOAL = dict(categoria="nao_pessoal", finalidade="catalogo", base_legal="nao_se_aplica", retencao_dias=None,
@@ -201,6 +205,12 @@ CAMPOS = {
               ("categoria motivo created_at revertida_em", {"exportar": True}), ("admin_id", {})),
     **_tabela("audit_log", dict(AUDITORIA, retencao_dias=730), ("id", TECNICO),
               ("admin_id action detail created_at", {})),
+    **_tabela("incidente", INCIDENTE, ("id", TECNICO), ("registrado_por", DONO),
+              ("descricao ciencia_em ocorrencia_em categorias titulares_estimados envolve_menores medidas risco "
+               "justificativa_risco situacao anpd_enviado_em titulares_avisados titulares_avisados_em "
+               "texto_titulares lembrete_em created_at encerrado_em", {})),
+    **_tabela("anotacao_incidente", INCIDENTE, ("id incidente_id", TECNICO), ("autor_id", DONO),
+              ("texto created_at", {})),
     **_tabela("pendencia_merge", dict(CONTA, categoria="nao_pessoal", finalidade="catalogo",
                                       base_legal="nao_se_aplica", exportar=False),
               ("id jogo_a_id jogo_b_id semelhanca status created_at decidida_em", {}),
