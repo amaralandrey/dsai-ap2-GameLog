@@ -773,6 +773,23 @@ def _so_insercao(*_):
     raise ValueError("documento publicado e aceite não mudam: publique outra versão")
 
 
+class Consentimento(db.Model):
+    """Concessão ou revogação de uma finalidade, só de inserção; vale a linha mais recente (CNS-01)."""
+    __table_args__ = (db.Index("ix_consentimento_usuario", "user_id", "finalidade", "created_at"),)
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.ForeignKey("user.id"), nullable=False)
+    finalidade = db.Column(db.String(20), nullable=False)
+    concedido = db.Column(db.Boolean, nullable=False)
+    versao_texto = db.Column(db.Integer, nullable=False)
+    origem = db.Column(db.String(15), nullable=False)
+    created_at = db.Column(db.DateTime, default=now, nullable=False)
+
+
+@db.event.listens_for(Consentimento, "before_update")
+def _consentimento_so_insercao(*_):
+    raise ValueError("consentimento não muda: grave uma nova linha")
+
+
 class PedidoTitular(db.Model):
     """Pedido ou mensagem do titular, com protocolo; por ora só o tipo `contato` do canal (PRV-07).
 
