@@ -393,7 +393,8 @@ def test_inc09_cookie_em_desenvolvimento(app):
 
 
 # ---------- INC-10 ----------
-def test_inc10_csp_das_paginas_html(client):
+def test_inc10_csp_das_paginas_html(app, client):
+    app.config["PROXY_CAPAS_ATIVO"] = False
     csp = client.get("/").headers["Content-Security-Policy"]
     diretivas = dict(d.split(" ", 1) for d in csp.split("; "))
     assert diretivas["default-src"] == "'self'" and diretivas["script-src"] == "'self'"
@@ -426,13 +427,13 @@ def test_inc10_api_ganha_so_nosniff(client):
 
 
 def test_inc10_capas_externas_seguem_a_config(app, client):
-    app.config["CAPAS_HOSTS_PERMITIDOS"] = ("capas.exemplo.com",)
+    app.config.update(CAPAS_HOSTS_PERMITIDOS=("capas.exemplo.com",), PROXY_CAPAS_ATIVO=False)
     img = client.get("/").headers["Content-Security-Policy"].split("img-src ")[1].split(";")[0]
     assert img == "'self' data: https://capas.exemplo.com"
 
 
 def test_inc10_com_proxy_de_capas_so_o_importar_ve_capa_externa(app, chefe):
-    app.config["PROXY_CAPAS_ATIVO"] = True
+    assert app.config["PROXY_CAPAS_ATIVO"]
     assert "steamstatic" not in chefe.get("/").headers["Content-Security-Policy"]
     assert "steamstatic" in chefe.get("/admin/importar").headers["Content-Security-Policy"]
 

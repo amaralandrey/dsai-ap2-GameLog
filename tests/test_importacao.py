@@ -67,8 +67,11 @@ def test_imp07_capa_real_ou_svg(app, client):
         slug = g.slug
         db.session.add(Game(title="Sem capa", slug="sem-capa", synopsis="s", release_date=date(2020, 1, 1), developer=g.developer))
         db.session.commit()
-    assert b'src="https://img/1.jpg"' in client.get(f"/jogos/{slug}").data
-    assert b'src="https://img/1.jpg"' in client.get("/").data or b"https://img/1.jpg" in client.get("/jogos").data
+    with app.app_context():
+        assert Game.query.filter_by(slug=slug).one().cover_url == "https://img/1.jpg"
+    capa = f'src="/capas/{slug}"'.encode()  # a imagem real passa pelo proxy do GameLog (RTN-07, RTN-09)
+    assert capa in client.get(f"/jogos/{slug}").data
+    assert capa in client.get("/").data
     assert b'src="/capa/sem-capa.svg"' in client.get("/jogos/sem-capa").data
 
 

@@ -1,0 +1,6 @@
+{% extends "email/_layout.html" %}
+{% block corpo %}
+<p style="margin:0 0 12px">Olá, {{ user.display_name }}.</p>
+<p style="margin:0 0 12px">Faz quase {{ anos }} anos que você não entra no GameLog com a conta <strong>@{{ user.username }}</strong>. Para não guardar dados sem necessidade, contas sem acesso há {{ anos }} anos são anonimizadas: nome, e-mail e bio são apagados, e as avaliações continuam como "Usuário removido".</p>
+<p style="margin:0">Para manter a conta, basta <a href="{{ url_publica('/entrar') }}" style="color:#3b2f80;font-weight:bold">entrar no GameLog</a> até {{ limite.strftime('%d/%m/%Y') }}.</p>
+{% endblock %}

@@ -21,6 +21,7 @@ from .conquistas import vitrine
 from .progressao import resumo as resumo_progressao
 from .retrospectiva import sparkline_do_perfil
 from .perfil import dados as dados_perfil
+from .privacidade.retencao import registrar_acesso
 from .util import current_user, login_required, safe_next
 
 bp = Blueprint("auth", __name__)
@@ -152,6 +153,8 @@ def login():
             LoginAttempt.query.filter_by(email=email).delete()
             db.session.commit()
             start_session(user)
+            registrar_acesso(user)  # RTN-05: zera também o aviso de conta inativa (RTN-06)
+            db.session.commit()
             return redirect(safe_next(request.args.get("next")))
         db.session.add(LoginAttempt(email=email))
         db.session.commit()

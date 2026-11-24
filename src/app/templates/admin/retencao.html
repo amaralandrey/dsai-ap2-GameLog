@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Retenção de dados — Admin{% endblock %}
+{% block content %}
+<h1>Retenção de dados</h1>
+<p class="mut">Prazos do mapa de dados. O expurgo roda todo dia pela fila de jobs (tarefa <code>expurgo</code>) ou por <code>flask privacidade expurgar</code>.</p>
+{% if ultimo %}
+<p>Último expurgo: <strong>{{ belem(ultimo[0]).strftime('%d/%m/%Y %H:%M') }}</strong></p>
+{% else %}
+<p class="mut">O expurgo ainda não rodou.</p>
+{% endif %}
+<table>
+  <tr><th>Tabela</th><th>Prazo</th><th>Vencidas hoje</th><th>Apagadas no último expurgo</th></tr>
+  {% for l in linhas %}
+  <tr>
+    <td>{{ l.tabela }}</td>
+    <td>{{ "%d dias"|format(l.prazo) if l.prazo else "sem prazo" }}</td>
+    <td>{{ l.vencidas if l.vencidas is not none else "—" }}</td>
+    <td>{{ ultimo[1].get(l.tabela, "—") if ultimo else "—" }}</td>
+  </tr>
+  {% endfor %}
+</table>
+<h2>Contas</h2>
+<p class="mut">Conta sem acesso há {{ "%d dias"|format(prazo_contas) if prazo_contas else "(sem prazo no mapa)" }} é anonimizada 30 dias depois do aviso por e-mail; administradores nunca contam como inativos. Conta à espera do responsável há mais de 30 dias é apagada.</p>
+<table>
+  <tr><th>Etapa</th><th>Pendentes hoje</th><th>No último expurgo</th></tr>
+  {% for etapa, rotulo in [("contas_avisadas", "Avisar por e-mail"), ("contas_anonimizadas", "Anonimizar"), ("contas_pendentes_apagadas", "Apagar conta pendente")] %}
+  <tr><td>{{ rotulo }}</td><td>{{ contas[etapa] }}</td><td>{{ ultimo[1].get(etapa, "—") if ultimo else "—" }}</td></tr>
+  {% endfor %}
+</table>
+{% endblock %}

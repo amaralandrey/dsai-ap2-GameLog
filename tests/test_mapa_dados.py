@@ -17,6 +17,7 @@ VALIDO = Campo("atividade", "conteudo", "contrato", None, True, "manter")
 def test_tarefas_de_job_e_dado_pessoal_nos_args():
     """Tarefas de e-mail levam o id do usuário em `args` e `chave_unica` (EML-08); tarefa nova revisa o mapa."""
     from app import emails, jobs  # noqa: F401  (emails registra as tarefas de e-mail)
+    from app.privacidade import retencao  # noqa: F401  (registra o expurgo, RTN-01)
     from app.privacidade import incidentes  # noqa: F401  (incidentes_prazos, sem usuário em args)
 
     for chave in ("job.args", "job.chave_unica", "agendamento.args"):
@@ -24,7 +25,8 @@ def test_tarefas_de_job_e_dado_pessoal_nos_args():
     assert mapa.CAMPOS["job.tipo"].categoria == "nao_pessoal"
     assert mapa.retencao("job") == 30 and mapa.retencao("email_saida") == 90  # RTN-02
     assert set(jobs.TAREFAS) == {"sync_games", "enriquecer_snapshot", "precos", "enviar_email",
-                                 "email_resumo_semanal", "email_resumo", "torneios", "incidentes_prazos"}, \
+                                 "email_resumo_semanal", "email_resumo", "torneios", "incidentes_prazos",
+                                 "expurgo"}, \
         "tarefa nova: confira se o que ela leva em args está anotado em job.args e agendamento.args"
 
 

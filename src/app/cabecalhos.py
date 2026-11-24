@@ -6,13 +6,11 @@ só ficam permitidas na prévia de `/admin/importar` (RTN-09).
 """
 from flask import current_app, request
 
-CAPAS_HOSTS_PADRAO = (
-    "cdn.cloudflare.steamstatic.com",
-    "cdn.akamai.steamstatic.com",
-    "shared.cloudflare.steamstatic.com",
-    "shared.akamai.steamstatic.com",
-    "images.gog-statics.com",
-    "media.rawg.io",
+CAPAS_HOSTS_PERMITIDOS = (
+    "cdn.cloudflare.steamstatic.com", "shared.cloudflare.steamstatic.com", "cdn.akamai.steamstatic.com",
+    "shared.akamai.steamstatic.com", "shared.fastly.steamstatic.com", "steamcdn-a.akamaihd.net",
+    "images.gog-statics.com", "images-1.gog-statics.com", "images-2.gog-statics.com", "images-3.gog-statics.com",
+    "images-4.gog-statics.com", "media.rawg.io",
 )
 HSTS = "max-age=31536000"
 PERMISSOES = "camera=(), microphone=(), geolocation=()"

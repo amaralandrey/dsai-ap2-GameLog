@@ -1,0 +1,7 @@
+{% extends "email/_layout.txt" %}
+{% block assunto %}Sua conta no GameLog será anonimizada em {{ limite.strftime('%d/%m/%Y') }}{% endblock %}
+{% block corpo %}Olá, {{ user.display_name }}.
+
+Faz quase {{ anos }} anos que você não entra no GameLog com a conta @{{ user.username }}. Para não guardar dados sem necessidade, contas sem acesso há {{ anos }} anos são anonimizadas: nome, e-mail e bio são apagados, e as avaliações continuam como "Usuário removido".
+
+Para manter a conta, basta entrar até {{ limite.strftime('%d/%m/%Y') }}: {{ url_publica('/entrar') }}{% endblock %}

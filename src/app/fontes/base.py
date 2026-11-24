@@ -3,8 +3,8 @@ import json
 import os
 import time
 from urllib.error import HTTPError
-from urllib.parse import urlencode
-from urllib.request import Request, urlopen
+from urllib.parse import urlencode, urljoin
+from urllib.request import HTTPRedirectHandler, Request, build_opener, urlopen
 
 from flask import has_request_context
 
@@ -64,6 +64,47 @@ def get_json(url, params=None, headers=None):
             if n == tentativas - 1 or not _repetir(exc):
                 raise
         esperar(2 ** n)  # 1 s, 2 s, ...
+
+
+class Redirecionado(Exception):
+    """Resposta 3xx; quem baixa decide se o destino vale (RTN-08)."""
+
+    def __init__(self, destino):
+        super().__init__(f"redirecionado para {destino}")
+        self.destino = destino
+
+
+class ArquivoInvalido(ValueError):
+    """Corpo acima do limite."""
+
+
+class _NaoSegue(HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None  # o urllib levanta o HTTPError do 3xx em vez de seguir
+
+
+abrir_sem_seguir = build_opener(_NaoSegue).open  # os testes trocam por uma resposta falsa
+
+
+def baixar(url, limite):
+    """(Content-Type, corpo) de um GET binário, numa tentativa só e sem seguir redirecionamento.
+
+    Leva só o User-Agent do GameLog: nada do visitante (cookie, IP, cabeçalhos) é repassado (RTN-10).
+    """
+    try:
+        with abrir_sem_seguir(requisicao(url), timeout=timeout()) as r:
+            tipo = (r.headers.get("Content-Type") or "").split(";")[0].strip().lower()
+            tamanho = r.headers.get("Content-Length")
+            if tamanho and tamanho.isdigit() and int(tamanho) > limite:
+                raise ArquivoInvalido(f"{tamanho} bytes")
+            corpo = r.read(limite + 1)
+    except HTTPError as exc:
+        if 300 <= exc.code < 400 and exc.headers.get("Location"):
+            raise Redirecionado(urljoin(url, exc.headers["Location"])) from None
+        raise
+    if len(corpo) > limite:
+        raise ArquivoInvalido(f"mais de {limite} bytes")
+    return tipo, corpo
 
 
 def paginar(pagina, limite):

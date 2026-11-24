@@ -112,6 +112,9 @@ CAMPOS = {
         ("perfil_privado", {"categoria": "preferencia", "finalidade": "perfil_social"}),
         ("steam_id", {"finalidade": "acompanhamento", "anonimizar": "apagar"}),
         ("email_pendente totp_segredo totp_ativado_em totp_ultimo_passo", AUTENTICACAO),
+        # RTN-05, RTN-06: o prazo de `ultimo_acesso` é o da conta inativa, que o expurgo anonimiza depois do aviso
+        ("ultimo_acesso", {"categoria": "atividade", "retencao_dias": 730, "anonimizar": "apagar"}),
+        ("aviso_inatividade_em", {"categoria": "atividade", "exportar": False, "anonimizar": "apagar"}),
         ("nascimento nascimento_confiavel aguardando_responsavel idade_contestada_em suspensa_em "
          "revisao_idade_pedida_em", IDADE),
     ),
@@ -242,9 +245,9 @@ CAMPOS = {
 SUBOPERADORES = [
     Suboperador("Render", "Hospedagem da aplicação e do banco", "Estados Unidos",
                 "Cláusulas-padrão contratuais (Res. CD/ANPD 19/2024)", ()),
-    Suboperador("Valve (Steam)", "Catálogo e capas dos jogos; o navegador do visitante acessa a CDN da Steam "
-                "enquanto o proxy de capas (RTN) não está ligado", "Estados Unidos",
-                "Acesso direto do navegador do titular à CDN; nenhum dado é enviado pelo GameLog", ("catalogo",)),
+    Suboperador("Valve (Steam)", "Catálogo e capas dos jogos; as capas passam pelo proxy do GameLog (RTN-07), e o "
+                "navegador do visitante não acessa a CDN da Steam", "Estados Unidos",
+                "Não se aplica: nenhum dado pessoal é transferido", ("catalogo",)),
     Suboperador("GOG", "Catálogo e preços; nenhum dado pessoal é enviado", "Polônia",
                 "Não se aplica: nenhum dado pessoal é transferido", ("catalogo",)),
     Suboperador("RAWG", "Catálogo; nenhum dado pessoal é enviado", "Não informado",

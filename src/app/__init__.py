@@ -10,7 +10,7 @@ from sqlalchemy import event
 from sqlalchemy.dialects.sqlite import insert
 from sqlalchemy.engine import Engine
 
-from .cabecalhos import CAPAS_HOSTS_PADRAO, aplicar as cabecalhos_de_seguranca
+from .cabecalhos import CAPAS_HOSTS_PERMITIDOS, aplicar as cabecalhos_de_seguranca
 from .models import Instancia, db
 from .util import avatar_style, current_user, fold
 
@@ -27,8 +27,9 @@ def create_app(config=None):
         PRODUCAO=os.environ.get("GAMELOG_PRODUCAO") == "1",  # definida no render.yaml
         SESSION_COOKIE_SAMESITE="Lax",
         SESSION_COOKIE_HTTPONLY=True,
-        CAPAS_HOSTS_PERMITIDOS=CAPAS_HOSTS_PADRAO,  # INC-10 e o proxy de capas (RTN-08)
-        PROXY_CAPAS_ATIVO=False,
+        CAPAS_HOSTS_PERMITIDOS=CAPAS_HOSTS_PERMITIDOS,  # INC-10 e o proxy de capas (RTN-08)
+        CAPAS_CACHE_DIR=os.environ.get("CAPAS_CACHE_DIR") or os.path.join(app.instance_path, "capas"),
+        PROXY_CAPAS_ATIVO=True,
     )
     app.config.update(config or {})
     if app.config["PRODUCAO"]:
