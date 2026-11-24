@@ -30,14 +30,14 @@ def test_tarefas_de_job_e_dado_pessoal_nos_args():
         "tarefa nova: confira se o que ela leva em args está anotado em job.args e agendamento.args"
 
 
-def test_toda_coluna_do_banco_esta_no_mapa(app):  # MAP-02, MAP-03, GLOBAL-12
+def test_map02_toda_coluna_do_banco_esta_no_mapa(app):  # MAP-02, MAP-03, GLOBAL-12
     with app.app_context():
         faltando, sobrando = mapa.verificar_mapa()
     assert faltando == [], f"colunas sem anotação no mapa de dados: {faltando}"
     assert sobrando == [], f"anotações sem coluna no banco: {sobrando}"
 
 
-def test_o_mapa_atual_e_valido():  # MAP-04..06
+def test_map04_o_mapa_atual_e_valido():  # MAP-04..06
     assert mapa.validar_mapa() == []
 
 
@@ -48,13 +48,13 @@ def _metadata():
     return md
 
 
-def test_coluna_sem_anotacao_e_anotacao_sobrando():  # MAP-03
+def test_map03_coluna_sem_anotacao_e_anotacao_sobrando():  # MAP-03
     campos = {"t.id": VALIDO, "t.velha": VALIDO, "sumiu.*": replace(VALIDO, categoria="nao_pessoal"),
               "cat.*": VALIDO}
     assert mapa.verificar_mapa(campos, _metadata()) == (["t.a"], ["sumiu.*", "t.velha"])
 
 
-def test_tabela_inteira_cobre_as_colunas_mas_nao_junto_com_coluna_avulsa():  # MAP-02
+def test_map02_tabela_inteira_cobre_as_colunas_mas_nao_junto_com_coluna_avulsa():  # MAP-02
     nao_pessoal = Campo("nao_pessoal", "catalogo", "nao_se_aplica", None, False, "manter")
     campos = {"t.*": nao_pessoal, "cat.*": nao_pessoal}
     assert mapa.verificar_mapa(campos, _metadata()) == ([], [])
@@ -65,19 +65,19 @@ def test_tabela_inteira_cobre_as_colunas_mas_nao_junto_com_coluna_avulsa():  # M
     {"categoria": "sensivel"}, {"base_legal": "vontade"}, {"anonimizar": "embaralhar"},
     {"finalidade": "marketing"}, {"retencao_dias": 0}, {"retencao_dias": "30"}, {"exportar": "sim"},
 ])
-def test_valores_fora_das_listas_sao_recusados(mudanca):  # MAP-01, MAP-04
+def test_map01_valores_fora_das_listas_sao_recusados(mudanca):  # MAP-01, MAP-04
     assert mapa.validar_campo("t.a", VALIDO) == []
     assert mapa.validar_campo("t.a", replace(VALIDO, **mudanca))
 
 
-def test_legitimo_interesse_exige_avaliacao():  # MAP-04
+def test_map04_legitimo_interesse_exige_avaliacao():  # MAP-04
     sem = replace(VALIDO, base_legal="legitimo_interesse")
     assert any("balanceamento" in e for e in mapa.validar_campo("t.a", sem))
     assert mapa.validar_campo("t.a", replace(sem, avaliacao_li="   ")) != []
     assert mapa.validar_campo("t.a", replace(sem, avaliacao_li="necessário e proporcional")) == []
 
 
-def test_nao_pessoal_exige_nao_se_aplica_e_nao_exporta():  # MAP-04
+def test_map04_nao_pessoal_exige_nao_se_aplica_e_nao_exporta():  # MAP-04
     nao_pessoal = Campo("nao_pessoal", "catalogo", "nao_se_aplica", None, False, "manter")
     assert mapa.validar_campo("t.*", nao_pessoal) == []
     assert mapa.validar_campo("t.*", replace(nao_pessoal, base_legal="contrato")) != []
@@ -85,7 +85,7 @@ def test_nao_pessoal_exige_nao_se_aplica_e_nao_exporta():  # MAP-04
     assert mapa.validar_campo("t.a", replace(VALIDO, base_legal="nao_se_aplica")) != []
 
 
-def test_consentimento_exige_finalidade_conhecida():  # MAP-05
+def test_map05_consentimento_exige_finalidade_conhecida():  # MAP-05
     consentido = replace(VALIDO, base_legal="consentimento")
     assert mapa.validar_campo("t.a", consentido) != []
     assert any("finalidade de consentimento" in e
@@ -94,7 +94,7 @@ def test_consentimento_exige_finalidade_conhecida():  # MAP-05
         assert mapa.validar_campo("t.a", replace(consentido, finalidade_consentimento=finalidade)) == []
 
 
-def test_autenticacao_nunca_e_exportavel():  # MAP-06
+def test_map06_autenticacao_nunca_e_exportavel():  # MAP-06
     senha = Campo("autenticacao", "conta", "contrato", None, False, "substituir")
     assert mapa.validar_campo("user.password_hash", senha) == []
     assert any("autenticação" in e for e in mapa.validar_campo("user.password_hash", replace(senha, exportar=True)))
@@ -102,7 +102,7 @@ def test_autenticacao_nunca_e_exportavel():  # MAP-06
     assert "session_version" not in mapa.campos_exportaveis("user")
 
 
-def test_consultas_leem_so_o_mapa(monkeypatch):  # MAP-09
+def test_map09_consultas_leem_so_o_mapa(monkeypatch):  # MAP-09
     assert "bio" in mapa.campos_exportaveis("user")
     assert mapa.regra_anonimizacao("user", "bio") == "apagar"
     assert mapa.regra_anonimizacao("game", "title") == "manter"  # coberta por game.*
@@ -123,7 +123,7 @@ def test_consultas_leem_so_o_mapa(monkeypatch):  # MAP-09
     assert mapa.retencao("login_attempt") == 7
 
 
-def test_suboperadores_e_provedor_de_email(monkeypatch):  # MAP-07
+def test_map07_suboperadores_e_provedor_de_email(monkeypatch):  # MAP-07
     monkeypatch.delenv("SMTP_HOST", raising=False)
     nomes = [s.nome for s in mapa.suboperadores()]
     assert nomes[:2] == ["Render", "Valve (Steam)"] and "GOG" in nomes and "RAWG" in nomes
@@ -135,7 +135,7 @@ def test_suboperadores_e_provedor_de_email(monkeypatch):  # MAP-07
     assert any("smtp.exemplo.com" in s.nome for s in mapa.suboperadores())
 
 
-def test_comando_verificar_mapa(app, monkeypatch):  # MAP-03
+def test_map03_comando_verificar_mapa(app, monkeypatch):  # MAP-03
     r = app.test_cli_runner().invoke(args=["privacidade", "verificar-mapa"])
     assert r.exit_code == 0
     assert r.output.startswith("colunas=") and r.output.strip().endswith("faltando=0 sobrando=0")
@@ -150,7 +150,7 @@ def test_comando_verificar_mapa(app, monkeypatch):  # MAP-03
     assert "faltando: user.bio" in r.output and "sobrando: user.apelido" in r.output
 
 
-def test_registro_so_para_admin(app, client):  # MAP-08, GLOBAL-05
+def test_map08_registro_so_para_admin(app, client):  # MAP-08, GLOBAL-05
     assert client.get("/admin/privacidade/registro").status_code == 302
     make_user(app, "ana")
     login(client, "ana")
@@ -158,7 +158,7 @@ def test_registro_so_para_admin(app, client):  # MAP-08, GLOBAL-05
     assert client.get("/admin/privacidade/registro.csv").status_code == 403
 
 
-def test_registro_agrupado_por_finalidade(app, client):  # MAP-08
+def test_map08_registro_agrupado_por_finalidade(app, client):  # MAP-08
     make_user(app, "chefe", role="admin")
     login(client, "chefe")
     html = client.get("/admin/privacidade/registro").get_data(as_text=True)
@@ -167,7 +167,7 @@ def test_registro_agrupado_por_finalidade(app, client):  # MAP-08
     assert "Render" in html
 
 
-def test_registro_csv(app, client):  # MAP-08
+def test_map08_registro_csv(app, client):  # MAP-08
     make_user(app, "chefe", role="admin")
     login(client, "chefe")
     r = client.get("/admin/privacidade/registro.csv")
