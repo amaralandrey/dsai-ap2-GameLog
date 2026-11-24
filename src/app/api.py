@@ -18,6 +18,7 @@ ENDPOINTS = {
     "/api/jogos": "lista e busca (q, genero, plataforma, loja, ano_de, ano_ate, nota_min, ordem, page, per_page)",
     "/api/jogos/<slug>": "detalhe de um jogo",
     "/api/jogos/<slug>/avaliacoes": "avaliações visíveis de um jogo (page, per_page)",
+    "/api/v2": "versão 2: tokens pessoais, dados do próprio usuário e escrita",
 }
 
 
@@ -37,23 +38,8 @@ def per_page():
     return n if 1 <= n <= PER_PAGE_MAX else PER_PAGE  # API-03
 
 
-def absoluta(url):
-    return request.url_root.rstrip("/") + url if url.startswith("/") else url
-
-
 def item(game, avg, n):
-    return {
-        "slug": game.slug,
-        "titulo": game.title,
-        "lancamento": game.release_date.isoformat(),
-        "desenvolvedora": game.developer.name,
-        "generos": sorted(g.name for g in game.genres),
-        "plataformas": sorted(p.name for p in game.platforms),
-        "capa": absoluta(game.cover),
-        "nota_media": round(avg, 1) if avg is not None else None,
-        "avaliacoes": n,
-        "url": absoluta(f"/jogos/{game.slug}"),
-    }
+    return {**serializadores.jogo(game), "nota_media": round(avg, 1) if avg is not None else None, "avaliacoes": n}
 
 
 def paginado(page, itens):
@@ -68,6 +54,10 @@ def indice():
 
 @bp.route("/jogos")
 def jogos():
+    return resposta(paginado(*pagina_de_jogos()))
+
+
+def pagina_de_jogos():
     q, _ = search_games(request.args)
     q = q.options(selectinload(Game.genres), selectinload(Game.platforms), selectinload(Game.developer))
     page = paginate(q, request.args.get("page"), per_page())
@@ -76,23 +66,17 @@ def jogos():
         db.session.query(Review.game_id, func.count())
         .filter(Review.game_id.in_(ids), Review.hidden.is_(False)).group_by(Review.game_id).all()
     ) if ids else {}
-    return resposta(paginado(page, [item(g, avg, contagem.get(g.id, 0)) for g, avg in page.items]))
+    return page, [item(g, avg, contagem.get(g.id, 0)) for g, avg in page.items]
 
 
 def jogo_ou_404(slug):
     return visible_games().filter_by(slug=slug).first()
 
 
-def fontes(game):
-    """Vínculos do jogo, só fonte, id externo e link, ordenados por fonte (MRG-13, API-07)."""
-    return [{"fonte": v.fonte, "external_id": v.external_id, "url": v.url_loja}
-            for v in sorted(game.fontes, key=lambda v: (v.fonte, v.id))]
-
-
-def mesclado_ou_404(slug, sufixo=""):
+def mesclado_ou_404(slug, sufixo="", prefixo="/api/jogos"):
     """Jogo mesclado responde 301 para o principal, como a página (MRG-08); o resto, 404 em JSON (API-05)."""
     try:
-        return redirecionar_mesclado(slug, lambda s: f"/api/jogos/{s}{sufixo}")
+        return redirecionar_mesclado(slug, lambda s: f"{prefixo}/{s}{sufixo}")
     except NotFound:
         return erro(404, "Jogo não encontrado")
 
@@ -102,20 +86,20 @@ def detalhe(slug):
     g = jogo_ou_404(slug)
     if not g:
         return mesclado_ou_404(slug)
+    return resposta(detalhe_de_jogo(g))
+
+
+def detalhe_de_jogo(g):
     s = game_stats(g.id)
-    return resposta({**item(g, s["avg"], s["total"]), "sinopse": g.synopsis,
-                     "histograma": {str(k): v for k, v in s["hist"].items()}, "fontes": fontes(g),
-                     **serializadores.precos(g.id)})
+    return {**item(g, s["avg"], s["total"]), "sinopse": g.synopsis,
+            "histograma": {str(k): v for k, v in s["hist"].items()}, "fontes": serializadores.fontes(g),
+            **serializadores.precos(g.id)}
 
 
-@bp.route("/jogos/<slug>/avaliacoes")
-def avaliacoes(slug):
-    g = jogo_ou_404(slug)
-    if not g:
-        return mesclado_ou_404(slug, "/avaliacoes")
+def pagina_de_avaliacoes(g, visitante=None):
     from .diario import ocultos_para
 
-    q = (Review.query.filter_by(game_id=g.id, hidden=False).filter(Review.user_id.not_in(ocultos_para(None)))
+    q = (Review.query.filter_by(game_id=g.id, hidden=False).filter(Review.user_id.not_in(ocultos_para(visitante)))
          .options(joinedload(Review.user))
          .order_by(Review.created_at.desc(), Review.id.desc()))
     page = paginate(q, request.args.get("page"), per_page())
@@ -123,6 +107,15 @@ def avaliacoes(slug):
     curtidas = dict(
         db.session.query(Like.review_id, func.count()).filter(Like.review_id.in_(ids)).group_by(Like.review_id).all()
     ) if ids else {}
+    return page, curtidas
+
+
+@bp.route("/jogos/<slug>/avaliacoes")
+def avaliacoes(slug):
+    g = jogo_ou_404(slug)
+    if not g:
+        return mesclado_ou_404(slug, "/avaliacoes")
+    page, curtidas = pagina_de_avaliacoes(g)
     return resposta(paginado(page, [
         {"usuario": r.user.username, "nota": r.score, "texto": r.text, "spoiler": r.spoiler, "editada": r.edited,
          "data": r.created_at.isoformat(), "curtidas": curtidas.get(r.id, 0)}
@@ -136,5 +129,5 @@ def cabecalhos(resp):
     if request.path == "/api" or request.path.startswith("/api/"):
         resp.headers["Access-Control-Allow-Origin"] = "*"
         if resp.status_code == 200 and request.method in ("GET", "HEAD"):
-            resp.headers["Cache-Control"] = "public, max-age=60"
+            resp.headers.setdefault("Cache-Control", "public, max-age=60")
     return resp

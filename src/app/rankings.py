@@ -153,20 +153,9 @@ def pagina():
         escopo = "seguindo" if me else "global"
     if escopo != "global" and me is None:  # RNK-04: o visitante vê só o global
         return redirect(f"/entrar?next={request.full_path.rstrip('?')}")  # GLOBAL-02
-    temporada, de, ate = janela(request.args.get("janela", JANELA_PADRAO), temporadas)
+    linhas, escopo, temporada, extra = linhas_do_ranking(categoria, escopo, request.args.get("janela"), me,
+                                                         request.args, temporadas)
     sel_janela = "sempre" if request.args.get("janela") == "sempre" else (temporada.slug if temporada else "atual")
-    extra, ids = {}, None
-    if escopo == "seguindo":
-        ids = db.session.query(Follow.followed_id).filter(Follow.follower_id == me.id, Follow.aprovado).union(
-            db.session.query(User.id).filter(User.id == me.id))
-    elif escopo in _escopos_extras:
-        ids, extra = _escopos_extras[escopo](me, request.args)
-    elif escopo != "global":
-        escopo = "global"
-    if temporada is not None and temporada.encerrada_em is not None:  # RNK-09: lida do retrato
-        linhas = retrato(temporada, categoria, ids, me)
-    else:
-        linhas = apurar(categoria, de, ate, temporada, ids=ids, so_publicos=escopo == "global", visitante=me)
     try:
         pagina_n = max(1, int(request.args.get("page", 1)))
     except ValueError:
@@ -182,6 +171,25 @@ def pagina():
         categoria=categoria, categorias=CATEGORIAS, escopo=escopo, temporadas=temporadas, sel_janela=sel_janela,
         temporada=temporada, cartao=cartao, mostrar=mostrar, pagina_n=pagina_n, paginas=paginas, extra=extra,
     )
+
+
+def linhas_do_ranking(categoria, escopo, janela_arg, me, args, temporadas=None):
+    if temporadas is None:
+        temporadas = Temporada.query.order_by(Temporada.inicio.desc()).all()
+    temporada, de, ate = janela(janela_arg or JANELA_PADRAO, temporadas)
+    extra, ids = {}, None
+    if escopo == "seguindo":
+        ids = db.session.query(Follow.followed_id).filter(Follow.follower_id == me.id, Follow.aprovado).union(
+            db.session.query(User.id).filter(User.id == me.id))
+    elif escopo in _escopos_extras:
+        ids, extra = _escopos_extras[escopo](me, args)
+    elif escopo != "global":
+        escopo = "global"
+    if temporada is not None and temporada.encerrada_em is not None:  # RNK-09: lida do retrato
+        linhas = retrato(temporada, categoria, ids, me)
+    else:
+        linhas = apurar(categoria, de, ate, temporada, ids=ids, so_publicos=escopo == "global", visitante=me)
+    return linhas, escopo, temporada, extra
 
 
 def retrato(temporada, categoria, ids=None, visitante=None):
