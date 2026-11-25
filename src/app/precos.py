@@ -102,7 +102,7 @@ def dia(momento_utc):
 
 
 def grafico(linhas, ultimos_dias=12):
-    """SVG com uma série por loja nos dias em que algum preço mudou (PRC-10), com cabeçalho e linhas da tabela (RET-04).
+    """SVG com uma série por loja nos dias em que algum preço mudou (PRC-10).
 
     Cada série repete o último preço conhecido; antes da primeira coleta da loja, repete o primeiro.
     """
