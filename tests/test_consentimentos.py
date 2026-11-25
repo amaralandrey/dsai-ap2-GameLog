@@ -1,4 +1,3 @@
-"""Consentimentos por finalidade (CNS-01..12), sem rede e com o relógio fixo."""
 from datetime import date, datetime
 from types import SimpleNamespace
 
@@ -7,10 +6,10 @@ import pytest
 from app import emails, jobs, tempo
 from app.models import Consentimento, EmailSaida, PreferenciaNotificacao, User, db
 from app.privacidade import consentimentos as cns
-from app.privacidade import mapa
+from app.privacidade import anonimizar, mapa
 from conftest import login, make_user
 
-ADOLESCENTE, VINCULADO = date(2009, 6, 1), date(2012, 6, 1)  # 17 e 14 anos em 2026-11-16
+ADOLESCENTE, VINCULADO = date(2009, 6, 1), date(2012, 6, 1)
 CADASTRO = {"username": "novo", "email": "novo@ex.com", "password": "senha1234", "nascimento": "1990-01-01",
             "aceite": "1"}
 
@@ -43,7 +42,6 @@ def logado(app, nome="ana", nascimento=None):
 
 
 def com(app, uid, funcao, *args):
-    """Roda `funcao(user, *args)` no contexto da app e faz o commit."""
     with app.app_context():
         resultado = funcao(db.session.get(User, uid), *args)
         db.session.commit()
@@ -56,7 +54,6 @@ def tem(app, uid, finalidade="email_resumo"):
 
 
 def linhas(app, uid):
-    """(finalidade, concedido, origem) de cada linha da pessoa, na ordem em que foram gravadas."""
     with app.app_context():
         return [(c.finalidade, c.concedido, c.origem)
                 for c in Consentimento.query.filter_by(user_id=uid).order_by(Consentimento.id)]
@@ -66,7 +63,6 @@ def pagina(client):
     return client.get("/conta/privacidade").get_data(as_text=True)
 
 
-# ---------- CNS-01 ----------
 def test_cns01_sem_linha_nao_ha_consentimento(app):
     ana = usuario(app)
     assert tem(app, ana) is False and tem(app, ana, "ofertas") is False
@@ -99,7 +95,6 @@ def test_cns01_so_insercao_e_origens_fixas(app):
             cns.conceder(db.session.get(User, ana), "email_resumo", "admin")
 
 
-# ---------- CNS-02 ----------
 def test_cns02_finalidades_fixas_com_texto_versionado():
     assert tuple(cns.FINALIDADES) == mapa.FINALIDADES_CONSENTIMENTO == ("email_resumo", "ofertas")
     for nome in cns.FINALIDADES:
@@ -119,7 +114,6 @@ def test_cns02_finalidade_desconhecida(app):
     assert linhas(app, ana) == []
 
 
-# ---------- CNS-03 ----------
 def test_cns03_pagina_mostra_texto_estado_e_botao(app):
     c = logado(app)
     html = pagina(c)
@@ -148,7 +142,6 @@ def test_cns03_visitante_vai_ao_login(client):
     assert r.status_code == 302 and "/entrar" in r.headers["Location"]
 
 
-# ---------- CNS-04 ----------
 def test_cns04_caixas_desmarcadas_e_separadas_do_aceite(client):
     html = client.get("/cadastro").get_data(as_text=True)
     for nome in cns.FINALIDADES:
@@ -177,8 +170,8 @@ def test_cns04_cada_caixa_marcada_grava_uma_linha(app, client):
 
 
 @pytest.mark.parametrize("nascimento,esperado", [
-    ("2012-06-01", []),  # 12 a 15 anos: quem concede é o responsável
-    ("2009-06-01", [("email_resumo", True, "cadastro")]),  # menor: ofertas ignorada
+    ("2012-06-01", []),
+    ("2009-06-01", [("email_resumo", True, "cadastro")]),
 ])
 def test_cns04_faixa_do_mesmo_formulario(app, client, nascimento, esperado):
     r, uid = cadastrar(client, app, nascimento=nascimento, consentir_email_resumo="1", consentir_ofertas="1")
@@ -192,7 +185,6 @@ def test_cns04_cadastro_recusado_nao_grava_nada(app, client):
         assert Consentimento.query.count() == 0
 
 
-# ---------- CNS-05, CNS-06: pedido no contexto e o consentimento como interruptor ----------
 def salvar_preferencias(client, **campos):
     return client.post("/notificacoes/preferencias", data={"site_seguidor": "on", **campos})
 
@@ -230,7 +222,7 @@ def test_cns05_partial_serve_para_outras_telas(app):
 def test_cns06_interruptor_concede_e_revoga_sem_preferencia_propria(app):
     c = logado(app)
     salvar_preferencias(c, consentir_email_resumo="1")
-    salvar_preferencias(c, consentir_email_resumo="1")  # sem mudança, sem linha nova
+    salvar_preferencias(c, consentir_email_resumo="1")
     salvar_preferencias(c)
     assert linhas(app, 1) == [("email_resumo", True, "contexto"), ("email_resumo", False, "configuracoes")]
     with app.app_context():
@@ -280,7 +272,6 @@ def test_cns06_resumo_semanal_so_para_quem_consente(app):
         assert not emails.elegivel_ao_resumo(db.session.get(User, bia))
 
 
-# ---------- CNS-07 ----------
 def nova_versao(monkeypatch, exige_renovar):
     atual = cns.FINALIDADES["email_resumo"]
     texto = cns.Texto(atual.textos[-1].versao + 1, "Texto novo do resumo semanal.", exige_renovar)
@@ -309,7 +300,6 @@ def test_cns07_mudanca_com_a_marca_pede_renovacao(app, monkeypatch):
         assert [h.versao_texto for h in cns.historico(db.session.get(User, 1))] == [3, 1]
 
 
-# ---------- CNS-08 ----------
 def test_cns08_historico_do_mais_recente_para_o_mais_antigo(app):
     c = logado(app)
     c.post("/conta/privacidade/consentimentos/ofertas/permitir")
@@ -327,10 +317,8 @@ def test_cns08_historico_do_mais_recente_para_o_mais_antigo(app):
                                                         "created_at"]
 
 
-# ---------- CNS-09 ----------
 @pytest.fixture
 def responsavel(app, monkeypatch):
-    """`mae` é a responsável vinculada de `lia` (14 anos) até RSP trazer o vínculo de verdade."""
     mae, lia = usuario(app, "mae"), usuario(app, "lia", VINCULADO)
     monkeypatch.setattr(cns, "e_responsavel_vinculado", lambda r, m: (r.id, m.id) == (mae, lia))
     return SimpleNamespace(mae=mae, lia=lia)
@@ -364,6 +352,15 @@ def test_cns09_sem_rsp_ninguem_e_responsavel(app):
         pelo_responsavel(app, cns.conceder_pelo_responsavel, mae, lia)
 
 
+def test_cns09_concessao_propria_nao_vale_quando_a_faixa_vira_12_a_15(app):
+    rui = usuario(app, "rui")
+    com(app, rui, cns.conceder, "email_resumo", "configuracoes")
+    with app.app_context():
+        db.session.get(User, rui).nascimento = VINCULADO
+        db.session.commit()
+    assert tem(app, rui) is False
+
+
 def test_cns09_adolescente_nao_concede_mas_revoga(app, responsavel):
     c = app.test_client()
     login(c, "lia")
@@ -391,7 +388,6 @@ def test_cns09_interruptor_do_adolescente_so_desliga(app, responsavel):
     assert linhas(app, responsavel.lia)[-1] == ("email_resumo", False, "configuracoes")
 
 
-# ---------- CNS-10 ----------
 def test_cns10_ofertas_some_e_403_para_menor(app):
     c = logado(app, "teo", ADOLESCENTE)
     html = pagina(c)
@@ -423,7 +419,6 @@ def test_cns10_aos_18_nada_e_concedido_sozinho(app, relogio):
     assert "/conta/privacidade/consentimentos/ofertas/permitir" in pagina(c)
 
 
-# ---------- CNS-11 ----------
 def test_cns11_so_admin(app, client):
     assert client.get("/admin/privacidade/consentimentos").status_code == 302
     assert logado(app).get("/admin/privacidade/consentimentos").status_code == 403
@@ -431,7 +426,7 @@ def test_cns11_so_admin(app, client):
 
 def test_cns11_totais_por_finalidade_sem_dados_individuais(app, client, monkeypatch):
     make_user(app, "chefe", role="admin")
-    nomes = ("xconsentiu", "xrevogou", "xsuspensa", "xmenor", "xantiga")
+    nomes = ("xconsentiu", "xrevogou", "xsuspensa", "xmenor", "xantiga", "xanonima")
     uids = {n: usuario(app, n) for n in nomes}
     for n in nomes:
         com(app, uids[n], cns.conceder, "email_resumo", "configuracoes")
@@ -440,6 +435,7 @@ def test_cns11_totais_por_finalidade_sem_dados_individuais(app, client, monkeypa
     with app.app_context():
         db.session.get(User, uids["xsuspensa"]).suspensa_em = tempo.agora_utc()
         db.session.get(User, uids["xmenor"]).nascimento = ADOLESCENTE
+        anonimizar.anonimizar_conta(db.session.get(User, uids["xanonima"]))
         db.session.commit()
     nova_versao(monkeypatch, exige_renovar=True)
     com(app, uids["xconsentiu"], cns.conceder, "email_resumo", "configuracoes")

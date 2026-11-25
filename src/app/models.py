@@ -774,8 +774,7 @@ def _so_insercao(*_):
 
 
 class Consentimento(db.Model):
-    """Concessão ou revogação de uma finalidade, só de inserção; vale a linha mais recente (CNS-01)."""
-    __table_args__ = (db.Index("ix_consentimento_usuario", "user_id", "finalidade", "created_at"),)
+    __table_args__ = (db.Index("ix_consentimento_usuario", "user_id", "finalidade"),)
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.ForeignKey("user.id"), nullable=False)
     finalidade = db.Column(db.String(20), nullable=False)
