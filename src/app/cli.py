@@ -71,6 +71,14 @@ def rodar(fonte, executar, campos, permitidas=None):
 
 
 def register(app):
+    @app.cli.command("mcp", help="Servidor MCP por stdio, autenticado pelo token em GAMELOG_TOKEN.")
+    def mcp_cmd():
+        import sys
+
+        from .mcp.protocolo import iniciar
+
+        raise click.exceptions.Exit(iniciar(os.environ.get("GAMELOG_TOKEN"), sys.stdin, sys.stdout, sys.stderr))
+
     @app.cli.command("seed")
     @click.option("--seed", default=42)
     def seed_cmd(seed):
