@@ -21,6 +21,7 @@ from .util import Page, paginate
 
 bp = Blueprint("api_v2", __name__, url_prefix="/api/v2")
 LEITURA = ("GET", "HEAD", "OPTIONS")
+DADOS_DE_USUARIO = ("api_v2.usuario", "api_v2.diario_de_usuario", "api_v2.ranking")
 ENDPOINTS = (
     ("GET", "/api/v2", None),
     ("GET", "/api/v2/docs", None),
@@ -47,6 +48,10 @@ def nao_autorizado():
     r = erro(401, "token inválido")
     r.headers["WWW-Authenticate"] = "Bearer"
     return r
+
+
+def escopo_insuficiente(escopo):
+    return resposta({"erro": "escopo insuficiente", "requer": escopo}, 403)
 
 
 def invalido(campos, mensagem="entrada inválida"):
@@ -87,6 +92,8 @@ def autenticar_requisicao():
 def cabecalhos(resp):
     resp.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type"
     resp.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, OPTIONS"
+    if request.endpoint in DADOS_DE_USUARIO:
+        resp.headers["Cache-Control"] = "no-store"
     token = g.get("token")
     if token is None:
         return resp
@@ -108,7 +115,7 @@ def do_dono(f):
             return nao_autorizado()
         escopo = "ler" if request.method in LEITURA else "escrever"
         if not tem_escopo(token, escopo):
-            return resposta({"erro": "escopo insuficiente", "requer": escopo}, 403)
+            return escopo_insuficiente(escopo)
         return f(token.user, *a, **kw)
 
     return wrapper
@@ -233,7 +240,7 @@ def ranking(categoria):
     escopo = request.args.get("escopo") if request.args.get("escopo") in ESCOPOS else "global"
     me = visitante()
     if escopo != "global" and me is None:
-        return nao_autorizado()
+        return nao_autorizado() if g.token is None else escopo_insuficiente("ler")
     linhas, *_ = linhas_do_ranking(categoria, escopo, request.args.get("janela"), me, request.args)
     page = paginar_lista(list(enumerate(linhas, start=1)), request.args.get("page"))
     return resposta(paginado(page, [{"posicao": p, "usuario": serializadores.usuario_publico(u), "valor": v}

@@ -76,6 +76,9 @@ def create_app(config=None):
 
     app.jinja_env.filters["reais"] = reais  # "R$ 1.234,56" (PRC-08)
     app.jinja_env.filters["dia"] = dia
+    from .tempo import data_hora
+
+    app.jinja_env.filters["data_hora"] = data_hora
     from .menores.politica import e_menor, pode, visibilidade_padrao
 
     app.jinja_env.globals.update(pode=pode, e_menor=e_menor, visibilidade_padrao=visibilidade_padrao)  # PMN-01: as telas perguntam à mesma política

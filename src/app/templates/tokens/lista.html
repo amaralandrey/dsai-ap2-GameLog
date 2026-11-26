@@ -32,8 +32,8 @@
 <table><tr><th>Nome</th><th>Prefixo</th><th>Escopos</th><th>Criado</th><th>Expira</th><th>Último uso</th><th></th></tr>
 {% for t in tokens %}<tr>
   <td><a href="/u/{{ me.username }}/tokens/{{ t.id }}">{{ t.nome }}</a></td><td><code>{{ t.prefixo }}…</code></td><td>{{ t.escopos }}</td>
-  <td>{{ t.criado_em.strftime('%d/%m/%Y') }}</td><td>{{ t.expira_em.strftime('%d/%m/%Y') }}</td>
-  <td>{{ t.ultimo_uso_em.strftime('%d/%m/%Y %H:%M') if t.ultimo_uso_em else '—' }}</td>
+  <td>{{ t.criado_em | dia }}</td><td>{{ t.expira_em | dia }}</td>
+  <td>{{ t.ultimo_uso_em | data_hora if t.ultimo_uso_em else '—' }}</td>
   <td>{% if t.revogado_em %}revogado{% elif t.expira_em <= agora %}expirado{% else %}
     <form method="post" action="/u/{{ me.username }}/tokens/{{ t.id }}/revogar"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="ghost">Revogar</button></form>{% endif %}</td>
 </tr>{% endfor %}</table>

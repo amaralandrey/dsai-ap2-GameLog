@@ -206,6 +206,17 @@ def test_ap2_13_indice_docs_e_cache(app, client):
     assert "/api/v2" in client.get("/api").get_json()["endpoints"]
 
 
+def test_ap2_13_dados_de_usuario_sem_token_no_store(app, client):
+    make_user(app, "bia")
+    slug = make_game(app, "Alfa")
+    sessao(app, "bia", slug)
+    for rota in ("/api/v2/usuarios/bia", "/api/v2/usuarios/bia/diario", "/api/v2/rankings/horas?janela=sempre"):
+        r = client.get(rota)
+        assert r.status_code == 200 and r.headers["Cache-Control"] == "no-store"
+    assert client.get("/api/v2/jogos").headers["Cache-Control"] == "public, max-age=60"
+    assert client.get(f"/api/v2/jogos/{slug}").headers["Cache-Control"] == "public, max-age=60"
+
+
 def test_ap2_13_preflight(client):
     r = client.options("/api/v2/eu/status/alfa", headers={"Origin": "https://x.test",
                                                          "Access-Control-Request-Method": "PUT",
@@ -363,6 +374,16 @@ def test_ap2_12_ranking_segue_rnk(app, client):
     assert [i["usuario"]["username"] for i in seguindo["items"]] == ["ana", "davi"]
     assert client.get("/api/v2/rankings/horas?escopo=seguindo").status_code == 401
     assert client.get("/api/v2/rankings/xyz").status_code == 404
+
+
+@pytest.mark.parametrize("escopo", ["seguindo", "clube"])
+def test_ap2_04_ranking_por_escopo_sem_ler_403(app, client, escopo):
+    so_escrever = token(app, "ana", escopos=("escrever",))
+    r = client.get(f"/api/v2/rankings/horas?escopo={escopo}", headers=auth(so_escrever))
+    assert r.status_code == 403
+    assert r.get_json() == {"erro": "escopo insuficiente", "requer": "ler"}
+    assert "WWW-Authenticate" not in r.headers
+    assert client.get(f"/api/v2/rankings/horas?escopo={escopo}").status_code == 401
 
 
 def test_ap2_14_consultas_listagem_20(app, client):
