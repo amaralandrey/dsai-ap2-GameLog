@@ -206,6 +206,17 @@ def test_ap2_13_indice_docs_e_cache(app, client):
     assert "/api/v2" in client.get("/api").get_json()["endpoints"]
 
 
+def test_ap2_13_dados_de_usuario_sem_token_no_store(app, client):
+    make_user(app, "bia")
+    slug = make_game(app, "Alfa")
+    sessao(app, "bia", slug)
+    for rota in ("/api/v2/usuarios/bia", "/api/v2/usuarios/bia/diario", "/api/v2/rankings/horas?janela=sempre"):
+        r = client.get(rota)
+        assert r.status_code == 200 and r.headers["Cache-Control"] == "no-store"
+    assert client.get("/api/v2/jogos").headers["Cache-Control"] == "public, max-age=60"
+    assert client.get(f"/api/v2/jogos/{slug}").headers["Cache-Control"] == "public, max-age=60"
+
+
 def test_ap2_13_preflight(client):
     r = client.options("/api/v2/eu/status/alfa", headers={"Origin": "https://x.test",
                                                          "Access-Control-Request-Method": "PUT",

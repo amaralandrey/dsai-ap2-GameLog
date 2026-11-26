@@ -21,6 +21,7 @@ from .util import Page, paginate
 
 bp = Blueprint("api_v2", __name__, url_prefix="/api/v2")
 LEITURA = ("GET", "HEAD", "OPTIONS")
+DADOS_DE_USUARIO = ("api_v2.usuario", "api_v2.diario_de_usuario", "api_v2.ranking")
 ENDPOINTS = (
     ("GET", "/api/v2", None),
     ("GET", "/api/v2/docs", None),
@@ -91,6 +92,8 @@ def autenticar_requisicao():
 def cabecalhos(resp):
     resp.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type"
     resp.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, OPTIONS"
+    if request.endpoint in DADOS_DE_USUARIO:
+        resp.headers["Cache-Control"] = "no-store"
     token = g.get("token")
     if token is None:
         return resp
