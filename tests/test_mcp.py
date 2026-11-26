@@ -372,6 +372,26 @@ def test_mcp_10_limite_e_auditoria(app, monkeypatch):
     assert erro_texto(chamar(app, texto, "detalhes_jogo", {"slug": "alfa"})) == "token inválido"
 
 
+def test_mcp_10_escrita_recusada_entra_na_auditoria(app, monkeypatch):
+    relogio(monkeypatch, datetime(2026, 11, 20, 10, 0, 15))
+    so_ler, tudo = token(app, escopos=("ler",)), token(app, "bia")
+    make_game(app, "Alfa")
+    chamar(app, so_ler, "avaliar", {"slug": "alfa", "nota": 5})
+    chamar(app, tudo, "avaliar", {"slug": "alfa", "nota": 11})
+    chamar(app, tudo, "avaliar", {"slug": "nada", "nota": 5})
+    chamar(app, tudo, "registrar_sessao", {"slug": "alfa", "duracao_min": 30, "data": "2026-12-01"})
+    chamar(app, tudo, "avaliar", {"slug": "alfa", "nota": 5})
+    chamar(app, tudo, "detalhes_jogo", {"slug": "alfa"})
+    pedidos = [rpc("tools/call", {"name": "detalhes_jogo", "arguments": {"slug": "alfa"}}, id_=i) for i in range(60)]
+    rodar(app, [INIT, *pedidos], so_ler)
+    chamar(app, so_ler, "avaliar", {"slug": "alfa", "nota": 5})
+    with app.app_context():
+        linhas = AuditoriaToken.query.filter_by(acao="escrita").order_by(AuditoriaToken.id).all()
+        assert [(a.metodo, a.rota, a.status_http) for a in linhas] == [
+            ("MCP", "mcp:avaliar", 403), ("MCP", "mcp:avaliar", 422), ("MCP", "mcp:avaliar", 404),
+            ("MCP", "mcp:registrar_sessao", 422), ("MCP", "mcp:avaliar", 200), ("MCP", "mcp:avaliar", 429)]
+
+
 def test_mcp_11_skills_citam_ferramentas_existentes(app):
     import re
 

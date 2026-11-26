@@ -91,19 +91,26 @@ def chamar(token_id, nome, argumentos):
     if not valido(token):
         return falha("token inválido")
     token.ultimo_uso_em = agora_utc()
-    permitido, _, espera = consumir(token)
-    if not permitido:
-        return falha(f"limite de requisições; tente em {espera} s")
-    if not tem_escopo(token, alvo.escopo):
-        return falha("escopo insuficiente")
-    if problema := validar(alvo.schema, argumentos):
-        return falha(problema)
-    saida = alvo.executar(token, argumentos)
+    saida, status = _executar(token, alvo, argumentos)
     if alvo.escopo == "escrever":
         db.session.rollback()
-        auditar(db.session.get(TokenApi, token_id), "escrita", "MCP", f"mcp:{nome}")
+        auditar(db.session.get(TokenApi, token_id), "escrita", "MCP", f"mcp:{nome}", status)
         db.session.commit()
     return saida
+
+
+def _executar(token, alvo, argumentos):
+    permitido, _, espera = consumir(token)
+    if not permitido:
+        return falha(f"limite de requisições; tente em {espera} s"), 429
+    if not tem_escopo(token, alvo.escopo):
+        return falha("escopo insuficiente"), 403
+    if problema := validar(alvo.schema, argumentos):
+        return falha(problema), 422
+    saida = alvo.executar(token, argumentos)
+    if not saida["isError"]:
+        return saida, 200
+    return saida, 404 if saida["content"][0]["text"] == JOGO_NAO_ENCONTRADO else 422
 
 
 SLUG = {"type": "string", "minLength": 1, "maxLength": 170, "description": "slug do jogo, como em /jogos/<slug>"}
