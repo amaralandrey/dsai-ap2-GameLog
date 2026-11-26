@@ -20,7 +20,7 @@ class Ferramenta:
     nome: str
     descricao: str
     schema: dict
-    escrita: bool
+    escopo: str
     executar: Callable
 
 
@@ -29,9 +29,9 @@ def esquema(obrigatorios, **propriedades):
             "additionalProperties": False}
 
 
-def ferramenta(nome, descricao, schema, escrita=False):
+def ferramenta(nome, descricao, schema, escopo="ler"):
     def registrar(funcao):
-        FERRAMENTAS[nome] = Ferramenta(nome, descricao, schema, escrita, funcao)
+        FERRAMENTAS[nome] = Ferramenta(nome, descricao, schema, escopo, funcao)
         return funcao
     return registrar
 
@@ -77,9 +77,8 @@ def validar(schema, argumentos):
 
 def listar(token_id):
     token = db.session.get(TokenApi, token_id)
-    escreve = token is not None and tem_escopo(token, "escrever")
     return [{"name": f.nome, "description": f.descricao, "inputSchema": f.schema}
-            for f in FERRAMENTAS.values() if escreve or not f.escrita]
+            for f in FERRAMENTAS.values() if token is not None and tem_escopo(token, f.escopo)]
 
 
 def chamar(token_id, nome, argumentos):
@@ -95,12 +94,12 @@ def chamar(token_id, nome, argumentos):
     permitido, _, espera = consumir(token)
     if not permitido:
         return falha(f"limite de requisições; tente em {espera} s")
-    if alvo.escrita and not tem_escopo(token, "escrever"):
+    if not tem_escopo(token, alvo.escopo):
         return falha("escopo insuficiente")
     if problema := validar(alvo.schema, argumentos):
         return falha(problema)
     saida = alvo.executar(token, argumentos)
-    if alvo.escrita:
+    if alvo.escopo == "escrever":
         db.session.rollback()
         auditar(db.session.get(TokenApi, token_id), "escrita", "MCP", f"mcp:{nome}")
         db.session.commit()
@@ -187,7 +186,7 @@ def _erros(erros):
 
 @ferramenta("marcar_status", "Marca o status de um jogo para você; \"nenhum\" remove o status.",
             esquema(["slug", "status"], slug=SLUG, status={"type": "string", "enum": [*STATUSES, "nenhum"]}),
-            escrita=True)
+            escopo="escrever")
 def marcar_status(token, argumentos):
     from ..listas import definir_status
 
@@ -203,7 +202,7 @@ def marcar_status(token, argumentos):
 @ferramenta("avaliar", "Avalia um jogo com nota inteira de 0 a 10 e resenha opcional; avaliar de novo edita.",
             esquema(["slug", "nota"], slug=SLUG, nota={"type": "integer", "minimum": 0, "maximum": 10},
                     texto={"type": "string", "maxLength": 5000}, spoiler={"type": "boolean"}),
-            escrita=True)
+            escopo="escrever")
 def avaliar_jogo(token, argumentos):
     from ..avaliacoes import avaliar
 
@@ -222,7 +221,7 @@ def avaliar_jogo(token, argumentos):
             esquema(["slug", "duracao_min"], slug=SLUG, duracao_min={"type": "integer", "minimum": 1, "maximum": 1440},
                     data={"type": "string", "pattern": r"^\d{4}-\d{2}-\d{2}$"}, zerou={"type": "boolean"},
                     anotacao={"type": "string", "maxLength": 1000}),
-            escrita=True)
+            escopo="escrever")
 def registrar_sessao_jogo(token, argumentos):
     from ..diario import formatar_minutos, registrar_sessao
     from ..tempo import hoje

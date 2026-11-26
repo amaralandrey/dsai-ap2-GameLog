@@ -134,6 +134,18 @@ def test_mcp_05_lista_com_e_sem_escrita(app):
         assert f["inputSchema"]["additionalProperties"] is False and "required" in f["inputSchema"]
 
 
+def test_mcp_05_token_so_escrever_nao_ve_nem_chama_leitura(app):
+    texto = token(app, escopos=("escrever",))
+    make_user(app, "carla")
+    make_game(app, "Alfa")
+    nomes = {f["name"] for f in rodar(app, [INIT, rpc("tools/list")], texto)[1]["result"]["tools"]}
+    assert nomes == ESCRITA
+    for nome, args in (("buscar_jogos", {"termo": "alfa"}), ("detalhes_jogo", {"slug": "alfa"}),
+                       ("disponivel_em", {"slug": "alfa"}), ("minhas_listas", {}), ("recomendacoes", {}),
+                       ("comparar_gosto", {"username": "carla"})):
+        assert erro_texto(chamar(app, texto, nome, args)) == "escopo insuficiente", nome
+
+
 def test_mcp_06_validacao_antes_do_servico(app, monkeypatch):
     from dataclasses import replace
 
