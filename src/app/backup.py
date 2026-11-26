@@ -21,12 +21,14 @@ from .util import admin_required, current_user
 bp = Blueprint("backup", __name__, cli_group="backup")
 FORMATO = "gamelog-backup"
 VERSAO_FORMATO = 1
-EXCLUIDAS = frozenset({"login_attempt", "limite_taxa_token"})
+PRESERVADAS = frozenset({"instancia"})
+EXCLUIDAS = frozenset({"login_attempt", "limite_taxa_token"}) | PRESERVADAS
 FILTROS = {"job": lambda t: t.c.status.in_(("pendente", "rodando", "falhou"))}
 COLUNAS_VOLATEIS = {"user": frozenset({"session_version"})}
 TAMANHO_MAXIMO = 20 * 1024 * 1024
 PRAZO_PREVIA_S = 24 * 3600
 PREVIA_RE = re.compile(r"[0-9a-f]{32}")
+ASSINATURA_RE = re.compile(r"[0-9a-f]{64}")
 SEM_CHAVE = "BACKUP_KEY não configurada"
 CHAVES_DE_TOPO = {"formato", "versao_formato", "gerado_em", "versao_app", "tabelas", "contagens", "assinatura"}
 
@@ -117,9 +119,15 @@ def conferir(dados, segredo):
     if dados["formato"] != FORMATO:
         raise ErroBackup("formato desconhecido")
     if dados["versao_formato"] != VERSAO_FORMATO:
-        raise ErroBackup(f"versão do formato não suportada: {dados['versao_formato']}")
+        raise ErroBackup("versão do formato não suportada")
+    if not ASSINATURA_RE.fullmatch(dados["assinatura"]):
+        raise ErroBackup("assinatura inválida")
     conteudo = {k: v for k, v in dados.items() if k != "assinatura"}
-    if not hmac.compare_digest(assinar(conteudo, segredo), dados["assinatura"]):
+    try:
+        esperada = assinar(conteudo, segredo)
+    except UnicodeEncodeError:
+        raise ErroBackup("arquivo malformado") from None
+    if not hmac.compare_digest(esperada, dados["assinatura"]):
         raise ErroBackup("assinatura inválida")
 
 
@@ -169,7 +177,8 @@ def restaurar(dados, avisar):
         if nome not in nomes and nome not in EXCLUIDAS:
             avisar(f"tabela {nome} ignorada")
     for tabela in reversed(db.metadata.sorted_tables):
-        db.session.execute(delete(tabela))
+        if tabela.name not in PRESERVADAS:
+            db.session.execute(delete(tabela))
     avisadas, tabelas, linhas = set(), 0, 0
     for tabela in incluidas():
         if tabela.name not in dados["tabelas"]:
@@ -210,7 +219,9 @@ def ler_arquivo(caminho):
             return json.load(arquivo)
     except FileNotFoundError:
         raise ErroBackup("arquivo não encontrado") from None
-    except (ValueError, UnicodeDecodeError):
+    except OSError:
+        raise ErroBackup("arquivo ilegível") from None
+    except (ValueError, RecursionError):
         raise ErroBackup("arquivo malformado") from None
 
 
@@ -305,15 +316,13 @@ def _ler_envio():
         raise ErroBackup("envie o arquivo do backup")
     try:
         return json.loads(arquivo.read())
-    except (ValueError, UnicodeDecodeError):
+    except (ValueError, RecursionError):
         raise ErroBackup("arquivo malformado") from None
 
 
 @bp.route("/admin/backup/previa", methods=["POST"])
 @admin_required
 def enviar_previa():
-    if (request.content_length or 0) > TAMANHO_MAXIMO:
-        abort(413)
     segredo = chave()
     if segredo is None:
         return _painel(SEM_CHAVE, 400)
@@ -348,10 +357,11 @@ def restaurar_rota():
         return _painel(str(exc), 400)
     if not request.form.get("confirmar"):
         return _tela_previa(previa_id, dados, "Marque a confirmação para restaurar.", 400)
-    nome, chave_nome = current_user().username, current_user().username_lower
+    eu = current_user()
+    admin_id, nome, chave_nome = eu.id, eu.username, eu.username_lower
     try:
         tabelas, linhas = restaurar(dados, current_app.logger.warning)
-        admin = User.query.filter_by(username_lower=chave_nome).first()
+        admin = User.query.filter_by(id=admin_id, username_lower=chave_nome).first()
         db.session.add(AuditLog(admin_id=admin.id if admin else None, action="backup.restaurar",
                                 detail=f"admin={nome} " + _resumo(tabelas, linhas)))
         db.session.commit()
@@ -408,24 +418,24 @@ def obter_inicial(origem):
         raise ErroBackup(f"download falhou: {type(exc).__name__}") from None
     try:
         return json.loads(corpo)
-    except (ValueError, UnicodeDecodeError):
+    except (ValueError, RecursionError):
         raise ErroBackup("arquivo malformado") from None
 
 
 @bp.cli.command("restaurar-inicial", help="Na subida, restaura BACKUP_RESTAURAR_DE se o banco não tem usuários.")
 def restaurar_inicial_cmd():
-    origem = os.environ.get("BACKUP_RESTAURAR_DE")
-    if not origem or db.session.query(User.id).first() is not None:
-        click.echo("restaurado=0")
-        return
     try:
+        origem = os.environ.get("BACKUP_RESTAURAR_DE")
+        if not origem or db.session.query(User.id).first() is not None:
+            click.echo("restaurado=0")
+            return
         segredo = chave()
         if segredo is None:
             raise ErroBackup(SEM_CHAVE)
         dados = obter_inicial(origem)
         conferir(dados, segredo)
         tabelas, linhas = restaurar_e_gravar(dados, _aviso)
-    except ErroBackup as exc:
-        click.echo(f"erro={exc}")
+    except Exception as exc:
+        click.echo(f"erro={motivo(exc)}")
         return
     click.echo(f"restaurado=1 tabelas={tabelas} linhas={linhas}")
