@@ -22,10 +22,11 @@ Sem JS de build. Trocar qualquer peça da stack ou reescrever módulo do zero an
 README.md          como rodar, comandos flask, variáveis, tabela spec → código → testes
 SPEC/              uma spec datada por parte (AAAA-MM-DD-<nome>.md), com sigla dos critérios (DIA-01, JOB-07…)
 .claude/plan/      plan-ap1.md · plan-ap2.md (regras invioláveis, épicos, divisão da dupla, rito diário)
-prompts/sessoes/   registro de cada sessão de IA com custo (tokens e US$), um arquivo por sessão
+prompts/sessoes/   registro de cada sessão de IA com custo (tokens e US$), um arquivo por sessão; modelo em prompts/CLAUDE.md
 loop/              PROMPT.md e ESTADO.md do exercício de loop (sync do catálogo); histórico, não mexe
 .githooks/         commit-msg: exige trailers Agent:/Spec: e spec commitada sozinha antes do código
 .github/workflows/ ci.yml (PR e push na main): pytest + cobertura, diff-cover ≥ 70%, jscpd ≤ 5%, gitleaks
+.github/           PULL_REQUEST_TEMPLATE.md: o card do PR (modelo do corpo)
 render.yaml        deploy: seed + jobs agendar + gunicorn; segredos com sync: false
 dev.sh             ./dev.sh (sobe) · ./dev.sh test (suíte toda) · ./dev.sh reset (recria o banco)
 src/app/           aplicação Flask: um módulo por domínio, models.py único, templates/, static/, dados/
@@ -132,9 +133,37 @@ params (f-string em SQL = bug) · Jinja com autoescape: `|safe` só em conteúdo
 4. **Roda só o teste da parte.** Suíte inteira (`./dev.sh test`) só no CI ou se pedirem.
 5. **Self-verify antes de "done".** Teste da parte verde, rota conferida no navegador com `./dev.sh` quando
    muda tela, e a spec batendo com o que foi feito. Não reporta done com vermelho.
-6. **Sessão com custo.** Todo dia com commit de agente tem arquivo em `prompts/sessoes/`
-   (`AAAA-MM-DD-HHMM-<autor>-<ferramenta>.md`): prompts, como foi feito, artefatos e custo em tokens e US$.
-   Dado sensível mascarado. Sem esse arquivo, o dia zera o critério de sessões.
+6. **Sessão com custo.** Toda sessão de agente com commit gera registro (passo 6 de "Nova implementação").
+   Sem esse arquivo, o dia zera o critério de sessões.
+
+## Nova implementação (do pedido ao PR)
+
+Vale para feature, fix, teste e docs. O agente prepara tudo; o dev comita, pusha e abre o PR.
+
+1. **Branch** a partir da `origin/main` recém-buscada: `git fetch origin && git switch -c <tipo>/<slug> origin/main`.
+   `<tipo>` é o do commit principal; `<slug>` em kebab-case e em português, com o número da issue quando houver
+   (`feat/diario-de-jogatina`, `fix/backup-issue-56`, `docs/sessao-2026-11-25`).
+2. **Spec primeiro** se muda comportamento: commit `docs(spec): <o que muda>`, sozinho (ver "Antes de codar").
+3. **Plano** se a tarefa é multiarquivo: `.claude/plan/AAAA-MM-DD-<slug>.md`, commitado junto com a sessão.
+4. **Commits por camada** (spec → model → serviço → rota → template → teste → docs), no padrão do histórico:
+   - assunto `<tipo>(<escopo>): <descrição>` em português, minúsculo, sem ponto final, até ~72 caracteres;
+   - `feat` comportamento novo · `fix` correção · `test` só teste · `docs` README, spec, plano e sessão ·
+     `refactor` sem mudar comportamento · `perf` desempenho;
+   - escopo = domínio (`diario`, `backup`, `api-v2`), `spec` para a spec e `sessoes` para o registro;
+   - corpo opcional com o porquê; sempre os trailers `Agent:` e `Spec:` (ver "Git policy").
+5. **Card do PR.** O corpo do PR é o card, no modelo de `.github/PULL_REQUEST_TEMPLATE.md`:
+   - fix: Problema (impacto para quem usa, sem nome de função) · Causa · Solução · Testes · Revisar;
+   - feature: Contexto · Solução · Testes · Revisar;
+   - `Fixes #N` quando há issue, a spec com as siglas e o caminho do registro da sessão;
+   - título: épico `Épico N: <nome> (SIGLA)`; o resto, igual ao assunto do commit principal.
+6. **Sessão salva, sempre.** Toda sessão de agente que gera commit vira
+   `prompts/sessoes/AAAA-MM-DD-HHMM-<autor>-<ferramenta>.md`, no modelo de `prompts/CLAUDE.md`, commitada no
+   mesmo PR como `docs(sessoes): <tema>` com `Spec: none`. Sem o registro, o PR não está pronto.
+7. **Entrega.** Teste da parte verde e `diff-cover` ≥ 70%. O agente grava o card num arquivo fora do repo e entrega
+   **um único comando pronto para colar**: `git add` + `git commit` por camada, `git push -u origin <branch>` e
+   `gh pr create --title ... --body-file <card>`. O dev confere o diff e roda.
+8. **Depois do PR.** CI verde e aprovação do parceiro. Cada comentário de review é avaliado; o que for corrigido
+   entra em commit novo pelo mesmo caminho, sem `amend` depois do push, e o registro da sessão é atualizado.
 
 ## Convenções
 
