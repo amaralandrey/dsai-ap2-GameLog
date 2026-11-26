@@ -129,6 +129,9 @@ CAMPOS = {
               ("metodo faixa_resultante confiavel divergente created_at", {})),
     **_tabela("aceite_documento", dict(CONTA, categoria="atividade"), ("id", TECNICO), ("user_id", DONO),
               ("documento_id aceito_em", {})),  # PRV-04: prova do aceite, só de inserção
+    **_tabela("consentimento", dict(CONTA, categoria="preferencia", finalidade="direitos",
+                                    base_legal="exercicio_direitos"), ("id", TECNICO), ("user_id", DONO),
+              ("finalidade concedido versao_texto origem created_at", {})),
     **_tabela("aviso_documento_fechado", dict(CONTA, categoria="preferencia", anonimizar="apagar_linha"),
               ("id", TECNICO), ("user_id", DONO), ("documento_id fechado_em", {})),  # PRV-06
     **_tabela("pedido_titular", dict(CONTA, categoria="atividade", finalidade="direitos", base_legal="obrigacao_legal"),
