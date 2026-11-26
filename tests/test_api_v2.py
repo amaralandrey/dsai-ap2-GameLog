@@ -365,6 +365,16 @@ def test_ap2_12_ranking_segue_rnk(app, client):
     assert client.get("/api/v2/rankings/xyz").status_code == 404
 
 
+@pytest.mark.parametrize("escopo", ["seguindo", "clube"])
+def test_ap2_04_ranking_por_escopo_sem_ler_403(app, client, escopo):
+    so_escrever = token(app, "ana", escopos=("escrever",))
+    r = client.get(f"/api/v2/rankings/horas?escopo={escopo}", headers=auth(so_escrever))
+    assert r.status_code == 403
+    assert r.get_json() == {"erro": "escopo insuficiente", "requer": "ler"}
+    assert "WWW-Authenticate" not in r.headers
+    assert client.get(f"/api/v2/rankings/horas?escopo={escopo}").status_code == 401
+
+
 def test_ap2_14_consultas_listagem_20(app, client):
     texto = token(app, "ana")
     slug = make_game(app, "Alfa")

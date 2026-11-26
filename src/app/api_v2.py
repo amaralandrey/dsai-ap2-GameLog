@@ -49,6 +49,10 @@ def nao_autorizado():
     return r
 
 
+def escopo_insuficiente(escopo):
+    return resposta({"erro": "escopo insuficiente", "requer": escopo}, 403)
+
+
 def invalido(campos, mensagem="entrada inválida"):
     return resposta({"erro": mensagem, "campos": campos}, 422)
 
@@ -108,7 +112,7 @@ def do_dono(f):
             return nao_autorizado()
         escopo = "ler" if request.method in LEITURA else "escrever"
         if not tem_escopo(token, escopo):
-            return resposta({"erro": "escopo insuficiente", "requer": escopo}, 403)
+            return escopo_insuficiente(escopo)
         return f(token.user, *a, **kw)
 
     return wrapper
@@ -233,7 +237,7 @@ def ranking(categoria):
     escopo = request.args.get("escopo") if request.args.get("escopo") in ESCOPOS else "global"
     me = visitante()
     if escopo != "global" and me is None:
-        return nao_autorizado()
+        return nao_autorizado() if g.token is None else escopo_insuficiente("ler")
     linhas, *_ = linhas_do_ranking(categoria, escopo, request.args.get("janela"), me, request.args)
     page = paginar_lista(list(enumerate(linhas, start=1)), request.args.get("page"))
     return resposta(paginado(page, [{"posicao": p, "usuario": serializadores.usuario_publico(u), "valor": v}
