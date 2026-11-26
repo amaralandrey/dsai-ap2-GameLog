@@ -5,7 +5,7 @@ services:
     plan: free
     buildCommand: pip install -r requirements.txt
     # timeout de 600 s: o POST /jobs/ciclo pode rodar o sync_games (~80 chamadas HTTP de até 5 s) sem o worker ser morto
-    startCommand: cd src && flask --app app seed && flask --app app jobs agendar && gunicorn "app:create_app()" --bind 0.0.0.0:$PORT --workers 2 --timeout 600
+    startCommand: cd src && flask --app app backup restaurar-inicial && flask --app app seed && flask --app app jobs agendar && gunicorn "app:create_app()" --bind 0.0.0.0:$PORT --workers 2 --timeout 600
     envVars:
       - key: PYTHON_VERSION
         value: 3.12.3
@@ -22,6 +22,10 @@ services:
       - key: STEAM_API_KEY  # só no painel do Render; sem ela a importação de horas da Steam fica desligada (HRS-05)
         sync: false
       - key: JOBS_TOKEN
+        sync: false
+      - key: BACKUP_KEY
+        sync: false
+      - key: BACKUP_RESTAURAR_DE
         sync: false
       - key: URL_PUBLICA  # endereço dos links nos e-mails (descadastro), que saem dos jobs, fora de uma requisição
         value: https://gamelog-92zh.onrender.com
