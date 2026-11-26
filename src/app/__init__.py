@@ -31,6 +31,7 @@ def create_app(config=None):
         CAPAS_HOSTS_PERMITIDOS=CAPAS_HOSTS_PERMITIDOS,  # INC-10 e o proxy de capas (RTN-08)
         CAPAS_CACHE_DIR=os.environ.get("CAPAS_CACHE_DIR") or os.path.join(app.instance_path, "capas"),
         PROXY_CAPAS_ATIVO=True,
+        MAX_CONTENT_LENGTH=20 * 1024 * 1024,
     )
     app.config.update(config or {})
     if app.config["PRODUCAO"]:

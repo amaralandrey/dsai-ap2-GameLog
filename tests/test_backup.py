@@ -11,6 +11,17 @@ from conftest import login, make_game, make_user
 from test_api_v2_tokens import token
 
 CHAVE = "k" * 32
+TABELAS_NO_BACKUP = frozenset({
+    "aceite_documento", "activity", "agendamento", "anotacao_incidente", "audit_log", "auditoria_token",
+    "aviso_documento_fechado", "bloqueio", "clube", "codigo_recuperacao", "comment", "conquista", "consentimento",
+    "contribuinte_meta", "desclassificacao", "developer", "dismissed", "documento_legal", "email_saida",
+    "evento_seguranca", "extrato_xp", "follow", "game", "game_genres", "game_list", "game_platforms", "genre",
+    "incidente", "inscricao_torneio", "job", "jogo_do_mes", "jogo_fonte", "like", "list_item", "lista_inteligente",
+    "membro_clube", "meta_clube", "notificacao", "partida_torneio", "pedido_titular", "pendencia_merge",
+    "perfil_progressao", "platform", "post_clube", "preco_loja", "preferencia_notificacao", "previa_importacao",
+    "registro_torneio", "report", "reporte_resultado", "review", "sessao_jogo", "silencio", "snapshot_ranking",
+    "status", "temporada", "token_api", "torneio", "user", "usuario_conquista", "verificacao_idade",
+})
 
 
 @pytest.fixture
@@ -49,6 +60,13 @@ def exportar(app):
         return exp(CHAVE)
 
 
+def assinado(dados):
+    from app.backup import assinar
+
+    conteudo = {k: v for k, v in dados.items() if k != "assinatura"}
+    return {**conteudo, "assinatura": assinar(conteudo, CHAVE)}
+
+
 def test_bkp_01_estrutura(app, mundo):
     from app.backup import contagens
 
@@ -80,13 +98,14 @@ def test_bkp_03_exclusoes_cobrem_o_modelo(app, mundo):
     from app.backup import EXCLUIDAS, incluidas
     from app.tokens import hash_token
 
+    assert EXCLUIDAS == {"login_attempt", "limite_taxa_token", "instancia"}
     with app.app_context():
-        todas = {t.name for t in db.metadata.sorted_tables}
-        assert todas == {t.name for t in incluidas()} | EXCLUIDAS
-        assert EXCLUIDAS == {"login_attempt", "limite_taxa_token"}
+        assert {t.name for t in incluidas()} == TABELAS_NO_BACKUP, \
+            "tabela nova: decida se ela entra no backup ou em EXCLUIDAS"
         senha = User.query.filter_by(username_lower="ana").one().password_hash
     dados = exportar(app)
     assert "login_attempt" not in dados["tabelas"] and "limite_taxa_token" not in dados["tabelas"]
+    assert "instancia" not in dados["tabelas"]
     assert [j["status"] for j in dados["tabelas"]["job"]] == ["pendente"]
     assert dados["tabelas"]["token_api"][0]["token_hash"] == hash_token(mundo)
     assert any(u["password_hash"] == senha for u in dados["tabelas"]["user"])
@@ -570,3 +589,117 @@ def test_bkp_10_previas_esquecidas_saem_no_rotacionar(tmp_path):
     os.utime(velha, (dois_dias, dois_dias))
     rotacionar(str(tmp_path))
     assert not velha.exists() and nova.exists()
+
+
+@pytest.mark.parametrize("estragar, esperado", [
+    (lambda p: p.write_text(json.dumps({**json.loads(p.read_text()), "assinatura": "ç" * 64})),
+     "erro=assinatura inválida\n"),
+    (lambda p: p.write_text(p.read_text().replace('"bio": ""', '"bio": "\\udc80"', 1)),
+     "erro=arquivo malformado\n"),
+    (lambda p: p.write_text('{"formato":'), "erro=arquivo malformado\n"),
+    (lambda p: p.write_bytes(b"\xff\xfe"), "erro=arquivo malformado\n"),
+    (lambda p: (p.unlink(), p.mkdir()), "erro=arquivo ilegível\n"),
+    (lambda p: p.write_text(p.read_text().replace('"versao_formato": 1', '"versao_formato": "\\udc80"', 1)),
+     "erro=versão do formato não suportada\n"),
+    (lambda p: p.write_text("[" * 100000), "erro=arquivo malformado\n"),
+])
+def test_bkp_11_falhas_nao_derrubam_o_deploy(app, mundo, app_vazio, tmp_path, monkeypatch, estragar, esperado):
+    caminho = arquivo_de(app, tmp_path)
+    estragar(caminho)
+    monkeypatch.setenv("BACKUP_RESTAURAR_DE", str(caminho))
+    r = cli(app_vazio, "restaurar-inicial")
+    assert r.exit_code == 0 and r.stdout == esperado and "Traceback" not in r.output
+    with app_vazio.app_context():
+        assert User.query.count() == 0
+
+
+def test_bkp_11_erro_inesperado_sai_com_0(app_vazio, tmp_path, monkeypatch):
+    import app.backup as backup
+
+    def explode(origem):
+        raise RuntimeError("x")
+
+    monkeypatch.setattr(backup, "obter_inicial", explode)
+    monkeypatch.setenv("BACKUP_RESTAURAR_DE", str(tmp_path / "b.json"))
+    r = cli(app_vazio, "restaurar-inicial")
+    assert r.exit_code == 0 and r.stdout.startswith("erro=") and "RuntimeError" in r.stdout
+
+
+def test_bkp_05_assinatura_nao_ascii_na_previa(app, client, mundo, pasta):
+    entrar_admin(app, client)
+    dados = json.loads(client.post("/admin/backup/baixar").data)
+    r = enviar(client, json.dumps({**dados, "assinatura": "ç" * 64}).encode())
+    assert r.status_code == 400 and "assinatura inválida" in r.get_data(as_text=True)
+
+
+def test_bkp_03_instancia_do_destino_fica(app, mundo, app_vazio, tmp_path, monkeypatch):
+    from app.models import Instancia
+
+    caminho = arquivo_de(app, tmp_path)
+    with app.app_context():
+        origem = db.session.get(Instancia, 1).token
+    with app_vazio.app_context():
+        destino = db.session.get(Instancia, 1).token
+    velho = json.loads(caminho.read_text())
+    velho["tabelas"]["instancia"] = [{"id": 1, "token": origem}]
+    velho["contagens"]["instancia"] = 1
+    caminho.write_text(json.dumps(assinado(velho)))
+    monkeypatch.setenv("BACKUP_RESTAURAR_DE", str(caminho))
+    r = cli(app_vazio, "restaurar-inicial")
+    assert r.exit_code == 0 and r.stdout.startswith("restaurado=1") and r.stderr == ""
+    with app_vazio.app_context():
+        assert db.session.get(Instancia, 1).token == destino != origem
+
+
+def test_bkp_08_upload_sem_content_length_acima_do_limite(app, client, mundo, pasta):
+    import io
+
+    entrar_admin(app, client)
+    corpo = (b'--x\r\nContent-Disposition: form-data; name="arquivo"; filename="b.json"\r\n\r\n'
+             + b"a" * (20 * 1024 * 1024 + 1) + b"\r\n--x--\r\n")
+    r = client.post("/admin/backup/previa", input_stream=io.BytesIO(corpo),
+                    content_type="multipart/form-data; boundary=x",
+                    environ_overrides={"wsgi.input_terminated": True, "HTTP_TRANSFER_ENCODING": "chunked"})
+    assert r.status_code == 413
+    assert not list(pasta.glob("previa-*.json"))
+
+
+def test_bkp_09_homonimo_no_backup_vai_ao_login(app, client, mundo, pasta):
+    from app.backup import exportar as exp
+
+    with app.app_context():
+        dados = exp(CHAVE)
+    for u in dados["tabelas"]["user"]:
+        if u["username_lower"] == "ana":
+            u["username"], u["username_lower"] = "root", "root"
+    entrar_admin(app, client)
+    previa = id_da_previa(enviar(client, json.dumps(assinado(dados)).encode()))
+    r = client.post("/admin/backup/restaurar", data={"previa": previa, "confirmar": "1"})
+    assert r.status_code == 302 and "/entrar" in r.headers["Location"]
+    with app.app_context():
+        assert AuditLog.query.filter_by(action="backup.restaurar").one().admin_id is None
+
+
+def test_bkp_11_redirecionamento_nao_e_seguido(app_vazio, monkeypatch):
+    from urllib.error import HTTPError
+
+    from app.fontes import base
+
+    def redireciona(req, timeout):
+        raise HTTPError(req.full_url, 302, "Found", {"Location": "https://cdn.test/b.json?sig=segredo"}, None)
+
+    monkeypatch.setattr(base, "abrir_sem_seguir", redireciona)
+    monkeypatch.setenv("BACKUP_RESTAURAR_DE", "https://x.test/b.json")
+    r = cli(app_vazio, "restaurar-inicial")
+    assert r.exit_code == 0 and r.stdout == "erro=download falhou: Redirecionado\n" and "segredo" not in r.output
+
+
+@pytest.mark.parametrize("conteudo, motivo", [
+    (lambda d: json.dumps({**d, "versao_formato": "\udc80"}).encode(), "versão do formato não suportada"),
+    (lambda d: b"[" * 100000, "arquivo malformado"),
+])
+def test_bkp_05_previa_com_arquivo_hostil_responde_400(app, client, mundo, pasta, conteudo, motivo):
+    entrar_admin(app, client)
+    dados = json.loads(client.post("/admin/backup/baixar").data)
+    r = enviar(client, conteudo(dados))
+    assert r.status_code == 400 and motivo in r.get_data(as_text=True)
