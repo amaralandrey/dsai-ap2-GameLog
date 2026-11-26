@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Consentimentos — Admin{% endblock %}
+{% block content %}
+<h1>Consentimentos</h1>
+<p class="mut">Contas ativas que consentem na versão atual do texto de cada finalidade. Só o total: a lista de quem consentiu não aparece, e nenhuma conta é alterada daqui.</p>
+<table>
+  <thead><tr><th>Finalidade</th><th>Versão atual</th><th>Contas que consentem</th></tr></thead>
+  <tbody>{% for nome, f in finalidades.items() %}
+    <tr><td><strong>{{ f.rotulo }}</strong><br><span class="mut">{{ nome }}</span></td><td>{{ atual(nome).versao }}</td>
+      <td>{{ contagem[nome] }}</td></tr>{% endfor %}
+  </tbody>
+</table>
+{% endblock %}

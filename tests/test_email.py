@@ -361,12 +361,18 @@ def test_eml_07_descadastro_sem_login_desliga_o_tipo(app, client):
         assert preferencia(ana, "seguidor") == (True, False)
 
 
-def test_eml_07_descadastro_do_resumo_revoga_o_consentimento(app, client, monkeypatch):
-    revogados = []
-    monkeypatch.setattr(emails, "revogar_consentimento", lambda user, fin: revogados.append((user.id, fin)))
+def test_eml_07_descadastro_do_resumo_revoga_o_consentimento(app, client):
+    from app.privacidade import consentimentos
+
     ana = usuario(app)
+    with app.app_context():
+        consentimentos.conceder(db.session.get(User, ana), "email_resumo", "configuracoes")
+        db.session.commit()
     assert client.post(f"/email/descadastro/{token(app, ana, 'resumo')}").status_code == 200
-    assert revogados == [(ana, "email_resumo")]
+    with app.app_context():
+        linha = consentimentos.ultima(db.session.get(User, ana), "email_resumo")
+        assert (linha.concedido, linha.origem) == (False, "descadastro")
+        assert not consentimentos.tem_consentimento(db.session.get(User, ana), "email_resumo")
 
 
 @pytest.mark.parametrize("estrago", ["adulterado", "outro_sal", "tipo_desconhecido", "usuario_inexistente"])
@@ -453,7 +459,7 @@ SEMANA_PASSADA = datetime(2026, 11, 12, 15, 0)  # quinta da semana anterior à d
 
 @pytest.fixture
 def consente(monkeypatch):
-    """Faz de conta que CNS existe e que todo mundo consentiu o `email_resumo`."""
+    """Todo mundo consentiu o `email_resumo`, como se o responsável tivesse concedido para quem tem de 12 a 15 anos."""
     monkeypatch.setattr(emails, "tem_consentimento", lambda user, finalidade: finalidade == "email_resumo")
 
 

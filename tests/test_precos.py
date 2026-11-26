@@ -313,7 +313,8 @@ def test_prc_10_historico_com_grafico_e_tabela_paginada(app, client, jogo, relog
            ("gog", 2000, 2000, 0, AGORA - timedelta(days=2)))
     html = pagina(client, "/jogos/hades/precos")
     assert html.count("<svg") == 1 and 'class="serie-0"' in html and 'class="serie-1"' in html
-    assert html.index("R$ 20,00") < html.index("R$ 10,24") < html.index("R$ 10,23")  # mais recente primeiro
+    paginada = html.split("</details>")[1]
+    assert paginada.index("R$ 20,00") < paginada.index("R$ 10,24") < paginada.index("R$ 10,23")  # mais recente primeiro
     assert "Página 1 de 2" in html
     assert "R$ 10,00" in pagina(client, "/jogos/hades/precos?page=2")
 
@@ -336,8 +337,9 @@ def test_prc_10_sem_historico_removido_e_mesclado(app, client, jogo):
 def test_prc_10_grafico_repete_o_ultimo_preco_conhecido(app, jogo):
     gravar(app, jogo, ("steam", 1000, 1000, 0, AGORA - timedelta(days=2)), ("gog", 500, 500, 0, AGORA))
     with app.app_context():
-        svg = precos.grafico(precos.historico(jogo).all())
+        svg, cabecalho, tabela = precos.grafico(precos.historico(jogo).all())
     assert "Steam — 18/11: 10" in svg and "Steam — 20/11: 10" in svg and "GOG — 18/11: 5" in svg
+    assert cabecalho == ["Dia", "Steam", "GOG"] and tabela[0] == ["18/11", "R$ 10,00", "R$ 5,00"]
 
 
 # ---------- PRC-13 ----------
