@@ -31,6 +31,10 @@ def para_belem(momento_utc):
     return momento_utc.replace(tzinfo=timezone.utc).astimezone(FUSO)
 
 
+def data_hora(momento_utc):
+    return para_belem(momento_utc).strftime("%d/%m/%Y %H:%M")
+
+
 def dia_de(momento_utc):
     """Dia em Belém de um instante gravado em UTC."""
     return para_belem(momento_utc).date()

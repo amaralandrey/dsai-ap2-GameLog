@@ -198,6 +198,23 @@ def test_ap2_02_token_de_outro_dono_404(app, client, com_token):
     assert client.post(f"/u/ana/tokens/{tid}/revogar").status_code == 404
 
 
+def test_global_09_telas_de_token_em_belem(app, client, monkeypatch):
+    relogio(monkeypatch, datetime(2026, 11, 20, 22, 30))
+    texto = token(app)
+    assert client.get("/api/v2/eu", headers={"Authorization": f"Bearer {texto}"}).status_code == 200
+    with app.app_context():
+        tid = linha(texto).id
+    login(client)
+    lista = client.get("/u/ana/tokens").get_data(as_text=True)
+    assert "<td>20/11/2026</td><td>20/12/2026</td>" in lista and "<td>20/11/2026 22:30</td>" in lista
+    assert "21/11/2026" not in lista and "21/12/2026" not in lista
+    client.post(f"/u/ana/tokens/{tid}/revogar")
+    detalhe = client.get(f"/u/ana/tokens/{tid}").get_data(as_text=True)
+    assert "expira em 20/12/2026" in detalhe and "revogado em 20/11/2026" in detalhe
+    assert "<td>20/11/2026 22:30</td>" in detalhe
+    assert "21/11/2026" not in detalhe and "01:30" not in detalhe
+
+
 def test_ap2_02_trocar_senha_e_encerrar_sessoes_nao_revogam(app, client, com_token):
     from app.tokens import autenticar
 
