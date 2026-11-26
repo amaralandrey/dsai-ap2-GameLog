@@ -230,6 +230,36 @@ def test_mcp_07_buscar_detalhes_disponivel(app):
             assert erro_texto(chamar(app, texto, nome, {"slug": slug})) == "jogo não encontrado"
 
 
+def mesclar(app, secundario, principal):
+    from app.models import Game
+
+    with app.app_context():
+        sec = Game.query.filter_by(slug=secundario).one()
+        sec.removed_at = datetime(2026, 11, 1)
+        sec.mesclado_em_id = Game.query.filter_by(slug=principal).one().id
+        db.session.commit()
+
+
+def test_mcp_07_08_slug_mesclado_como_na_api(app):
+    from app.models import Game
+
+    texto = token(app)
+    make_game(app, "Alfa")
+    make_game(app, "Alfa Antigo")
+    mesclar(app, "alfa-antigo", "alfa")
+    assert estruturado(chamar(app, texto, "detalhes_jogo", {"slug": "alfa-antigo"}))["slug"] == "alfa"
+    assert estruturado(chamar(app, texto, "disponivel_em", {"slug": "alfa-antigo"}))["slug"] == "alfa"
+    for nome, args in (("marcar_status", {"slug": "alfa-antigo", "status": "jogado"}),
+                       ("avaliar", {"slug": "alfa-antigo", "nota": 5}),
+                       ("registrar_sessao", {"slug": "alfa-antigo", "duracao_min": 10})):
+        assert erro_texto(chamar(app, texto, nome, args)) == "jogo não encontrado", nome
+    with app.app_context():
+        assert Status.query.count() == 0 and Review.query.count() == 0 and SessaoJogo.query.count() == 0
+        Game.query.filter_by(slug="alfa").one().removed_at = datetime(2026, 11, 2)
+        db.session.commit()
+    assert erro_texto(chamar(app, texto, "detalhes_jogo", {"slug": "alfa-antigo"})) == "jogo não encontrado"
+
+
 def test_mcp_07_minhas_listas_inclui_privadas(app):
     from app.models import GameList, ListItem
 

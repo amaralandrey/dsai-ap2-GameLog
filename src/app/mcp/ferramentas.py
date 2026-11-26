@@ -111,9 +111,13 @@ JOGO_NAO_ENCONTRADO, USUARIO_NAO_ENCONTRADO = "jogo não encontrado", "usuário 
 
 
 def jogo_visivel(slug):
+    return visible_games().filter_by(slug=slug).first()
+
+
+def jogo_ou_principal(slug):
     from ..catalogo_merge import principal_do_mesclado
 
-    return visible_games().filter_by(slug=slug).first() or principal_do_mesclado(slug)
+    return jogo_visivel(slug) or principal_do_mesclado(slug)
 
 
 def _titulos(games):
@@ -144,7 +148,7 @@ def buscar_jogos(token, argumentos):
 def detalhes_jogo(token, argumentos):
     from ..api import detalhe_de_jogo
 
-    game = jogo_visivel(argumentos["slug"])
+    game = jogo_ou_principal(argumentos["slug"])
     if game is None:
         return falha(JOGO_NAO_ENCONTRADO)
     dados = detalhe_de_jogo(game)
@@ -156,7 +160,7 @@ def detalhes_jogo(token, argumentos):
 @ferramenta("disponivel_em", "Lojas em que o jogo está (Steam, GOG, Epic) com os links.",
             esquema(["slug"], slug=SLUG))
 def disponivel_em(token, argumentos):
-    game = jogo_visivel(argumentos["slug"])
+    game = jogo_ou_principal(argumentos["slug"])
     if game is None:
         return falha(JOGO_NAO_ENCONTRADO)
     lojas = serializadores.fontes(game)
