@@ -147,22 +147,28 @@ def pagina(username, ano):
 
 def horas_por_semana(user_id):
     """Horas das últimas 12 semanas ISO, da mais antiga para a atual, numa consulta (RET-11)."""
-    fim = hoje()
-    inicio = fim - timedelta(days=fim.weekday() + 7 * (SEMANAS_SPARKLINE - 1))
+    segundas = segundas_do_sparkline()
     linhas = (
         db.session.query(SessaoJogo.jogada_em, func.sum(SessaoJogo.duracao_min))
         .filter(SessaoJogo.user_id == user_id, SessaoJogo.origem.in_(COM_DATA),
-                SessaoJogo.jogada_em.between(inicio, fim))
+                SessaoJogo.jogada_em.between(segundas[0], hoje()))
         .group_by(SessaoJogo.jogada_em)
         .all()
     )
-    semanas = [semana_iso(inicio + timedelta(weeks=i)) for i in range(SEMANAS_SPARKLINE)]
+    semanas = [semana_iso(s) for s in segundas]
     soma = dict.fromkeys(semanas, 0)
     for dia, minutos in linhas:
         soma[semana_iso(dia)] += minutos
     return [horas(soma[s]) for s in semanas]
 
 
+def segundas_do_sparkline():
+    fim = hoje()
+    inicio = fim - timedelta(days=fim.weekday() + 7 * (SEMANAS_SPARKLINE - 1))
+    return [inicio + timedelta(weeks=i) for i in range(SEMANAS_SPARKLINE)]
+
+
 def sparkline_do_perfil(user_id):
     valores = horas_por_semana(user_id)
-    return graficos_svg.sparkline(valores, "Horas nas últimas 12 semanas"), valores
+    linhas = [(f"Semana de {s:%d/%m}", h) for s, h in zip(segundas_do_sparkline(), valores)]
+    return graficos_svg.sparkline(valores, "Horas nas últimas 12 semanas"), linhas

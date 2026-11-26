@@ -202,7 +202,7 @@ def profile(username):
         "zerados": zerados(user.id),
     }
     afin = resumo_com(me.id, user.id) if me and not own and pode(user, "historico_para_terceiros") else None  # AFI-08, PMN-06
-    extra["sparkline"], _ = sparkline_do_perfil(user.id)  # RET-11
+    extra["sparkline"], extra["semanas"] = sparkline_do_perfil(user.id)  # RET-11
     extra["vitrine"] = vitrine(user.id, pode(user, "conquista_por_tempo"))  # GAM-09: lidas, sem recalcular (CON-06)
     extra["progressao"] = resumo_progressao(user.id)  # PRG-09
     return render_template(
