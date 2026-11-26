@@ -49,11 +49,16 @@ LINK_INVALIDO = "Link inválido ou vencido"
 # ---------- ganchos das specs que ainda não estão na main ----------
 def tem_tokens(user):
     """AP2: a opção "revogar também meus tokens" só aparece com tokens pessoais; sem AP2 na main, nunca."""
-    return False
+    from .tokens import ativos
+
+    return ativos(user.id).count() > 0
 
 
 def revogar_tokens(user):
     """AP2: revoga os tokens pessoais da API v2 (CTA-11). Sem AP2 na main, não há token a revogar."""
+    from .tokens import revogar_todos
+
+    revogar_todos(user.id)
 
 
 # ---------- TOTP (CTA-06, CTA-07) ----------

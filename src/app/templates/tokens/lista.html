@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Tokens da API — GameLog{% endblock %}
+{% block content %}
+<section style="max-width:720px;margin:0 auto">
+<h1>Tokens da API</h1>
+<p class="mut">Um token deixa um script ou um agente de IA (servidor MCP) usar a <a href="/api/v2/docs">API v2</a> em seu nome. Trate-o como uma senha.</p>
+
+{% if novo %}
+<div class="panel">
+  <h2>Token criado</h2>
+  <p>Copie agora: ele não aparece de novo.</p>
+  <p><code style="word-break:break-all">{{ novo }}</code></p>
+</div>
+{% endif %}
+
+<form method="post" class="panel">
+  <h2>Novo token</h2>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <label for="nome">Nome (até 60 caracteres)</label><input id="nome" name="nome" maxlength="60" value="{{ form.get('nome', '') }}" required>
+  {% if erros.nome %}<div class="err">{{ erros.nome }}</div>{% endif %}
+  <p>Escopos:
+  {% for e in escopos %}<label style="font-weight:400;display:inline"><input type="checkbox" name="escopos" value="{{ e }}" style="width:auto"> {{ e }}</label> {% endfor %}</p>
+  {% if erros.escopos %}<div class="err">{{ erros.escopos }}</div>{% endif %}
+  <label for="dias">Validade</label>
+  <select id="dias" name="dias">{% for d in validades %}<option value="{{ d }}">{{ d }} dias</option>{% endfor %}</select>
+  {% if erros.dias %}<div class="err">{{ erros.dias }}</div>{% endif %}
+  <p><button>Criar token</button></p>
+</form>
+
+<h2>Seus tokens</h2>
+{% if tokens %}
+<table><tr><th>Nome</th><th>Prefixo</th><th>Escopos</th><th>Criado</th><th>Expira</th><th>Último uso</th><th></th></tr>
+{% for t in tokens %}<tr>
+  <td><a href="/u/{{ me.username }}/tokens/{{ t.id }}">{{ t.nome }}</a></td><td><code>{{ t.prefixo }}…</code></td><td>{{ t.escopos }}</td>
+  <td>{{ t.criado_em.strftime('%d/%m/%Y') }}</td><td>{{ t.expira_em.strftime('%d/%m/%Y') }}</td>
+  <td>{{ t.ultimo_uso_em.strftime('%d/%m/%Y %H:%M') if t.ultimo_uso_em else '—' }}</td>
+  <td>{% if t.revogado_em %}revogado{% elif t.expira_em <= agora %}expirado{% else %}
+    <form method="post" action="/u/{{ me.username }}/tokens/{{ t.id }}/revogar"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="ghost">Revogar</button></form>{% endif %}</td>
+</tr>{% endfor %}</table>
+{% else %}<p class="mut">Nenhum token ainda.</p>{% endif %}
+</section>
+{% endblock %}

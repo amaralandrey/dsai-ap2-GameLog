@@ -224,11 +224,15 @@ def _carregar_relacoes(games):
             joinedload(Game.developer), selectinload(Game.genres), selectinload(Game.platforms)).all()
 
 
-def exportar(nome, url, publica, user_id, games, formato, automatica=False, regra=None):
+def dados_da_lista(nome, url, publica, user_id, games, automatica=False, regra=None):
     _carregar_relacoes(games)
     status, minutos = _status_e_horas(user_id, games)
     itens = [(i, g, status.get(g.id), minutos.get(g.id, 0)) for i, g in enumerate(games, start=1)]
-    dados = serializadores.lista(nome, url, publica, itens, automatica, regra)
+    return serializadores.lista(nome, url, publica, itens, automatica, regra)
+
+
+def exportar(nome, url, publica, user_id, games, formato, automatica=False, regra=None):
+    dados = dados_da_lista(nome, url, publica, user_id, games, automatica, regra)
     if formato == "json":
         return Response(json.dumps(dados, ensure_ascii=False, indent=1), mimetype="application/json",
                         headers={"Content-Disposition": 'attachment; filename="lista.json"'})

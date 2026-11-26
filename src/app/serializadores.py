@@ -2,6 +2,8 @@
 
 Por enquanto só `jogo` e `lista`, que a exportação das listas usa (LSA-09); a API v2 acrescenta as demais.
 """
+import os
+
 from flask import has_request_context, request
 
 from .models import LOJAS_COM_PRECO
@@ -9,9 +11,15 @@ from .precos import atual, atuais, menor_preco
 
 
 def absoluta(url):
-    if url.startswith("/") and has_request_context():
+    if not url.startswith("/"):
+        return url
+    if has_request_context():
         return request.url_root.rstrip("/") + url
-    return url
+    return (os.environ.get("URL_PUBLICA") or "http://localhost:5000").rstrip("/") + url
+
+
+def _iso(valor):
+    return valor.isoformat() if valor is not None else None
 
 
 def reais(centavos):
@@ -58,3 +66,70 @@ def lista(nome, url, publica, itens, automatica=False, regra=None):
             for pos, game, status, minutos in itens
         ],
     }
+
+
+def fontes(game):
+    """Vínculos do jogo, só fonte, id externo e link, ordenados por fonte (MRG-13, API-07)."""
+    return [{"fonte": v.fonte, "external_id": v.external_id, "url": v.url_loja}
+            for v in sorted(game.fontes, key=lambda v: (v.fonte, v.id))]
+
+
+def usuario_publico(user):
+    return {
+        "username": user.username,
+        "nome": user.display_name,
+        "bio": user.bio,
+        "perfil_privado": user.perfil_privado,
+        "membro_desde": user.created_at.date().isoformat(),
+        "url": absoluta(f"/u/{user.username}"),
+    }
+
+
+def avaliacao(review, curtidas=0):
+    return {
+        "id": review.id,
+        "jogo": review.game.slug,
+        "usuario": review.user.username,
+        "nota": review.score,
+        "texto": review.text,
+        "spoiler": review.spoiler,
+        "editada": review.edited,
+        "data": review.created_at.isoformat(),
+        "curtidas": curtidas,
+    }
+
+
+def sessao(s):
+    return {
+        "id": s.id,
+        "jogo": s.game.slug,
+        "titulo": s.game.title,
+        "jogada_em": s.jogada_em.isoformat(),
+        "duracao_min": s.duracao_min,
+        "inicio": s.inicio.strftime("%H:%M") if s.inicio else None,
+        "plataforma": s.plataforma.name if s.plataforma else None,
+        "zerou": s.zerou,
+        "spoiler": s.spoiler,
+        "anotacao": s.anotacao,
+        "origem": s.origem,
+    }
+
+
+def conquista(uc):
+    c, revelada = uc.conquista, not uc.conquista.secreta or uc.desbloqueada_em is not None
+    return {
+        "codigo": c.codigo,
+        "nome": c.nome if revelada else "Conquista secreta",
+        "descricao": c.descricao if revelada else None,
+        "categoria": c.categoria,
+        "raridade": c.raridade,
+        "icone": c.icone,
+        "progresso": uc.progresso,
+        "meta": c.meta,
+        "desbloqueada_em": _iso(uc.desbloqueada_em),
+    }
+
+
+def status(st):
+    return {"jogo": jogo(st.game), "status": st.value, "atualizado_em": _iso(st.updated_at),
+            "zerado_em": _iso(st.zerado_em)}

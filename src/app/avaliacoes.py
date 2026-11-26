@@ -45,30 +45,49 @@ def salvar_avaliacao(me, game, score, text, spoiler):
     return review, nova
 
 
+def ler_nota(valor):
+    if isinstance(valor, bool):
+        return None
+    if isinstance(valor, int):
+        nota = valor
+    elif isinstance(valor, str) and valor.strip().isascii() and valor.strip().isdigit():
+        nota = int(valor)
+    else:
+        return None
+    return nota if 0 <= nota <= 10 else None
+
+
+def avaliar(user, game, nota, texto, spoiler):
+    erros = {}
+    score = ler_nota(nota)
+    if score is None:
+        erros["nota"] = "A nota é obrigatória e deve ser um inteiro de 0 a 10."  # AVA-01
+    if not isinstance(texto, str):
+        erros["texto"] = "A resenha deve ser um texto."
+    elif len(texto.strip()) > 5000:
+        erros["texto"] = "A resenha deve ter até 5000 caracteres."  # AVA-03
+    if erros:
+        return None, False, erros
+    texto = texto.strip()
+    try:
+        review, nova = salvar_avaliacao(user, game, score, texto, spoiler)
+    except IntegrityError:  # duplo envio: a outra requisição criou a avaliação, então esta vira edição
+        db.session.rollback()
+        review, nova = salvar_avaliacao(user, game, score, texto, spoiler)
+    emitir_evento(user.id, "avaliacao", review_id=review.id, game_id=game.id, nova=nova)  # GAM-03
+    emitir_evento(user.id, "status", game_id=game.id)
+    return review, nova, {}
+
+
 @bp.route("/jogos/<slug>/avaliar", methods=["POST"])
 @login_required
 def rate(slug):
     game = visible_games().filter_by(slug=slug).first_or_404()
-    me = current_user()
     f = request.form
-    try:
-        score = int(f.get("score", ""))
-        if not 0 <= score <= 10:
-            raise ValueError
-    except ValueError:
-        flash("A nota é obrigatória e deve ser um inteiro de 0 a 10.", "erro")  # AVA-01
+    review, _, erros = avaliar(current_user(), game, f.get("score", ""), f.get("text", ""), bool(f.get("spoiler")))
+    if erros:
+        flash(next(iter(erros.values())), "erro")
         return back(game)
-    text = f.get("text", "").strip()
-    if len(text) > 5000:
-        flash("A resenha deve ter até 5000 caracteres.", "erro")  # AVA-03
-        return back(game)
-    try:
-        review, nova = salvar_avaliacao(me, game, score, text, bool(f.get("spoiler")))
-    except IntegrityError:  # duplo envio: a outra requisição criou a avaliação, então esta vira edição
-        db.session.rollback()
-        review, nova = salvar_avaliacao(me, game, score, text, bool(f.get("spoiler")))
-    emitir_evento(me.id, "avaliacao", review_id=review.id, game_id=game.id, nova=nova)  # GAM-03
-    emitir_evento(me.id, "status", game_id=game.id)
     flash("Avaliação salva.", "ok")
     return back(game, review)
 

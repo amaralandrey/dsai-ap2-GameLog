@@ -16,6 +16,7 @@ from .util import avatar_style, current_user, fold
 
 BLUEPRINTS = []  # preenchido por register_blueprints(); um módulo por spec
 CSRF_ISENTAS = {"/jobs/ciclo"}  # autenticadas por Bearer, sem cookie (JOB-11)
+CSRF_ISENTOS_PREFIXOS = ("/api/v2/",)
 
 
 def create_app(config=None):
@@ -50,7 +51,8 @@ def create_app(config=None):
 
     @app.before_request
     def csrf_protect():
-        if request.method == "POST" and app.config["CSRF"] and request.path not in CSRF_ISENTAS:
+        isenta = request.path in CSRF_ISENTAS or request.path.startswith(CSRF_ISENTOS_PREFIXOS)
+        if request.method == "POST" and app.config["CSRF"] and not isenta:
             token = session.get("csrf")
             if not token or not secrets.compare_digest(token.encode(), request.form.get("csrf_token", "").encode()):
                 abort(400, "Token CSRF inválido")

@@ -18,16 +18,15 @@ def back(default="/"):
     return redirect(request.referrer or default)
 
 
-@bp.route("/jogos/<slug>/status", methods=["POST"])
-@login_required
-def set_status(slug):
-    game = visible_games().filter_by(slug=slug).first_or_404()
-    me, value = current_user(), request.form.get("status", "")
+def definir_status(me, game, value):
+    value = value or ""
+    if value and value not in STATUSES:
+        return "Status inválido."
     cur = Status.query.filter_by(user_id=me.id, game_id=game.id).first()
     if value == "":  # LIS-02: remover status é permitido
         if cur:
             db.session.delete(cur)
-    elif value in STATUSES:
+    else:
         if cur:  # LIS-01/02: um status por jogo, trocar substitui
             changed, cur.value, cur.updated_at = cur.value != value, value, now()
         else:
@@ -37,9 +36,6 @@ def set_status(slug):
             ja = Activity.query.filter_by(user_id=me.id, kind="jogado", game_id=game.id).first()
             if ja is None:  # SOC-05/DIA-04: uma vez só
                 db.session.add(Activity(user_id=me.id, kind="jogado", game_id=game.id))
-    else:
-        flash("Status inválido.", "erro")
-        return back(f"/jogos/{slug}")
     try:
         db.session.commit()
     except IntegrityError:  # duplo envio: a outra requisição criou o status, então esta só troca o valor
@@ -48,6 +44,16 @@ def set_status(slug):
         cur.value, cur.updated_at = value, now()
         db.session.commit()
     emitir_evento(me.id, "status", game_id=game.id)  # GAM-03
+    return None
+
+
+@bp.route("/jogos/<slug>/status", methods=["POST"])
+@login_required
+def set_status(slug):
+    game = visible_games().filter_by(slug=slug).first_or_404()
+    erro = definir_status(current_user(), game, request.form.get("status", ""))
+    if erro:
+        flash(erro, "erro")
     return back(f"/jogos/{slug}")
 
 
@@ -156,18 +162,25 @@ def add_to_list(slug):
     except ValueError:
         abort(400)
     gl, _ = get_list(lid, owner_only=True)
-    if any(i.game_id == game.id for i in gl.items):  # LIS-06
-        flash("Este jogo já está na lista.", "erro")
-    elif len(gl.items) >= MAX_ITEMS:
-        flash(f"Limite de {MAX_ITEMS} jogos por lista atingido.", "erro")
+    erro = adicionar_jogo(gl, game)
+    if erro:
+        flash(erro, "erro")
     else:
-        db.session.add(ListItem(list_id=gl.id, game_id=game.id, position=len(gl.items)))
-        if gl.public:
-            db.session.add(Activity(user_id=gl.user_id, kind="lista_jogo", game_id=game.id, list_id=gl.id))
-        db.session.commit()
-        emitir_evento(gl.user_id, "lista", list_id=gl.id)
         flash(f"Adicionado a “{gl.name}”.", "ok")
     return back(f"/jogos/{slug}")
+
+
+def adicionar_jogo(gl, game):
+    if any(i.game_id == game.id for i in gl.items):  # LIS-06
+        return "Este jogo já está na lista."
+    if len(gl.items) >= MAX_ITEMS:
+        return f"Limite de {MAX_ITEMS} jogos por lista atingido."
+    db.session.add(ListItem(list_id=gl.id, game_id=game.id, position=len(gl.items)))
+    if gl.public:
+        db.session.add(Activity(user_id=gl.user_id, kind="lista_jogo", game_id=game.id, list_id=gl.id))
+    db.session.commit()
+    emitir_evento(gl.user_id, "lista", list_id=gl.id)
+    return None
 
 
 @bp.route("/listas/<int:lid>/jogos/<int:gid>/remover", methods=["POST"])

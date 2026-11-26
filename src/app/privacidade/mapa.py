@@ -28,6 +28,7 @@ FINALIDADES = {  # agrupam o registro das operações (MAP-08)
     "comunicacao": "E-mails da conta, avisos por e-mail e resumo semanal",
     "incidentes": "Registro e comunicação de incidentes de segurança",
     "direitos": "Atendimento aos pedidos e às mensagens dos titulares",
+    "integracoes": "Tokens pessoais, API v2 e servidor MCP",
 }
 
 
@@ -134,6 +135,14 @@ CAMPOS = {
     **_tabela("pedido_titular", dict(CONTA, categoria="atividade", finalidade="direitos", base_legal="obrigacao_legal"),
               ("id", TECNICO), ("user_id", DONO), ("email_contato", {"categoria": "contato", "anonimizar": "substituir"}),
               ("protocolo tipo assunto detalhe status criado_em", {})),  # LGPD art. 18 e 41 (PRV-07, DIR-01)
+    **_tabela("token_api", dict(AUTENTICACAO, finalidade="integracoes", anonimizar="apagar_linha"), ("id", TECNICO),
+              ("user_id", DONO), ("nome prefixo token_hash escopos criado_em expira_em ultimo_uso_em revogado_em", {})),
+    **_tabela("auditoria_token", dict(AUTENTICACAO, categoria="atividade", finalidade="integracoes",
+                                      anonimizar="apagar_linha"),
+              ("id token_id", TECNICO), ("user_id", DONO), ("acao metodo rota status_http criado_em", {})),
+    **_tabela("limite_taxa_token", dict(AUTENTICACAO, categoria="tecnico", finalidade="integracoes",
+                                        anonimizar="apagar_linha"),
+              ("id token_id janela contagem", {})),
     **_tabela(
         "login_attempt",
         dict(CONTA, categoria="contato", finalidade="seguranca", base_legal="legitimo_interesse",

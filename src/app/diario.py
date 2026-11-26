@@ -292,6 +292,20 @@ def gravar_sessao(user, game, dados, origem="manual"):
     return sessao
 
 
+def registrar_sessao(user, game, form):
+    dados, erros = validar_campos(game, form, user.id)
+    if erros:
+        return None, erros
+    sessao = gravar_sessao(user, game, dados)
+    if sessao.zerou_agora:
+        from .notificacoes import avisar_amigo_zerou
+
+        avisar_amigo_zerou(user, game)
+    db.session.commit()
+    emitir_evento(user.id, "sessao", sessao_id=sessao.id, game_id=game.id, origem="manual")  # GAM-03
+    return sessao, {}
+
+
 # ---------- rotas ----------
 def sessao_do_dono(sid):
     sessao = db.get_or_404(SessaoJogo, sid)
@@ -308,17 +322,9 @@ def tela_jogo_com_erros(game, erros, form):
 @login_required
 def registrar(slug):
     game = visible_games().filter_by(slug=slug).first_or_404()  # DIA-03: removido não recebe sessão
-    me = current_user()
-    dados, erros = validar_campos(game, request.form, me.id)
+    sessao, erros = registrar_sessao(current_user(), game, request.form)
     if erros:
         return tela_jogo_com_erros(game, erros, request.form)
-    sessao = gravar_sessao(me, game, dados)
-    if sessao.zerou_agora:
-        from .notificacoes import avisar_amigo_zerou
-
-        avisar_amigo_zerou(me, game)
-    db.session.commit()
-    emitir_evento(me.id, "sessao", sessao_id=sessao.id, game_id=game.id, origem="manual")  # GAM-03
     flash("Sessão registrada no diário.", "ok")
     return redirect(f"/jogos/{game.slug}")
 
