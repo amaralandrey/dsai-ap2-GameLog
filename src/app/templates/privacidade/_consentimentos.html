@@ -1,0 +1,27 @@
+<h2>Autorizações</h2>
+<p class="mut">Cada autorização vale para uma finalidade só. Revogar é tão fácil quanto permitir e não muda o resto da sua conta.</p>
+{% for c in consentimentos %}
+<div class="panel{{ ' aviso-legal' if c.renovar }}" id="consentimento-{{ c.finalidade }}">
+  <h3>{{ c.rotulo }}</h3>
+  <p>{{ c.texto.texto }} <span class="mut">(versão {{ c.texto.versao }})</span></p>
+  {% if c.renovar %}<p><strong>O texto mudou: permita de novo para a autorização voltar a valer.</strong></p>{% endif %}
+  <p>Estado: <strong>{{ 'Permitido' if c.ativo else 'Não permitido' }}</strong></p>
+  {% if c.ativo %}
+  <form method="post" action="/conta/privacidade/consentimentos/{{ c.finalidade }}/revogar">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button>Revogar</button></form>
+  {% elif c.pode_permitir %}
+  <form method="post" action="/conta/privacidade/consentimentos/{{ c.finalidade }}/permitir">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button>Permitir</button></form>
+  {% else %}<p class="mut">Na sua faixa de idade, quem permite é o seu responsável.</p>{% endif %}
+</div>
+{% endfor %}
+<h3>Histórico</h3>
+{% if historico %}
+<table>
+  <thead><tr><th>Finalidade</th><th>Ação</th><th>Versão do texto</th><th>Origem</th><th>Data</th></tr></thead>
+  <tbody>{% for h in historico %}
+    <tr><td>{{ rotulos.get(h.finalidade, h.finalidade) }}</td><td>{{ 'Permitiu' if h.concedido else 'Revogou' }}</td>
+      <td>{{ h.versao_texto }}</td><td>{{ h.origem }}</td><td>{{ h.created_at|dia }}</td></tr>{% endfor %}
+  </tbody>
+</table>
+{% else %}<p class="mut">Nenhuma autorização registrada.</p>{% endif %}
