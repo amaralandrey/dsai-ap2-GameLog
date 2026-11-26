@@ -198,6 +198,36 @@ def test_ap2_02_token_de_outro_dono_404(app, client, com_token):
     assert client.post(f"/u/ana/tokens/{tid}/revogar").status_code == 404
 
 
+def test_ap2_01_limite_reconferido_apos_flush(app):
+    from app.tokens import LimiteAtingido, criar
+
+    uid = make_user(app, "ana")
+    with app.app_context():
+        ana = db.session.get(User, uid)
+        for _ in range(10):
+            criar(ana, "t", ["ler"], 30)
+        db.session.commit()
+        with pytest.raises(LimiteAtingido):
+            criar(ana, "11º", ["ler"], 30)
+        db.session.rollback()
+        assert TokenApi.query.filter_by(user_id=uid).count() == 10
+
+
+def test_ap2_01_tela_limite_apos_corrida_400(app, client, monkeypatch):
+    from app import tokens
+
+    for _ in range(10):
+        token(app)
+    monkeypatch.setattr(tokens, "validar", lambda user, form: ({"nome": "x", "escopos": ["ler"], "dias": 30}, {}))
+    login(client)
+    r = client.post("/u/ana/tokens", data={"nome": "x", "escopos": "ler", "dias": "30"})
+    assert r.status_code == 400 and "Limite de 10 tokens ativos" in r.get_data(as_text=True)
+    assert not re.search(r"glp_[A-Za-z0-9]{40}", r.get_data(as_text=True))
+    with app.app_context():
+        assert TokenApi.query.count() == 10
+        assert AuditoriaToken.query.filter_by(acao="criar").count() == 10
+
+
 def test_global_09_telas_de_token_em_belem(app, client, monkeypatch):
     relogio(monkeypatch, datetime(2026, 11, 20, 22, 30))
     texto = token(app)

@@ -21,6 +21,11 @@ MAX_ATIVOS = 10
 LIMITE_POR_MINUTO = 60
 NOME_MAX = 60
 ALFABETO = string.ascii_letters + string.digits
+MENSAGEM_LIMITE = f"Limite de {MAX_ATIVOS} tokens ativos atingido: revogue um antes de criar outro."
+
+
+class LimiteAtingido(Exception):
+    pass
 
 
 def hash_token(texto):
@@ -43,7 +48,7 @@ def validar(user, form):
     if not 1 <= len(nome) <= NOME_MAX:
         erros["nome"] = f"O nome é obrigatório e deve ter até {NOME_MAX} caracteres."
     elif ativos(user.id).count() >= MAX_ATIVOS:
-        erros["nome"] = f"Limite de {MAX_ATIVOS} tokens ativos atingido: revogue um antes de criar outro."
+        erros["nome"] = MENSAGEM_LIMITE
     escopos = [e for e in ESCOPOS if e in form.getlist("escopos")]
     if not escopos or len(escopos) != len(set(form.getlist("escopos"))):
         erros["escopos"] = "Escolha ao menos um escopo: ler e/ou escrever."
@@ -63,6 +68,8 @@ def criar(user, nome, escopos, dias):
                      expira_em=agora + timedelta(days=dias))
     db.session.add(token)
     db.session.flush()
+    if ativos(user.id).count() > MAX_ATIVOS:
+        raise LimiteAtingido
     auditar(token, "criar")
     return token, texto
 
@@ -153,7 +160,11 @@ def lista(username):
     dados, erros = validar(me, request.form)
     if erros:
         return _lista(me, erros, request.form, status=400)
-    _, texto = criar(me, dados["nome"], dados["escopos"], dados["dias"])
+    try:
+        _, texto = criar(me, dados["nome"], dados["escopos"], dados["dias"])
+    except LimiteAtingido:
+        db.session.rollback()
+        return _lista(me, {"nome": MENSAGEM_LIMITE}, request.form, status=400)
     db.session.commit()
     resposta = _lista(me, novo=texto, status=201)
     resposta.headers["Cache-Control"] = "no-store"
