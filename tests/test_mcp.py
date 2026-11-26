@@ -87,6 +87,28 @@ def test_mcp_03_erro_interno_nao_derruba(app, monkeypatch):
     assert "result" in r[2]
 
 
+def test_mcp_01_excecao_loga_no_stderr_e_stdout_segue_json_rpc(app, monkeypatch):
+    from app.mcp import protocolo
+
+    texto = token(app)
+
+    def quebra(*a):
+        raise RuntimeError("falha forçada")
+
+    monkeypatch.setattr(protocolo.Sessao, "_ping", quebra)
+    linhas = (INIT, rpc("ping", id_=2), rpc("tools/list", id_=3))
+    entrada, saida, erros = io.StringIO("\n".join(json.dumps(m) for m in linhas) + "\n"), io.StringIO(), io.StringIO()
+    with app.app_context():
+        assert protocolo.iniciar(texto, entrada, saida, erros) == 0
+    respostas = [json.loads(x) for x in saida.getvalue().splitlines()]
+    assert [m["jsonrpc"] for m in respostas] == ["2.0"] * 3
+    assert respostas[1]["error"] == {"code": -32603, "message": "erro interno"}
+    assert "falha ao tratar a mensagem MCP" in erros.getvalue()
+    assert "RuntimeError: falha forçada" in erros.getvalue()
+    assert "falha forçada" not in saida.getvalue() and texto not in erros.getvalue()
+    assert protocolo.log.handlers == [] and protocolo.log.propagate is True
+
+
 def test_mcp_04_sem_token_e_revogado(app):
     from app.mcp.protocolo import iniciar
     from app.tokens import revogar
@@ -132,6 +154,18 @@ def test_mcp_05_lista_com_e_sem_escrita(app):
     for f in rodar(app, [INIT, rpc("tools/list")], tudo)[1]["result"]["tools"]:
         assert f["description"] and f["inputSchema"]["type"] == "object"
         assert f["inputSchema"]["additionalProperties"] is False and "required" in f["inputSchema"]
+
+
+def test_mcp_05_token_so_escrever_nao_ve_nem_chama_leitura(app):
+    texto = token(app, escopos=("escrever",))
+    make_user(app, "carla")
+    make_game(app, "Alfa")
+    nomes = {f["name"] for f in rodar(app, [INIT, rpc("tools/list")], texto)[1]["result"]["tools"]}
+    assert nomes == ESCRITA
+    for nome, args in (("buscar_jogos", {"termo": "alfa"}), ("detalhes_jogo", {"slug": "alfa"}),
+                       ("disponivel_em", {"slug": "alfa"}), ("minhas_listas", {}), ("recomendacoes", {}),
+                       ("comparar_gosto", {"username": "carla"})):
+        assert erro_texto(chamar(app, texto, nome, args)) == "escopo insuficiente", nome
 
 
 def test_mcp_06_validacao_antes_do_servico(app, monkeypatch):
@@ -216,6 +250,36 @@ def test_mcp_07_buscar_detalhes_disponivel(app):
     for nome in ("detalhes_jogo", "disponivel_em"):
         for slug in ("nada", "removido-alfa"):
             assert erro_texto(chamar(app, texto, nome, {"slug": slug})) == "jogo não encontrado"
+
+
+def mesclar(app, secundario, principal):
+    from app.models import Game
+
+    with app.app_context():
+        sec = Game.query.filter_by(slug=secundario).one()
+        sec.removed_at = datetime(2026, 11, 1)
+        sec.mesclado_em_id = Game.query.filter_by(slug=principal).one().id
+        db.session.commit()
+
+
+def test_mcp_07_08_slug_mesclado_como_na_api(app):
+    from app.models import Game
+
+    texto = token(app)
+    make_game(app, "Alfa")
+    make_game(app, "Alfa Antigo")
+    mesclar(app, "alfa-antigo", "alfa")
+    assert estruturado(chamar(app, texto, "detalhes_jogo", {"slug": "alfa-antigo"}))["slug"] == "alfa"
+    assert estruturado(chamar(app, texto, "disponivel_em", {"slug": "alfa-antigo"}))["slug"] == "alfa"
+    for nome, args in (("marcar_status", {"slug": "alfa-antigo", "status": "jogado"}),
+                       ("avaliar", {"slug": "alfa-antigo", "nota": 5}),
+                       ("registrar_sessao", {"slug": "alfa-antigo", "duracao_min": 10})):
+        assert erro_texto(chamar(app, texto, nome, args)) == "jogo não encontrado", nome
+    with app.app_context():
+        assert Status.query.count() == 0 and Review.query.count() == 0 and SessaoJogo.query.count() == 0
+        Game.query.filter_by(slug="alfa").one().removed_at = datetime(2026, 11, 2)
+        db.session.commit()
+    assert erro_texto(chamar(app, texto, "detalhes_jogo", {"slug": "alfa-antigo"})) == "jogo não encontrado"
 
 
 def test_mcp_07_minhas_listas_inclui_privadas(app):
@@ -328,6 +392,26 @@ def test_mcp_10_limite_e_auditoria(app, monkeypatch):
         revogar(linha(texto))
         db.session.commit()
     assert erro_texto(chamar(app, texto, "detalhes_jogo", {"slug": "alfa"})) == "token inválido"
+
+
+def test_mcp_10_escrita_recusada_entra_na_auditoria(app, monkeypatch):
+    relogio(monkeypatch, datetime(2026, 11, 20, 10, 0, 15))
+    so_ler, tudo = token(app, escopos=("ler",)), token(app, "bia")
+    make_game(app, "Alfa")
+    chamar(app, so_ler, "avaliar", {"slug": "alfa", "nota": 5})
+    chamar(app, tudo, "avaliar", {"slug": "alfa", "nota": 11})
+    chamar(app, tudo, "avaliar", {"slug": "nada", "nota": 5})
+    chamar(app, tudo, "registrar_sessao", {"slug": "alfa", "duracao_min": 30, "data": "2026-12-01"})
+    chamar(app, tudo, "avaliar", {"slug": "alfa", "nota": 5})
+    chamar(app, tudo, "detalhes_jogo", {"slug": "alfa"})
+    pedidos = [rpc("tools/call", {"name": "detalhes_jogo", "arguments": {"slug": "alfa"}}, id_=i) for i in range(60)]
+    rodar(app, [INIT, *pedidos], so_ler)
+    chamar(app, so_ler, "avaliar", {"slug": "alfa", "nota": 5})
+    with app.app_context():
+        linhas = AuditoriaToken.query.filter_by(acao="escrita").order_by(AuditoriaToken.id).all()
+        assert [(a.metodo, a.rota, a.status_http) for a in linhas] == [
+            ("MCP", "mcp:avaliar", 403), ("MCP", "mcp:avaliar", 422), ("MCP", "mcp:avaliar", 404),
+            ("MCP", "mcp:registrar_sessao", 422), ("MCP", "mcp:avaliar", 200), ("MCP", "mcp:avaliar", 429)]
 
 
 def test_mcp_11_skills_citam_ferramentas_existentes(app):

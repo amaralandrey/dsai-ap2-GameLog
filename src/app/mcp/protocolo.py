@@ -110,5 +110,12 @@ def iniciar(texto_token, entrada, saida, erros):
         return 1
     sessao = Sessao(token.id)
     db.session.remove()
-    servir(sessao, entrada, saida)
+    handler = logging.StreamHandler(erros)
+    log.addHandler(handler)
+    log.propagate = False
+    try:
+        servir(sessao, entrada, saida)
+    finally:
+        log.removeHandler(handler)
+        log.propagate = True
     return 0

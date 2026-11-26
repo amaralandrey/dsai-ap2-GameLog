@@ -16,7 +16,7 @@ Depende de: AP2 (tokens, escopos, serializadores e funções de serviço), DIA (
 
   Uma notificação (mensagem sem `id`) nunca recebe resposta. Uma mensagem ruim não derruba o servidor.
 - MCP-04: o token vem da variável `GAMELOG_TOKEN`, e nunca de argumento de linha de comando, para não aparecer na lista de processos. Ele é validado como na API v2 (AP2-03). Sem token, ou com token inválido, expirado ou revogado, o comando escreve `erro=token inválido` no stderr e sai com código 1 antes de ler o stdin. O token nunca aparece no stdout, no stderr nem nas respostas.
-- MCP-05: `tools/list` devolve as ferramentas `buscar_jogos`, `detalhes_jogo`, `disponivel_em`, `minhas_listas`, `marcar_status`, `avaliar`, `registrar_sessao`, `recomendacoes` e `comparar_gosto`, cada uma com `name`, `description` em português e `inputSchema` (JSON Schema com `required` e `additionalProperties: false`). Ferramentas de escrita (`marcar_status`, `avaliar`, `registrar_sessao`) só aparecem se o token tiver o escopo `escrever`.
+- MCP-05: `tools/list` devolve as ferramentas `buscar_jogos`, `detalhes_jogo`, `disponivel_em`, `minhas_listas`, `marcar_status`, `avaliar`, `registrar_sessao`, `recomendacoes` e `comparar_gosto`, cada uma com `name`, `description` em português e `inputSchema` (JSON Schema com `required` e `additionalProperties: false`). Cada ferramenta exige um escopo (AP2-04): as de leitura (`buscar_jogos`, `detalhes_jogo`, `disponivel_em`, `minhas_listas`, `recomendacoes`, `comparar_gosto`) exigem `ler`, e as de escrita (`marcar_status`, `avaliar`, `registrar_sessao`) exigem `escrever`. `tools/list` mostra só as ferramentas do escopo do token, e `tools/call` de uma ferramenta fora do escopo devolve `isError: true` com "escopo insuficiente", sem chamar o serviço.
 - MCP-06: `tools/call` valida `arguments` contra o `inputSchema` antes de executar (tipos, obrigatórios, enum, mínimo e máximo, sem propriedades extras). Argumento inválido devolve resultado com `isError: true` e a mensagem do campo, sem chamar o serviço. Uma ferramenta desconhecida responde `-32602`.
 - MCP-07: as ferramentas de leitura devolvem `content` com um bloco `text` (resumo legível em português) e `structuredContent` com o JSON dos serializadores da API v2:
   - `buscar_jogos(termo, genero?, loja?, limite≤20)` usa a busca de BUS e GOG-13;
@@ -24,15 +24,15 @@ Depende de: AP2 (tokens, escopos, serializadores e funções de serviço), DIA (
   - `disponivel_em(slug)` traz as lojas e os links de `JogoFonte`, MRG-12;
   - `minhas_listas(status?)` traz status e listas, inclusive as privadas, do dono do token.
 
-  Jogo inexistente ou removido devolve `isError: true` com "jogo não encontrado".
+  Jogo inexistente ou removido devolve `isError: true` com "jogo não encontrado". O slug de um jogo mesclado responde pelo jogo principal, como o 301 da API v2 (MRG-08); se o principal foi removido, devolve "jogo não encontrado".
 - MCP-08: as ferramentas de escrita chamam as mesmas funções de serviço que AP2-10 e a interface, com as mesmas validações, atividades, eventos e notificações:
   - `marcar_status(slug, status)` segue LIS-01/02;
   - `avaliar(slug, nota, texto?, spoiler?)` segue AVA-01..03;
   - `registrar_sessao(slug, duracao_min, data?, zerou?, anotacao?)` segue DIA, com a data padrão de hoje em America/Belem.
 
-  Sem o escopo `escrever`, a chamada devolve `isError: true` com "escopo insuficiente".
+  O slug de um jogo mesclado devolve "jogo não encontrado", como o 404 das escritas da API v2.
 - MCP-09: `recomendacoes(limite≤10)` devolve as recomendações do dono do token (REC/COL), e `comparar_gosto(username)` devolve a afinidade de AFI. Um usuário inexistente, ou que o dono do token não pode ver (`pode_ver_perfil`, bloqueio ou política de menores), devolve "usuário não encontrado".
-- MCP-10: cada `tools/call` conta no limite de taxa do token (AP2-05). Passando do limite, o resultado traz `isError: true` e "limite de requisições; tente em N s". Toda ferramenta de escrita grava a auditoria de AP2-06 com a rota `mcp:<ferramenta>`.
+- MCP-10: cada `tools/call` conta no limite de taxa do token (AP2-05). Passando do limite, o resultado traz `isError: true` e "limite de requisições; tente em N s". Toda chamada de ferramenta de escrita com token válido grava a auditoria de AP2-06 com o método `MCP`, a rota `mcp:<ferramenta>` e o código que a API v2 gravaria: 200 no sucesso, 403 sem escopo, 404 para jogo não encontrado, 422 para argumento ou regra recusados e 429 no limite. Ferramenta de leitura não grava auditoria.
 - MCP-11: `skills/` traz arquivos `SKILL.md` curtos, cada um com frontmatter `name` e `description` e instruções em português:
   - `gamelog-catalogo`: buscar, ver lojas e detalhes;
   - `gamelog-diario`: registrar sessões e marcar status;
@@ -42,9 +42,11 @@ Depende de: AP2 (tokens, escopos, serializadores e funções de serviço), DIA (
 - MCP-12: os testes rodam sem rede, alimentando o laço de leitura com `io.StringIO` e cobrindo:
   - `initialize`, a chamada antes dele e `ping`;
   - os códigos de erro -32700, -32600, -32601 e -32602, e as notificações sem resposta;
-  - stdout só com JSON-RPC;
+  - stdout só com JSON-RPC, e exceção numa ferramenta com o log no stderr;
   - token ausente e revogado (código 1);
-  - `tools/list` com e sem o escopo de escrita;
+  - `tools/list` e `tools/call` com token só `ler` e só `escrever`;
+  - slug mesclado na leitura e na escrita;
+  - auditoria da escrita recusada;
   - validação de argumentos;
   - cada ferramenta com sucesso e com jogo ou usuário inexistente;
   - escrita com a mesma regra da interface (status, AVA-11 e DIA de "planejado" para "jogando");
