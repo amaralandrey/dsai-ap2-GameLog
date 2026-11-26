@@ -87,6 +87,28 @@ def test_mcp_03_erro_interno_nao_derruba(app, monkeypatch):
     assert "result" in r[2]
 
 
+def test_mcp_01_excecao_loga_no_stderr_e_stdout_segue_json_rpc(app, monkeypatch):
+    from app.mcp import protocolo
+
+    texto = token(app)
+
+    def quebra(*a):
+        raise RuntimeError("falha forçada")
+
+    monkeypatch.setattr(protocolo.Sessao, "_ping", quebra)
+    linhas = (INIT, rpc("ping", id_=2), rpc("tools/list", id_=3))
+    entrada, saida, erros = io.StringIO("\n".join(json.dumps(m) for m in linhas) + "\n"), io.StringIO(), io.StringIO()
+    with app.app_context():
+        assert protocolo.iniciar(texto, entrada, saida, erros) == 0
+    respostas = [json.loads(x) for x in saida.getvalue().splitlines()]
+    assert [m["jsonrpc"] for m in respostas] == ["2.0"] * 3
+    assert respostas[1]["error"] == {"code": -32603, "message": "erro interno"}
+    assert "falha ao tratar a mensagem MCP" in erros.getvalue()
+    assert "RuntimeError: falha forçada" in erros.getvalue()
+    assert "falha forçada" not in saida.getvalue() and texto not in erros.getvalue()
+    assert protocolo.log.handlers == [] and protocolo.log.propagate is True
+
+
 def test_mcp_04_sem_token_e_revogado(app):
     from app.mcp.protocolo import iniciar
     from app.tokens import revogar
