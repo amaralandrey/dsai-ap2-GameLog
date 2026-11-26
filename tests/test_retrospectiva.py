@@ -51,6 +51,23 @@ def test_ret_03_deterministico():
     assert g.linha(*args) == g.linha(*args)
 
 
+def test_ret_04_todo_grafico_de_pagina_tem_a_tabela(base, client):
+    from app.models import PrecoLoja
+
+    sessao(base, "ana", "hades", date(2026, 11, 16), 90)
+    with base.app_context():
+        db.session.add(PrecoLoja(game_id=jogo_id(base, "hades"), fonte="steam", moeda="BRL", preco_centavos=4990,
+                                 preco_base_centavos=4990, desconto_pct=0, coletado_em=now(), verificado_em=now()))
+        db.session.commit()
+    for url in ("/u/ana", "/u/ana/retrospectiva/2026", "/jogos/hades/precos"):
+        html = client.get(url).get_data(as_text=True)
+        graficos = html.count('<svg xmlns="http://www.w3.org/2000/svg"')
+        assert graficos and html.count("<summary>Ver como tabela</summary>") == graficos, url
+    perfil = client.get("/u/ana").get_data(as_text=True)
+    assert "<td>Semana de 16/11</td><td>1.5</td>" in perfil
+    assert "<td>R$ 49,90</td>" in client.get("/jogos/hades/precos").get_data(as_text=True).split("</details>")[0]
+
+
 def test_ret_03_casos_de_borda():
     assert "Sem dados" in g.barras([], [], "t") and "Sem dados" in g.linha([("a", [])], [], "t")
     assert "Sem dados" in g.sparkline([], "t")

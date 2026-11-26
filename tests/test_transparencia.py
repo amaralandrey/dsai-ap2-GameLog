@@ -195,7 +195,10 @@ def test_prv04_recusa_por_idade_vem_antes_das_outras_mensagens(client):
 def test_prv04_cadastro_tem_ponto_de_extensao_por_partes():
     from app import auth
 
-    assert [p.validar for p in auth.PARTES_DO_CADASTRO] == [auth.validar_nascimento, prv.validar_aceite]
+    from app.privacidade import consentimentos
+
+    assert [p.validar for p in auth.PARTES_DO_CADASTRO] == [auth.validar_nascimento,
+                                                            consentimentos.validar_cadastro, prv.validar_aceite]
     assert prv.validar_aceite({}) == ({"aceite": prv.RECUSA}, None)
 
 

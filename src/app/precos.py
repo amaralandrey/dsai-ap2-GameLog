@@ -107,7 +107,7 @@ def grafico(linhas, ultimos_dias=12):
     Cada série repete o último preço conhecido; antes da primeira coleta da loja, repete o primeiro.
     """
     dias = sorted({dia_de(p.coletado_em) for p in linhas})[-ultimos_dias:]
-    series = []
+    series, centavos = [], []
     for fonte in LOJAS_COM_PRECO:
         da_loja = sorted((p for p in linhas if p.fonte == fonte), key=lambda p: (p.coletado_em, p.id))
         if not da_loja:
@@ -116,9 +116,12 @@ def grafico(linhas, ultimos_dias=12):
         for d in dias:
             while i < len(da_loja) and dia_de(da_loja[i].coletado_em) <= d:
                 vigente, i = da_loja[i].preco_centavos, i + 1
-            valores.append(vigente / 100)
-        series.append((NOMES_DAS_LOJAS[fonte], valores))
-    return linha(series, [d.strftime("%d/%m") for d in dias], "Preço por loja (R$)")
+            valores.append(vigente)
+        series.append((NOMES_DAS_LOJAS[fonte], [v / 100 for v in valores]))
+        centavos.append(valores)
+    rotulos = [d.strftime("%d/%m") for d in dias]
+    tabela = [[r, *(reais(c[i]) for c in centavos)] for i, r in enumerate(rotulos)]
+    return linha(series, rotulos, "Preço por loja (R$)"), ["Dia", *(n for n, _ in series)], tabela
 
 
 def importar_do_snapshot(caminho):

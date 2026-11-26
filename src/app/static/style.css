@@ -95,7 +95,7 @@ footer a{color:var(--mut);text-decoration:underline}
 .serie-0{fill:var(--acc);stroke:var(--acc)}.serie-1{fill:#ffc247;stroke:#ffc247}
 .serie-2{fill:var(--ok);stroke:var(--ok)}.serie-3{fill:var(--err);stroke:var(--err)}
 polyline.serie-0,polyline.serie-1,polyline.serie-2,polyline.serie-3{fill:none;stroke-width:2}
-.sparkline{width:160px;height:36px;vertical-align:middle;color:var(--mut)}
+.sparkline,.grafico-box .sparkline{width:160px;height:36px;vertical-align:middle;color:var(--mut)}
 /* progresso e ordem das listas (LSA-08, LSA-11) */
 .progresso-lista .barra{display:flex;height:10px;border-radius:99px;overflow:hidden;background:var(--line)}
 .barra .st-jogado{background:var(--ok)}.barra .st-jogando{background:var(--acc)}

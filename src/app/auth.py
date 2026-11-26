@@ -11,7 +11,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from . import tempo
 from .menores import idade
 from .menores.politica import pode
-from .privacidade import transparencia
+from .privacidade import consentimentos, transparencia
 from .models import Activity, Follow, GameList, LoginAttempt, Review, Silencio, User, db, now
 from .afinidade import resumo_com
 from .bloqueios import bloqueado_entre
@@ -87,6 +87,7 @@ Parte = namedtuple("Parte", "validar template")
 # PRV-04: cada parte valida o mesmo formulário e só grava se nenhuma falhar; CNS-04 entra entre a data e o aceite
 PARTES_DO_CADASTRO = [
     Parte(validar_nascimento, "auth/_cadastro_nascimento.html"),
+    Parte(consentimentos.validar_cadastro, "auth/_cadastro_consentimentos.html"),
     Parte(transparencia.validar_aceite, "auth/_cadastro_aceite.html"),
 ]
 
@@ -94,7 +95,8 @@ PARTES_DO_CADASTRO = [
 def _form_cadastro(errors, form, status=200):
     recusa = errors.get("nascimento") if errors.get("nascimento") == idade.MENOR_DE_12 else None  # IDA-02 antes
     return render_template("auth/cadastro.html", errors=errors, form=form, recusa=recusa,
-                           partes=[p.template for p in PARTES_DO_CADASTRO], resumo=transparencia.resumo()), status
+                           partes=[p.template for p in PARTES_DO_CADASTRO], resumo=transparencia.resumo(),
+                           pedidos=consentimentos.pedidos_do_cadastro(form)), status
 
 
 @bp.route("/cadastro", methods=["GET", "POST"])
@@ -200,7 +202,7 @@ def profile(username):
         "zerados": zerados(user.id),
     }
     afin = resumo_com(me.id, user.id) if me and not own and pode(user, "historico_para_terceiros") else None  # AFI-08, PMN-06
-    extra["sparkline"], _ = sparkline_do_perfil(user.id)  # RET-11
+    extra["sparkline"], extra["semanas"] = sparkline_do_perfil(user.id)  # RET-11
     extra["vitrine"] = vitrine(user.id, pode(user, "conquista_por_tempo"))  # GAM-09: lidas, sem recalcular (CON-06)
     extra["progressao"] = resumo_progressao(user.id)  # PRG-09
     return render_template(

@@ -18,7 +18,7 @@ from ..menores.idade import ADULTO, faixa_etaria
 from ..models import AceiteDocumento, AvisoDocumentoFechado, DocumentoLegal, PedidoTitular, User, db
 from ..util import (LIVRES_DO_ACEITE, _destino, _pendencia_de_idade, admin_required, current_user, login_required,
                     rota_livre, safe_next)
-from . import mapa
+from . import consentimentos, mapa
 
 bp = Blueprint("transparencia", __name__)
 
@@ -325,10 +325,13 @@ def fechar_aviso(doc_id):
 @bp.route("/conta/privacidade")
 @login_required
 def minha_privacidade():
-    """Versões aceitas e quando (PRV-11); a DIR acrescenta aqui os direitos e a oposição."""
-    aceites = (AceiteDocumento.query.filter_by(user_id=current_user().id)
+    """Versões aceitas e quando (PRV-11) e os consentimentos (CNS-03, CNS-08); a DIR acrescenta os direitos."""
+    me = current_user()
+    aceites = (AceiteDocumento.query.filter_by(user_id=me.id)
                .order_by(AceiteDocumento.aceito_em.desc(), AceiteDocumento.id.desc()).all())
-    return render_template("privacidade/conta.html", aceites=aceites, nomes=TIPOS)
+    return render_template("privacidade/conta.html", aceites=aceites, nomes=TIPOS,
+                           consentimentos=consentimentos.painel(me), historico=consentimentos.historico(me),
+                           rotulos={f: c.rotulo for f, c in consentimentos.FINALIDADES.items()})
 
 
 # ---------- admin (PRV-01, PRV-11) ----------

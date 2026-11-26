@@ -22,6 +22,7 @@ from .menores.politica import pode
 from .models import EMAIL_STATUS, Activity, EmailSaida, Job, PreferenciaNotificacao, User, db
 from .notificacoes import SEM_ENGAJAMENTO, TIPOS, preferencia
 from .privacidade.anonimizar import anonimizada
+from .privacidade.consentimentos import revogar, tem_consentimento
 from .social import feed_query
 from .util import admin_required, paginate
 
@@ -39,19 +40,6 @@ NOITE_INICIO, NOITE_FIM = 22, 7  # PMN-07
 MAX_ITENS_RESUMO = 10
 CORPO_OCULTO = ("recuperar_senha",)  # o corpo leva link de acesso à conta: some depois do envio (RSN-09)
 CORPO_REMOVIDO = "[link removido após o envio]"
-
-
-# ---------- ganchos das specs que ainda não estão na main ----------
-def tem_consentimento(user, finalidade):
-    """CNS-06: troque por `consentimentos.tem_consentimento` quando CNS entrar.
-
-    Enquanto isso, ninguém consentiu: o resumo semanal e as ofertas por e-mail ficam desligados (EML-08).
-    """
-    return False
-
-
-def revogar_consentimento(user, finalidade):
-    """CNS-01: o descadastro grava a revogação com `origem="descadastro"` (EML-07); sem CNS, não há o que gravar."""
 
 
 def conta_excluida(user):
@@ -271,7 +259,7 @@ def descadastro(token):
     if request.method == "GET":
         return render_template("conta/descadastro.html", rotulo=rotulo)
     if tipo == RESUMO:
-        revogar_consentimento(user, "email_resumo")
+        revogar(user, "email_resumo", "descadastro")
     else:
         p = PreferenciaNotificacao.query.filter_by(user_id=user.id, tipo=tipo).first()
         p = p or PreferenciaNotificacao(user_id=user.id, tipo=tipo, site=True)
@@ -312,7 +300,7 @@ def itens_do_resumo(user, semana):
 
 
 def elegivel_ao_resumo(user):
-    """Consentimento `email_resumo` (CNS) e PMN-08; sem CNS na main, ninguém é elegível (EML-08)."""
+    """Consentimento `email_resumo` (CNS-06) e PMN-08 (EML-08)."""
     return not conta_excluida(user) and tem_consentimento(user, "email_resumo") and email_engajamento_liberado(user)
 
 
@@ -329,8 +317,8 @@ def resumo_semanal():
 def resumo_do_usuario(user_id, semana):
     """Monta e enfileira o resumo; sem item nenhum, não grava nada na caixa de saída (EML-09).
 
-    A seção de ofertas da wishlist entra com OFR: ela depende do consentimento `ofertas` (OFR-07), que só existe
-    com CNS, e de `pode(user, "ver_ofertas")` (PMN).
+    A seção de ofertas da wishlist entra com OFR: ela depende do consentimento `ofertas` (OFR-07) e de
+    `pode(user, "ver_ofertas")` (PMN).
     """
     user = db.session.get(User, user_id)
     if user is None or not elegivel_ao_resumo(user):

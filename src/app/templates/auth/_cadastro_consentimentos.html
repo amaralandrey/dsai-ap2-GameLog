@@ -1,0 +1,5 @@
+  <fieldset>
+    <legend>Autorizações opcionais</legend>
+    <p class="mut">Nenhuma é necessária para usar o GameLog, e você pode mudar de ideia em Minha privacidade. De 12 a 15 anos, quem autoriza é o seu responsável; ofertas, só a partir de 18 anos.</p>
+    {% for p in pedidos %}{% include "privacidade/_pedido_consentimento.html" %}{% endfor %}
+  </fieldset>

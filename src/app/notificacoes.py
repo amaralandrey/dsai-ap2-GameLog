@@ -221,6 +221,7 @@ def ler_todas():
 @login_required
 def preferencias():
     from .emails import pode_ligar_email
+    from .privacidade import consentimentos
 
     me = current_user()
     liga_email = {tipo: pode_ligar_email(me, tipo) for tipo in TIPOS}  # PMN-08
@@ -232,8 +233,11 @@ def preferencias():
             p = atuais.get(tipo) or PreferenciaNotificacao(user_id=me.id, tipo=tipo)
             p.site, p.email = site, email
             db.session.add(p)
+        consentimentos.aplicar_interruptor(me, "email_resumo",
+                                           consentimentos.marcado_no_form(request.form, "email_resumo"))
         db.session.commit()
         return redirect("/notificacoes/preferencias")
     prefs = {tipo: preferencia(me.id, tipo) for tipo in TIPOS}
     return render_template("notificacoes/preferencias.html", tipos=TIPOS, prefs=prefs,
-                           obrigatorios=OBRIGATORIOS_NO_SITE, liga_email=liga_email, algum_bloqueado=not all(liga_email.values()))
+                           obrigatorios=OBRIGATORIOS_NO_SITE, liga_email=liga_email, algum_bloqueado=not all(liga_email.values()),
+                           p=consentimentos.pedido(me, "email_resumo"))
