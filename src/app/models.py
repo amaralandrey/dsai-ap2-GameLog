@@ -71,6 +71,42 @@ class VerificacaoIdade(db.Model):
 @db.event.listens_for(VerificacaoIdade, "before_update")
 def _historico_imutavel(*_):
     raise ValueError("o histórico de verificações de idade é só de inserção")
+
+
+class VinculoResponsavel(db.Model):
+    """Convite e vínculo entre um menor e o responsável legal; o próprio vínculo registra o aceite (RSP-01, RSP-02)."""
+    id = db.Column(db.Integer, primary_key=True)
+    menor_id = db.Column(db.ForeignKey("user.id"), nullable=False, index=True)
+    email_convite = db.Column(db.String(200), nullable=False)
+    responsavel_id = db.Column(db.ForeignKey("user.id"), nullable=True, index=True)
+    convidado_em = db.Column(db.DateTime, default=now, nullable=False)
+    aceito_em = db.Column(db.DateTime, nullable=True)
+    recusado_em = db.Column(db.DateTime, nullable=True)
+    revogado_em = db.Column(db.DateTime, nullable=True)
+    encerrado_idade_em = db.Column(db.DateTime, nullable=True)
+    versao_declaracao = db.Column(db.Integer, nullable=True)
+    menor = db.relationship(User, foreign_keys=[menor_id])
+    responsavel = db.relationship(User, foreign_keys=[responsavel_id])
+
+    @property
+    def ativo(self):
+        return self.aceito_em is not None and self.revogado_em is None and self.encerrado_idade_em is None
+
+    @property
+    def aberto(self):
+        return self.aceito_em is None and self.recusado_em is None and self.revogado_em is None
+
+
+class ControleParental(db.Model):
+    """O que o responsável liberou para o menor de 12 a 15 anos; nasce tudo desligado (RSP-07)."""
+    id = db.Column(db.Integer, primary_key=True)
+    menor_id = db.Column(db.ForeignKey("user.id"), unique=True, nullable=False)
+    comentarios = db.Column(db.Boolean, default=False, nullable=False)
+    clubes = db.Column(db.Boolean, default=False, nullable=False)
+    torneios = db.Column(db.Boolean, default=False, nullable=False)
+    perfil_publico = db.Column(db.Boolean, default=False, nullable=False)
+    alterado_por = db.Column(db.ForeignKey("user.id"), nullable=True)
+    alterado_em = db.Column(db.DateTime, nullable=True)
 class Instancia(db.Model):
     """Uma linha por banco: muda quando o banco é recriado e invalida cookies da cópia anterior."""
     id = db.Column(db.Integer, primary_key=True)

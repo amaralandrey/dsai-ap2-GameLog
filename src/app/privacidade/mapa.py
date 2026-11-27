@@ -125,6 +125,13 @@ CAMPOS = {
               ("codigo_hash usado_em created_at", {})),
     **_tabela("evento_seguranca", dict(CONTA, categoria="atividade", anonimizar="apagar_linha"),
               ("id", TECNICO), ("user_id", DONO), ("tipo created_at", {})),
+    **_tabela("vinculo_responsavel", dict(IDADE, categoria="identificacao", anonimizar="apagar_linha"),
+              ("id", TECNICO), ("menor_id", DONO), ("responsavel_id", {"exportar": False}),
+              ("email_convite", {"categoria": "contato", "exportar": False}),
+              ("convidado_em aceito_em recusado_em revogado_em encerrado_idade_em versao_declaracao", {})),  # RSP-01
+    **_tabela("controle_parental", dict(IDADE, categoria="preferencia", anonimizar="apagar_linha"), ("id", TECNICO),
+              ("menor_id", DONO), ("alterado_por", {"exportar": False}),
+              ("comentarios clubes torneios perfil_publico alterado_em", {})),  # RSP-07
     **_tabela("verificacao_idade", dict(IDADE, anonimizar="apagar_linha"), ("id", TECNICO), ("user_id", DONO),
               ("metodo faixa_resultante confiavel divergente created_at", {})),
     **_tabela("aceite_documento", dict(CONTA, categoria="atividade"), ("id", TECNICO), ("user_id", DONO),
