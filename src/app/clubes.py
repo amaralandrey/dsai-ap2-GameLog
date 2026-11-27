@@ -459,8 +459,12 @@ def apagar_post(slug, pid):
     clube, me, m = clube_ou_404(slug)
     post = post_do_clube(clube, pid)
     exigir(post.user_id == me.id)
-    Report.query.filter_by(alvo_tipo="post_clube", alvo_id=post.id).delete()
-    db.session.delete(post)
+    from .denuncias import preservado
+
+    if preservado(post):
+        post.oculto, post.motivo_ocultacao = True, "apagado pelo autor"
+    else:
+        db.session.delete(post)
     db.session.commit()
     return redirect(f"/clubes/{slug}#mural")
 
@@ -492,16 +496,11 @@ def denunciar(slug, pid):
     clube, me, m = clube_ou_404(slug)
     exigir(ativo(m))
     post = post_do_clube(clube, pid)
-    reason = request.form.get("reason", "")
-    if post.user_id == me.id:
-        flash("Você não pode denunciar o próprio post.", "erro")
-    elif reason not in REPORT_REASONS:
-        flash("Escolha o motivo da denúncia.", "erro")
-    elif Report.query.filter_by(alvo_tipo="post_clube", alvo_id=post.id, reporter_id=me.id).first():
-        flash("Você já denunciou este post.", "erro")
+    from .denuncias import denunciar as registrar_denuncia
+
+    if erro := registrar_denuncia(me, "post_clube", post, request.form):
+        flash(erro, "erro")
     else:
-        db.session.add(Report(alvo_tipo="post_clube", alvo_id=post.id, reporter_id=me.id, reason=reason,
-                              comment=request.form.get("comment", "").strip()[:500]))
         db.session.flush()
         pendentes = Report.query.filter_by(alvo_tipo="post_clube", alvo_id=post.id, status="pendente").count()
         if pendentes >= OCULTAR_COM:
@@ -528,7 +527,7 @@ def moderacao(slug):
         db.session.commit()
         return redirect(f"/clubes/{slug}/moderacao")
     denuncias = (db.session.query(Report, PostClube).join(PostClube, PostClube.id == Report.alvo_id)
-                 .filter(Report.alvo_tipo == "post_clube", PostClube.clube_id == clube.id)
+                 .filter(Report.alvo_tipo == "post_clube", PostClube.clube_id == clube.id, Report.reason != "risco_menor")
                  .order_by(Report.status != "pendente", Report.created_at.desc()).all())
     return render_template("clubes/moderacao.html", clube=clube, denuncias=denuncias, reasons=REPORT_REASONS)
 
