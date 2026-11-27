@@ -3,6 +3,7 @@ from datetime import date
 from flask import Blueprint, render_template, request
 from sqlalchemy import case, func, literal
 
+from .menores.classificacao import FAIXAS, IDADES, faixa_maxima, permitidas, usuario_da_requisicao
 from .models import LOJAS, Developer, Game, Genre, JogoFonte, Platform, avg_subquery, visible_games
 from .util import fold, paginate
 
@@ -40,6 +41,9 @@ def search_games(args):
     lojas = [loja for loja in args.getlist("loja") if loja in LOJAS]  # valor desconhecido é ignorado (BUS-08)
     if lojas:
         q = q.filter(Game.fontes.any(JogoFonte.fonte.in_(lojas)))  # vínculo de loja (GOG-13, FNT-04)
+    faixa = faixa_maxima(args.get("classificacao_max"), usuario_da_requisicao())
+    if faixa:
+        q = q.filter(Game.classificacao.is_(None) | Game.classificacao.in_(permitidas(IDADES[faixa])))
     y0, y1 = _int(args.get("ano_de"), 1, 9999), _int(args.get("ano_ate"), 1, 9999)
     if y0:
         q = q.filter(Game.release_date >= date(y0, 1, 1))
@@ -75,5 +79,7 @@ def search():
         genres=Genre.query.order_by(Genre.name).all(), platforms=Platform.query.order_by(Platform.name).all(),
         lojas=NOMES_LOJAS, sel_genres=request.args.getlist("genero"), sel_plats=request.args.getlist("plataforma"),
         sel_lojas=request.args.getlist("loja"),
-        filtered=any(request.args.get(k) for k in ("q", "genero", "plataforma", "loja", "ano_de", "ano_ate", "nota_min")),
+        filtered=any(request.args.get(k) for k in ("q", "genero", "plataforma", "loja", "ano_de", "ano_ate", "nota_min",
+                                                   "classificacao_max")),
+        faixas=FAIXAS,
     )

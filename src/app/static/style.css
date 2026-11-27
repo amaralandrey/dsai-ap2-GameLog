@@ -117,3 +117,5 @@ polyline.serie-0,polyline.serie-1,polyline.serie-2,polyline.serie-3{fill:none;st
 .cartao-ranking{border-color:var(--acc)}tr.eu td{background:var(--acc-soft)}
 .meta-clube{padding:8px 0;border-bottom:1px solid var(--line)}.post-clube{padding:8px 0;border-bottom:1px solid var(--line)}.post-clube p{overflow-wrap:anywhere}
 .prazo-destaque{border-color:var(--acc);background:var(--acc-soft)}
+.selo-classificacao{display:inline-block;min-width:2em;padding:2px 6px;border-radius:4px;font-weight:700;text-align:center;color:#fff;background:#555}
+.selo-L{background:#00a54f}.selo-6{background:#00a0dd}.selo-10{background:#0071bc}.selo-12{background:#e0b100;color:#111}.selo-14{background:#e86a10}.selo-16{background:#d6001c}.selo-18{background:#111}

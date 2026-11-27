@@ -91,7 +91,7 @@ def detalhe(slug):
 
 def detalhe_de_jogo(g):
     s = game_stats(g.id)
-    return {**item(g, s["avg"], s["total"]), "sinopse": g.synopsis,
+    return {**item(g, s["avg"], s["total"]), "sinopse": g.synopsis, "classificacao": g.classificacao,
             "histograma": {str(k): v for k, v in s["hist"].items()}, "fontes": serializadores.fontes(g),
             **serializadores.precos(g.id)}
 

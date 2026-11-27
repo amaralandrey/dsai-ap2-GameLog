@@ -11,6 +11,7 @@ from sqlalchemy.orm import joinedload, selectinload
 
 from .catalogo_merge import MesclagemRecusada, ignorar, mesclar
 from .fontes import FONTES, importar_item, indisponivel, jogo_por_fonte
+from .menores.classificacao import FAIXAS
 from .models import AuditLog, Developer, Game, Genre, JogoFonte, PendenciaMerge, Platform, Report, Review, db, now
 from .privacidade.mapa import registro_operacoes
 from .util import admin_required, current_user, paginate, slugify
@@ -178,6 +179,9 @@ def game_form(game=None):
     errors, form = {}, request.form
     if request.method == "POST":
         data, errors = parse_game_form(request.form)
+        faixa = request.form.get("classificacao", "")
+        if faixa and faixa not in FAIXAS:
+            errors["classificacao"] = "Escolha uma classificação da lista."
         if not errors:
             new = game is None
             game = game or Game()
@@ -185,21 +189,27 @@ def game_form(game=None):
                 game.slug = unique_slug(data["title"], game.id)  # antes de tocar nos atributos (autoflush)
             for k, v in data.items():
                 setattr(game, k, v)
+            antiga = game.classificacao
+            if "classificacao" in request.form and (faixa or None) != antiga:
+                game.classificacao, game.classificacao_origem = faixa or None, "admin"
             db.session.add(game)
             db.session.flush()
+            if game.classificacao_origem == "admin" and game.classificacao != antiga:
+                audit("jogo.classificacao", f"{game.title} (#{game.id}): {antiga or 'não informada'} → "
+                                            f"{game.classificacao or 'não informada'}")
             audit("jogo.criar" if new else "jogo.editar", f"{game.title} (#{game.id})")
             db.session.commit()
             flash("Jogo salvo.", "ok")
             return redirect("/admin/jogos")
     elif game:
         form = {"title": game.title, "synopsis": game.synopsis, "release_date": game.release_date.isoformat(),
-                "developer_id": str(game.developer_id)}
+                "developer_id": str(game.developer_id), "classificacao": game.classificacao or ""}
     sel = {"genre_ids": {str(g.id) for g in game.genres} if game and request.method == "GET" else set(request.form.getlist("genre_ids")),
            "platform_ids": {str(p.id) for p in game.platforms} if game and request.method == "GET" else set(request.form.getlist("platform_ids"))}
     return render_template(
         "admin/jogo_form.html", game=game, errors=errors, form=form, sel=sel,
         genres=Genre.query.order_by(Genre.name).all(), platforms=Platform.query.order_by(Platform.name).all(),
-        developers=Developer.query.order_by(Developer.name).all(),
+        developers=Developer.query.order_by(Developer.name).all(), faixas=FAIXAS,
     ), (400 if errors else 200)
 
 

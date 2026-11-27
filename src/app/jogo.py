@@ -9,6 +9,7 @@ from .models import (
     NOMES_DAS_LOJAS, REPORT_REASONS, STATUSES, Comment, Game, GameList, Like, Review, Status, avg_subquery, db, game_genres, game_stats,
     visible_games,
 )
+from .menores.classificacao import IDADES, NOTA, pode_ver
 from .precos import atual, atuais, grafico, historico, menor_preco
 from .util import current_user, paginate
 
@@ -43,10 +44,12 @@ def redirecionar_mesclado(slug, para):
 
 @bp.route("/jogos/<slug>")
 def game_page(slug):
-    game = visible_games().filter_by(slug=slug).first()
+    game = visible_games(classificacao=False).filter_by(slug=slug).first()
     if game is None:
         return redirecionar_mesclado(slug, lambda s: f"/jogos/{s}")
     me = current_user()
+    if not pode_ver(me, game):
+        return render_template("jogo/restrito.html", game=game, idade=IDADES[game.classificacao])
     likes = func.count(Like.id)
     q = (
         db.session.query(Review, likes.label("likes"))
@@ -78,6 +81,7 @@ def game_page(slug):
         hist_max=max(stats["hist"].values()) or 1, nomes_lojas=NOMES_DAS_LOJAS, horas=horas,
         com_bloqueio=com_bloqueio(me.id) if me else set(),
         precos=precos, vigentes={f for f, p in precos.items() if atual(p)}, menor=menor_preco(game.id),
+        nota_classificacao=NOTA,
     )
 
 
