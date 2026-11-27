@@ -33,8 +33,10 @@ def conta_anonimizada(user):
 
 
 def responsaveis_ativos(user):
-    """RSP: ids dos responsáveis com vínculo ativo; troque pela consulta de RSP quando ela entrar (hoje, nenhum)."""
-    return []
+    """Ids dos responsáveis com vínculo ativo (RSP-05)."""
+    from .menores.responsavel import responsaveis_ativos as ativos
+
+    return ativos(user)
 
 
 # ---------- token (RSN-02, RSN-05) ----------

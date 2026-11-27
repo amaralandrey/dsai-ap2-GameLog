@@ -90,7 +90,9 @@ def pode_conceder(user, finalidade, responsavel=None):
 
 
 def e_responsavel_vinculado(responsavel, menor):
-    return False
+    from ..menores.responsavel import e_responsavel
+
+    return e_responsavel(responsavel, menor)
 
 
 def _gravar(user, finalidade, concedido, origem):
