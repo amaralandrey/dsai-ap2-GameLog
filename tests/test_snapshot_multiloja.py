@@ -65,10 +65,10 @@ def test_snp02_grava_lojas_gog_e_epic_e_o_id_da_rawg_sem_mexer_no_resto(app, sna
     enriquecer(app, snapshot)
     hades, celeste, outro = ler(snapshot)
     assert hades == {**HADES, "lojas": [["gog", "https://www.gog.com/game/hades"], ["epic", "https://store.epicgames.com/p/hades"]],
-                     "origens": [["rawg", "1"]]}  # Steam e PlayStation ficam de fora; Epic no formato de FNT-07
+                     "origens": [["rawg", "1"]], "classificacao": None}  # Steam e PlayStation ficam de fora; Epic no formato de FNT-07
     assert list(hades)[:8] == list(HADES)
     assert celeste["lojas"] == [["epic", "https://store.epicgames.com/p/celeste"]] and celeste["origens"] == [["rawg", "2"]]
-    assert outro == OUTRO  # sem correspondência: exatamente como estava
+    assert outro == {**OUTRO, "classificacao": None}  # sem correspondência: só ganha o campo da classificação (CLS-05)
 
 
 def test_snp02_link_fora_de_fnt07_nao_e_gravado(app, snapshot, rawg_falsa):
