@@ -4,6 +4,7 @@ from urllib.parse import urlsplit
 
 from sqlalchemy.orm import selectinload
 
+from ..menores.classificacao import aplicar as aplicar_classificacao
 from ..models import Developer, Game, Genre, JogoFonte, Platform, db
 from ..util import slugify
 from . import arquivo, base, gog, rawg, steam
@@ -184,6 +185,7 @@ def importar_item(fonte, j):
         assumir_vinculo(decisao.jogo, fonte, j["external_id"])
         vincular_origem(decisao.jogo, fonte, j)
         vincular_lojas(decisao.jogo, j.get("lojas"))
+        aplicar_classificacao(decisao.jogo, j.get("classificacao"), j.get("classificacao_origem") or fonte)
         return "vinculado", decisao.jogo
     slug = slugify(j["title"]) or j["external_id"]
     if Game.query.filter_by(slug=slug).first():
@@ -197,6 +199,7 @@ def importar_item(fonte, j):
         source=fonte, external_id=j["external_id"], cover_url=j["cover_url"],
     )
     db.session.add(game)
+    aplicar_classificacao(game, j.get("classificacao"), j.get("classificacao_origem") or fonte)
     vincular_origem(game, fonte, j)
     vincular_lojas(game, j.get("lojas"))
     if decisao.acao == "pendencia":

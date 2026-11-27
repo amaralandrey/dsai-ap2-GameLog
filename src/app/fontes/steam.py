@@ -6,6 +6,7 @@ from datetime import date
 from urllib.parse import quote
 from urllib.request import urlopen
 
+from ..menores.classificacao import de_steam
 from . import base
 
 NOME = "Steam"
@@ -76,6 +77,7 @@ def _jogo(appid):
         "genres": [g["description"] for g in d.get("genres", [])],
         "platforms": [n for k, n in PLATAFORMAS.items() if d.get("platforms", {}).get(k)],
         "cover_url": capa(appid, d.get("header_image")),
+        "classificacao": de_steam(d.get("required_age")),
     }
 
 

@@ -6,18 +6,21 @@ import json
 import os
 
 from .fontes import Interrompido, base, external_id_da_url, normalizar_url_loja, rawg
+from .menores.classificacao import mais_restritiva
 
 CANDIDATOS = 3  # resultados da busca da RAWG conferidos por jogo (SNP-01)
 LOJAS_EXTRAS = ("gog", "epic")  # a Steam já vem do próprio snapshot (FNT-05)
 
 
 def correspondencia(j, modulo=rawg):
-    """(id da RAWG, lojas) do resultado cujo link da Steam tem o id do jogo, ou None; sem semelhança de título."""
+    """(id da RAWG, lojas, classificação) do resultado cujo link da Steam tem o id do jogo, ou None; sem semelhança de
+    título."""
     for r in modulo.buscar(j["title"], CANDIDATOS):
         lojas = modulo.lojas(r["external_id"])
         if any(loja == "steam" and external_id_da_url("steam", url) == j["external_id"] for loja, url in lojas):
             links = ((loja, normalizar_url_loja(loja, url)) for loja, url in lojas if loja in LOJAS_EXTRAS)
-            return r["external_id"], [[loja, url] for loja, url in links if url]  # só links que passam por FNT-07
+            return (r["external_id"], [[loja, url] for loja, url in links if url],  # só links que passam por FNT-07
+                    r.get("classificacao"))
     return None
 
 
@@ -60,8 +63,11 @@ def enriquecer(caminho, modulo=rawg):
     """Devolve (jogos, vinculados, sem_correspondencia, falhas) e grava o arquivo."""
     def tratar(j):
         achado = correspondencia(j, modulo)
+        j.setdefault("classificacao", None)
         if achado is not None:
             j["lojas"], j["origens"] = achado[1], [["rawg", achado[0]]]
+            if mais_restritiva(j["classificacao"], achado[2]) != j["classificacao"]:
+                j["classificacao"], j["classificacao_origem"] = achado[2], "rawg"
         return achado is not None
     return _percorrer(caminho, tratar)
 

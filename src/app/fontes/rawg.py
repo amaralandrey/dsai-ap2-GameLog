@@ -1,6 +1,7 @@
 """Fonte RAWG: metadados multiplataforma e links de loja; exige RAWG_API_KEY, lida do ambiente (GOG-03..07)."""
 import os
 
+from ..menores.classificacao import de_rawg
 from . import base
 from .normalizar import ler_data, texto_puro
 
@@ -82,12 +83,13 @@ def detalhe(external_id):
         "platforms": [(p.get("platform") or {}).get("name") for p in d.get("platforms") or []],
         "cover_url": d.get("background_image"),
         "lojas": lojas(eid),
+        "classificacao": de_rawg(d.get("esrb_rating")),
     }
 
 
 def buscar(termo, limite=10):
-    return [{"external_id": str(r["id"]), "title": r["name"], "cover_url": r.get("background_image")}
-            for r in _busca(termo, limite)[0][:limite]]
+    return [{"external_id": str(r["id"]), "title": r["name"], "cover_url": r.get("background_image"),
+             "classificacao": de_rawg(r.get("esrb_rating"))} for r in _busca(termo, limite)[0][:limite]]
 
 
 def listar(limite, termo=None):
