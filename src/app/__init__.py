@@ -81,7 +81,10 @@ def create_app(config=None):
     app.jinja_env.filters["data_hora"] = data_hora
     from .menores.politica import e_menor, pode, visibilidade_padrao
 
-    app.jinja_env.globals.update(pode=pode, e_menor=e_menor, visibilidade_padrao=visibilidade_padrao)  # PMN-01: as telas perguntam à mesma política
+    app.jinja_env.globals.update(pode=pode, e_menor=e_menor, visibilidade_padrao=visibilidade_padrao)
+    from .privacidade.anonimizar import anonimizada
+
+    app.jinja_env.globals["anonimizada"] = anonimizada  # PMN-01: as telas perguntam à mesma política
 
     @app.context_processor
     def inject():

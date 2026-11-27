@@ -20,12 +20,13 @@ def avg_map():
 def vizinhos(user_id):
     """[(afinidade 0-1, username, {game_id: nota})] das pessoas com gosto parecido (COL-01).
 
-    O histórico de um menor não recomenda nada a ninguém (PMN-06); as recomendações para um menor já não usam
-    preço, desconto nem loja.
+    O histórico de um menor não recomenda nada a ninguém (PMN-06), nem o de quem se opôs (DIR-09); as recomendações
+    para um menor já não usam preço, desconto nem loja.
 
     ponytail: lê as notas de todo mundo numa consulta; com muitos usuários, pré-calcular os vizinhos.
     """
-    ids = [i for (i,) in db.session.query(User.id).filter(User.id != user_id, ~sql_menor())]
+    ids = [i for (i,) in db.session.query(User.id).filter(User.id != user_id, ~sql_menor(),
+                                                          User.oposicao_recomendacao.is_(False))]
     if not ids:
         return []
     n = notas(ids + [user_id])
