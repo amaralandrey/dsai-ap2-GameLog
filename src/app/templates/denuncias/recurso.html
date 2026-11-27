@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Recurso da decisão — GameLog{% endblock %}
+{% block content %}
+<section class="panel" style="max-width:640px;margin:0 auto">
+<h1>Decisão da moderação</h1>
+{% if rep.decisao %}<p><strong>{{ decisoes[rep.decisao] | capitalize }}</strong> em {{ rep.decided_at | dia }}.</p>
+<p><strong>Fundamentação:</strong> {{ rep.fundamentacao }}</p>{% endif %}
+{% if rep.recurso_em %}<p class="mut">Você recorreu em {{ rep.recurso_em | dia }}: {{ rep.recurso_texto }}</p>{% endif %}
+{% if pode %}
+<form method="post" action="/denuncias/{{ rep.id }}/recurso">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <label for="texto">Por que a decisão deve ser revista (uma vez, em até 15 dias)</label>
+  <textarea id="texto" name="texto" required minlength="10" maxlength="1000"></textarea>
+  <p><button>Recorrer</button></p>
+</form>
+{% elif not rep.recurso_em %}<p class="mut">Não há recurso disponível para esta decisão.</p>{% endif %}
+</section>
+{% endblock %}
