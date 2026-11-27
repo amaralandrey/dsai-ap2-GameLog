@@ -227,7 +227,7 @@ def test_prv05_rotas_liberadas_sem_aceite(app, docs):
     for rota in ("/privacidade", "/termos", "/privacidade/suboperadores", "/privacidade/contato",
                  "/conta/privacidade", "/termos/aceitar", prv.DESTINO_NAO_ACEITO):
         assert c.get(rota).status_code == 200, rota
-    assert c.get("/conta/excluir").status_code == 404  # DIR: livre do redirecionamento, ainda não existe
+    assert c.get("/conta/excluir").status_code == 200
     assert c.post("/sair").headers["Location"] == "/"
 
 
@@ -284,8 +284,8 @@ def test_prv07_canal_sem_encarregado(app, client, docs):
     r = client.post("/privacidade/contato", data={**dados, "email": "V@ex.com"}, follow_redirects=True)
     with app.app_context():
         pedido = PedidoTitular.query.one()
-        assert (pedido.tipo, pedido.user_id, pedido.email_contato, pedido.status) == ("contato", None, "v@ex.com",
-                                                                                      "aberto")
+        assert (pedido.tipo, pedido.user_id, pedido.email_contato, pedido.status) == (
+            "contato", None, "v@ex.com", "aguardando_confirmacao")
         assert pedido.protocolo.startswith("20261116-")
     assert f"Protocolo {pedido.protocolo}" in r.get_data(as_text=True)
 
