@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Meus direitos — GameLog{% endblock %}
+{% block content %}
+<h1>Meus direitos sobre os dados</h1>
+<p class="mut">A LGPD (art. 18) garante a você confirmação e acesso, correção, portabilidade, eliminação, informação sobre com quem compartilhamos e oposição. Pedidos que não saem na hora são respondidos em até {{ prazo }} dias.</p>
+
+<section class="panel"><h2>Confirmação e acesso</h2>
+<p>Sim, tratamos dados seus. Este é o resumo, na hora:</p>
+<table><tbody>{% for rotulo, valor in cadastro %}<tr><th>{{ rotulo }}</th><td>{{ valor }}</td></tr>{% endfor %}
+{% for rotulo, n in contagens %}<tr><th>{{ rotulo }}</th><td>{{ n }}</td></tr>{% endfor %}</tbody></table>
+<p class="mut">A política de privacidade explica cada dado, a finalidade e por quanto tempo fica: <a href="/privacidade">ver a política</a>.</p>
+</section>
+
+<section class="panel"><h2>Portabilidade: baixar meus dados</h2>
+<p>Um arquivo ZIP com <code>dados.json</code> e uma planilha CSV por tipo de dado.</p>
+<form method="post" action="/conta/privacidade/exportar">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <label for="senha_exportar">Sua senha</label><input id="senha_exportar" name="senha" type="password" required autocomplete="current-password">
+  {% if me.totp_ativado_em %}<label for="codigo_exportar">Código de verificação</label><input id="codigo_exportar" name="codigo" inputmode="numeric" autocomplete="one-time-code">{% endif %}
+  <p><button>Baixar meus dados</button></p>
+</form></section>
+
+<section class="panel"><h2>Correção</h2>
+<p>Nome, bio e foto: <a href="/u/{{ me.username }}/editar">editar perfil</a>. E-mail e senha: <a href="/conta/seguranca">segurança da conta</a>. Para os demais dados, faça um pedido abaixo.</p>
+</section>
+
+<section class="panel"><h2>Com quem compartilhamos</h2>
+<ul>{% for s in suboperadores %}<li><strong>{{ s.nome }}</strong> ({{ s.pais }}): {{ s.finalidade }}</li>{% endfor %}</ul>
+</section>
+
+<section class="panel"><h2>Oposição</h2>
+<form method="post" action="/conta/privacidade/oposicao">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="voltar" value="direitos">
+  <label style="font-weight:400"><input type="checkbox" name="ligado" value="1" style="width:auto"{{ ' checked' if me.oposicao_recomendacao }}> Não usar minhas notas para recomendar jogos a outras pessoas</label>
+  <p><button class="ghost">Salvar</button></p>
+</form></section>
+
+<section class="panel"><h2>Fazer um pedido</h2>
+<form method="post" action="/conta/privacidade/pedidos">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <label for="tipo">Pedido</label>
+  <select id="tipo" name="tipo">{% for t in pelo_formulario %}<option value="{{ t }}">{{ tipos[t] }}</option>{% endfor %}</select>
+  <label for="detalhe">O que você precisa</label><textarea id="detalhe" name="detalhe" maxlength="2000" required></textarea>
+  <p><button>Enviar pedido</button></p>
+</form>
+{% if pedidos %}<table><thead><tr><th>Protocolo</th><th>Pedido</th><th>Situação</th><th>Prazo</th><th>Resposta</th></tr></thead><tbody>
+{% for p in pedidos %}<tr><td>{{ p.protocolo }}</td><td>{{ tipos[p.tipo] }}</td><td>{{ status[p.status] }}</td>
+  <td>{% if p.prazo_em %}{{ p.prazo_em | dia }}{% endif %}</td><td>{{ p.resposta }}</td></tr>{% endfor %}</tbody></table>{% endif %}
+</section>
+
+<section class="panel"><h2>Eliminação</h2>
+<p>Excluir a conta apaga seus dados pessoais. Suas avaliações e comentários públicos continuam, como "Usuário removido".</p>
+<p><a class="btn danger" href="/conta/excluir">Excluir minha conta</a></p>
+</section>
+{% endblock %}

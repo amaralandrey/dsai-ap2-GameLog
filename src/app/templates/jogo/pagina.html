@@ -4,7 +4,7 @@
 {% block description %}{{ game.synopsis[:150] }}{% endblock %}
 {% macro review_card(r, likes) %}
 <article class="panel" id="av-{{ r.id }}">
-  {{ avatar(r.user) }} <a href="/u/{{ r.user.username }}"><strong>{{ r.user.display_name }}</strong></a>
+  {{ avatar(r.user) }} {% if anonimizada(r.user) %}<strong>{{ r.user.display_name }}</strong>{% else %}<a href="/u/{{ r.user.username }}"><strong>{{ r.user.display_name }}</strong></a>{% endif %}
   {{ stars(r.score) }}
   {% if horas.get(r.user_id) %}<span class="tag" title="Horas registradas no diário">{{ horas[r.user_id] | selo_horas }} registradas</span>{% endif %}
   <span class="mut">{{ r.created_at.strftime('%d/%m/%Y') }}{% if r.edited %} · editada{% endif %}</span>
