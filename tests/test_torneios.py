@@ -265,9 +265,14 @@ def test_trn_04_organizador_remove_com_motivo_notificado(base):
 
 
 def menor(app, nome, anos):
+    """De 12 a 15 anos, já vinculado ao responsável e com o controle de torneios ligado (RSP-07)."""
+    from app.models import ControleParental
+
     with app.app_context():
         u = User.query.filter_by(username=nome).one()
         u.nascimento = date(2026 - anos, 1, 1)
+        if anos < 16:
+            db.session.add(ControleParental(menor_id=u.id, torneios=True))
         db.session.commit()
 
 
