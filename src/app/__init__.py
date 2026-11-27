@@ -84,7 +84,11 @@ def create_app(config=None):
     app.jinja_env.globals.update(pode=pode, e_menor=e_menor, visibilidade_padrao=visibilidade_padrao)
     from .privacidade.anonimizar import anonimizada
 
-    app.jinja_env.globals["anonimizada"] = anonimizada  # PMN-01: as telas perguntam à mesma política
+    app.jinja_env.globals["anonimizada"] = anonimizada
+    from .denuncias import SUBCATEGORIAS
+    from .models import REPORT_REASONS
+
+    app.jinja_env.globals.update(denuncia_motivos=REPORT_REASONS, denuncia_subcategorias=SUBCATEGORIAS)  # PMN-01: as telas perguntam à mesma política
 
     @app.context_processor
     def inject():
