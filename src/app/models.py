@@ -43,6 +43,7 @@ class User(db.Model):
     session_version = db.Column(db.Integer, default=0, nullable=False)
     created_at = db.Column(db.DateTime, default=now, nullable=False)
     perfil_privado = db.Column(db.Boolean, default=False, nullable=False)  # DIA-11
+    oposicao_recomendacao = db.Column(db.Boolean, default=False, server_default="0", nullable=False)
     steam_id = db.Column(db.String(17), unique=True, nullable=True)  # SteamID64 vinculado (HRS-01)
     # segurança da conta (CTA): o segredo do TOTP nunca sai do servidor depois da ativação (CTA-06)
     email_pendente = db.Column(db.String(200), nullable=True)  # espera a confirmação pelo link (CTA-03)
@@ -859,11 +860,7 @@ def _consentimento_so_insercao(*_):
 
 
 class PedidoTitular(db.Model):
-    """Pedido ou mensagem do titular, com protocolo; por ora só o tipo `contato` do canal (PRV-07).
-
-    A spec de direitos do titular (DIR-01) estende este modelo com os outros tipos, o prazo
-    (`prazo_em`, `concluido_em`), a resposta, `decidido_por` e a fila do admin.
-    """
+    """Pedido ou mensagem do titular, com protocolo (PRV-07, DIR-01); o prazo só conta depois da confirmação."""
     id = db.Column(db.Integer, primary_key=True)
     protocolo = db.Column(db.String(20), unique=True, nullable=False)
     tipo = db.Column(db.String(20), nullable=False)
@@ -873,6 +870,10 @@ class PedidoTitular(db.Model):
     detalhe = db.Column(db.String(2000), nullable=False)
     status = db.Column(db.String(25), default="aberto", nullable=False)
     criado_em = db.Column(db.DateTime, default=now, nullable=False)
+    prazo_em = db.Column(db.DateTime, nullable=True)
+    concluido_em = db.Column(db.DateTime, nullable=True)
+    resposta = db.Column(db.String(2000), default="", nullable=False)
+    decidido_por = db.Column(db.ForeignKey("user.id"), nullable=True)
 
 
 JOB_STATUS = ("pendente", "rodando", "ok", "falhou", "morto")

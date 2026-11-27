@@ -113,6 +113,8 @@ CAMPOS = {
         ("display_name", {"categoria": "perfil", "finalidade": "perfil_social", "anonimizar": "substituir"}),
         ("bio", {"categoria": "perfil", "finalidade": "perfil_social", "anonimizar": "apagar"}),
         ("perfil_privado", {"categoria": "preferencia", "finalidade": "perfil_social"}),
+        ("oposicao_recomendacao", {"categoria": "preferencia", "finalidade": "direitos",
+                                   "base_legal": "exercicio_direitos"}),  # DIR-09
         ("steam_id", {"finalidade": "acompanhamento", "anonimizar": "apagar"}),
         ("email_pendente totp_segredo totp_ativado_em totp_ultimo_passo", AUTENTICACAO),
         # RTN-05, RTN-06: o prazo de `ultimo_acesso` é o da conta inativa, que o expurgo anonimiza depois do aviso
@@ -143,7 +145,8 @@ CAMPOS = {
               ("id", TECNICO), ("user_id", DONO), ("documento_id fechado_em", {})),  # PRV-06
     **_tabela("pedido_titular", dict(CONTA, categoria="atividade", finalidade="direitos", base_legal="obrigacao_legal"),
               ("id", TECNICO), ("user_id", DONO), ("email_contato", {"categoria": "contato", "anonimizar": "substituir"}),
-              ("protocolo tipo assunto detalhe status criado_em", {})),  # LGPD art. 18 e 41 (PRV-07, DIR-01)
+              ("protocolo tipo assunto detalhe status criado_em prazo_em concluido_em resposta", {}),
+              ("decidido_por", {"exportar": False})),  # LGPD art. 18 e 41 (PRV-07, DIR-01)
     **_tabela("token_api", dict(AUTENTICACAO, finalidade="integracoes", anonimizar="apagar_linha"), ("id", TECNICO),
               ("user_id", DONO), ("nome prefixo token_hash escopos criado_em expira_em ultimo_uso_em revogado_em", {})),
     **_tabela("auditoria_token", dict(AUTENTICACAO, categoria="atividade", finalidade="integracoes",
