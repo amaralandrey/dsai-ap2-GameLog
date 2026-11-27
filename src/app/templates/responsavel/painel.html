@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% from "_macros.html" import pager %}
+{% block title %}{{ menor.display_name }} — Responsável — GameLog{% endblock %}
+{% block content %}
+<h1>{{ menor.display_name }} <span class="mut">@{{ menor.username }}</span></h1>
+<p><a href="/responsavel">← Contas sob sua responsabilidade</a></p>
+{% if not vinculado %}<p class="panel">{{ menor.display_name }} não está mais na faixa de 12 a 15 anos: os controles não valem mais.</p>{% endif %}
+
+<div class="row">
+<section class="panel">
+  <h2>Últimos dias</h2>
+  <table><thead><tr><th></th><th>Horas no diário</th><th>Ações</th></tr></thead><tbody>
+  {% for dias, m in metricas.items() %}<tr><td>{{ dias }} dias</td><td>{{ m.minutos | horas }}</td><td>{{ m.acoes }}</td></tr>{% endfor %}
+  </tbody></table>
+</section>
+{% if controles %}
+<section class="panel">
+  <h2>Controles</h2>
+  <form method="post" action="/responsavel/{{ menor.id }}/controles">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {% for campo, rotulo in rotulos.items() %}<label style="font-weight:400"><input type="checkbox" name="{{ campo }}" value="1" style="width:auto"{{ ' checked' if controles[campo] }}> {{ rotulo }}</label>
+    {% endfor %}<p><button>Salvar controles</button></p>
+  </form>
+  {% if controles.alterado_em %}<p class="mut">Última mudança em {{ controles.alterado_em | dia }}.</p>{% endif %}
+  <form method="post" action="/responsavel/{{ menor.id }}/resumo">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label style="font-weight:400"><input type="checkbox" name="ligado" value="1" style="width:auto"{{ ' checked' if resumo }}> Resumo semanal por e-mail</label>
+    <p><button class="ghost">Salvar resumo</button></p>
+  </form>
+</section>
+{% endif %}
+</div>
+
+{% if pedidos %}<section class="panel"><h2>Pedidos para seguir</h2>
+{% for f in pedidos %}<div>@{{ f.follower.username }}
+  <form class="inline" method="post" action="/responsavel/{{ menor.id }}/pedidos/{{ f.id }}/aprovar"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="link">Aprovar</button></form>
+  <form class="inline" method="post" action="/responsavel/{{ menor.id }}/pedidos/{{ f.id }}/recusar"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="link danger-link">Recusar</button></form></div>
+{% endfor %}</section>{% endif %}
+
+{% if inscricoes %}<section class="panel"><h2>Inscrições em torneio</h2>
+{% for i, t in inscricoes %}<div><a href="/torneios/{{ t.slug }}">{{ t.nome }}</a>
+  <form class="inline" method="post" action="/responsavel/{{ menor.id }}/torneios/{{ i.id }}/aprovar"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="link">Aprovar</button></form>
+  <form class="inline" method="post" action="/responsavel/{{ menor.id }}/torneios/{{ i.id }}/recusar"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="link danger-link">Recusar</button></form></div>
+{% endfor %}</section>{% endif %}
+
+<section class="panel"><h2>Com quem interage</h2>
+{% for u, relacoes in interacoes %}<div>@{{ u.username }} <span class="mut">{{ relacoes | join(', ') }}</span>
+  {% if 'segue' in relacoes %}<form class="inline" method="post" action="/responsavel/{{ menor.id }}/seguidores/{{ u.id }}/remover"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="link">Remover seguidor</button></form>{% endif %}
+  <form class="inline" method="post" action="/responsavel/{{ menor.id }}/bloquear/{{ u.id }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="link danger-link">Bloquear</button></form></div>
+{% else %}<p class="mut">Nenhuma conta adulta por enquanto.</p>{% endfor %}
+</section>
+
+<section class="panel"><h2>Atividade</h2>
+{% for quando, texto, caminho in page.items %}<div><span class="mut">{{ quando | dia }}</span> <a href="{{ caminho }}">{{ texto }}</a></div>
+{% else %}<p class="mut">Nenhuma atividade ainda.</p>{% endfor %}
+{{ pager(page) }}
+</section>
+
+<form method="post" action="/responsavel/{{ menor.id }}/desvincular"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="danger">Desfazer o vínculo</button></form>
+{% endblock %}
