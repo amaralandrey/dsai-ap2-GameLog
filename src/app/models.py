@@ -52,6 +52,7 @@ class User(db.Model):
     totp_ultimo_passo = db.Column(db.Integer, nullable=True)  # o código já usado não vale de novo (CTA-07)
     ultimo_acesso = db.Column(db.DateTime, nullable=True)  # RTN-05: login e, no máximo uma vez por dia, a navegação
     aviso_inatividade_em = db.Column(db.DateTime, nullable=True)  # RTN-06: e-mail `conta_inativa` enviado
+    preservar_ate = db.Column(db.DateTime, nullable=True)  # DEN-09
 
     @property
     def is_admin(self):
@@ -304,6 +305,7 @@ class Review(db.Model):
     edited = db.Column(db.Boolean, default=False, nullable=False)
     hidden = db.Column(db.Boolean, default=False, nullable=False)
     created_at = db.Column(db.DateTime, default=now, nullable=False)
+    preservar_ate = db.Column(db.DateTime, nullable=True)
     user = db.relationship(User)
     game = db.relationship(Game)
     comments = db.relationship(
@@ -319,6 +321,8 @@ class Comment(db.Model):
     user_id = db.Column(db.ForeignKey("user.id"), nullable=False)
     text = db.Column(db.String(500), nullable=False)
     created_at = db.Column(db.DateTime, default=now, nullable=False)
+    oculto = db.Column(db.Boolean, default=False, server_default="0", nullable=False)
+    preservar_ate = db.Column(db.DateTime, nullable=True)
     user = db.relationship(User)
     review = db.relationship(Review, back_populates="comments")
 
@@ -344,18 +348,58 @@ class Report(db.Model):
                       db.UniqueConstraint("alvo_tipo", "alvo_id", "reporter_id"))
     id = db.Column(db.Integer, primary_key=True)
     review_id = db.Column(db.ForeignKey("review.id"), nullable=True)  # só nas denúncias de avaliação
-    alvo_tipo = db.Column(db.String(12), default="avaliacao", nullable=False)  # avaliacao|post_clube (DEN-01)
+    alvo_tipo = db.Column(db.String(12), default="avaliacao", server_default="avaliacao", nullable=False)  # DEN-01
     alvo_id = db.Column(db.Integer, nullable=True)
-    reporter_id = db.Column(db.ForeignKey("user.id"), nullable=False)
+    reporter_id = db.Column(db.ForeignKey("user.id"), nullable=True)  # vazio na notificação pública (DEN-03)
     reason = db.Column(db.String(12), nullable=False)
-    comment = db.Column(db.String(500), default="", nullable=False)
-    status = db.Column(db.String(10), default="pendente", nullable=False)  # pendente|ocultada|rejeitada
+    comment = db.Column(db.String(1000), default="", nullable=False)
+    status = db.Column(db.String(10), default="pendente", nullable=False)  # pendente|ocultada|suspensa|restaurada|rejeitada
     decided_by = db.Column(db.ForeignKey("user.id"), nullable=True)
     decided_at = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=now, nullable=False)
+    subcategoria = db.Column(db.String(25), nullable=True)
+    prazo_em = db.Column(db.DateTime, nullable=True)
+    cautelar = db.Column(db.Boolean, default=False, server_default="0", nullable=False)
+    decisao = db.Column(db.String(12), nullable=True)
+    fundamentacao = db.Column(db.String(1000), default="", server_default="", nullable=False)
+    primeiro_decisor = db.Column(db.ForeignKey("user.id"), nullable=True)
+    recurso_em = db.Column(db.DateTime, nullable=True)
+    recurso_texto = db.Column(db.String(1000), default="", server_default="", nullable=False)
+    notificante_nome = db.Column(db.String(120), nullable=True)
+    notificante_email = db.Column(db.String(200), nullable=True)
+    qualidade = db.Column(db.String(20), nullable=True)
+    link = db.Column(db.String(500), nullable=True)
     review = db.relationship(Review)
     reporter = db.relationship(User, foreign_keys=[reporter_id])
     decider = db.relationship(User, foreign_keys=[decided_by])
+
+
+class EventoDenuncia(db.Model):
+    """Trilha da denúncia, só de inserção (DEN-10)."""
+    id = db.Column(db.Integer, primary_key=True)
+    report_id = db.Column(db.ForeignKey("report.id"), nullable=False, index=True)
+    tipo = db.Column(db.String(20), nullable=False)
+    detalhe = db.Column(db.String(1000), default="", nullable=False)
+    autor_id = db.Column(db.ForeignKey("user.id"), nullable=True)
+    created_at = db.Column(db.DateTime, default=now, nullable=False)
+    autor = db.relationship(User)
+
+
+@db.event.listens_for(EventoDenuncia, "before_update")
+@db.event.listens_for(EventoDenuncia, "before_delete")
+def _trilha_imutavel(*_):
+    raise ValueError("a trilha da denúncia é só de inserção")
+
+
+class ComunicacaoAutoridade(db.Model):
+    """Registro de que o admin comunicou o caso às autoridades; o GameLog não envia nada sozinho (DEN-08)."""
+    id = db.Column(db.Integer, primary_key=True)
+    report_id = db.Column(db.ForeignKey("report.id"), nullable=False, index=True)
+    orgao = db.Column(db.String(120), nullable=False)
+    protocolo = db.Column(db.String(80), nullable=False)
+    data = db.Column(db.Date, nullable=False)
+    registrado_por = db.Column(db.ForeignKey("user.id"), nullable=False)
+    created_at = db.Column(db.DateTime, default=now, nullable=False)
 
 
 class GameList(db.Model):
@@ -659,6 +703,7 @@ class PostClube(db.Model):
     motivo_ocultacao = db.Column(db.String(200), default="", nullable=False)
     oculto_por = db.Column(db.ForeignKey("user.id"), nullable=True)
     created_at = db.Column(db.DateTime, default=now, nullable=False)
+    preservar_ate = db.Column(db.DateTime, nullable=True)
     user = db.relationship(User, foreign_keys=[user_id])
 
 
