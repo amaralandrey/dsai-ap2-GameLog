@@ -21,7 +21,9 @@
     "rawg",
     "324997"
    ]
-  ]
+  ],
+  "classificacao": "18",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "1245620",
@@ -43,7 +45,9 @@
     "rawg",
     "326243"
    ]
-  ]
+  ],
+  "classificacao": "18",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "1091500",
@@ -70,7 +74,9 @@
     "rawg",
     "41494"
    ]
-  ]
+  ],
+  "classificacao": "18",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "1174180",
@@ -97,7 +103,9 @@
     "rawg",
     "28"
    ]
-  ]
+  ],
+  "classificacao": "18",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "292030",
@@ -123,7 +131,9 @@
     "rawg",
     "3328"
    ]
-  ]
+  ],
+  "classificacao": "18",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "1145350",
@@ -152,7 +162,8 @@
     "rawg",
     "891238"
    ]
-  ]
+  ],
+  "classificacao": null
  },
  {
   "external_id": "367520",
@@ -177,7 +188,9 @@
     "rawg",
     "9767"
    ]
-  ]
+  ],
+  "classificacao": "10",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "413150",
@@ -202,7 +215,9 @@
     "rawg",
     "654"
    ]
-  ]
+  ],
+  "classificacao": "10",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "504230",
@@ -232,7 +247,9 @@
     "rawg",
     "22121"
    ]
-  ]
+  ],
+  "classificacao": "10",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "105600",
@@ -258,7 +275,9 @@
     "rawg",
     "422"
    ]
-  ]
+  ],
+  "classificacao": "14",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "620",
@@ -281,7 +300,9 @@
     "rawg",
     "4200"
    ]
-  ]
+  ],
+  "classificacao": "10",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "220",
@@ -303,7 +324,9 @@
     "rawg",
     "13537"
    ]
-  ]
+  ],
+  "classificacao": "18",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "730",
@@ -326,7 +349,9 @@
     "rawg",
     "965470"
    ]
-  ]
+  ],
+  "classificacao": "18",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "570",
@@ -351,7 +376,8 @@
     "rawg",
     "10213"
    ]
-  ]
+  ],
+  "classificacao": null
  },
  {
   "external_id": "550",
@@ -373,7 +399,9 @@
     "rawg",
     "12020"
    ]
-  ]
+  ],
+  "classificacao": "18",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "374320",
@@ -387,7 +415,8 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/374320/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/374320/library_600x900.jpg",
+  "classificacao": null
  },
  {
   "external_id": "814380",
@@ -409,7 +438,9 @@
     "rawg",
     "50734"
    ]
-  ]
+  ],
+  "classificacao": "18",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "2050650",
@@ -431,7 +462,9 @@
     "rawg",
     "795632"
    ]
-  ]
+  ],
+  "classificacao": "18",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "1196590",
@@ -452,7 +485,8 @@
     "rawg",
     "452649"
    ]
-  ]
+  ],
+  "classificacao": null
  },
  {
   "external_id": "588650",
@@ -477,7 +511,9 @@
     "rawg",
     "11726"
    ]
-  ]
+  ],
+  "classificacao": "14",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "268910",
@@ -500,7 +536,8 @@
     "rawg",
     "28154"
    ]
-  ]
+  ],
+  "classificacao": null
  },
  {
   "external_id": "391540",
@@ -524,7 +561,9 @@
     "rawg",
     "13627"
    ]
-  ]
+  ],
+  "classificacao": "10",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "632470",
@@ -551,7 +590,8 @@
     "rawg",
     "545015"
    ]
-  ]
+  ],
+  "classificacao": null
  },
  {
   "external_id": "870780",
@@ -583,7 +623,9 @@
     "rawg",
     "479695"
    ]
-  ]
+  ],
+  "classificacao": "18",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "1850570",
@@ -610,7 +652,9 @@
     "rawg",
     "614964"
    ]
-  ]
+  ],
+  "classificacao": "18",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "782330",
@@ -636,7 +680,9 @@
     "rawg",
     "58777"
    ]
-  ]
+  ],
+  "classificacao": "18",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "377160",
@@ -657,7 +703,9 @@
     "rawg",
     "3070"
    ]
-  ]
+  ],
+  "classificacao": "18",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "22380",
@@ -679,7 +727,9 @@
     "rawg",
     "5563"
    ]
-  ]
+  ],
+  "classificacao": "18",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "489830",
@@ -700,7 +750,9 @@
     "rawg",
     "12447"
    ]
-  ]
+  ],
+  "classificacao": "18",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "1328670",
@@ -722,7 +774,9 @@
     "rawg",
     "516111"
    ]
-  ]
+  ],
+  "classificacao": "18",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "435150",
@@ -751,7 +805,9 @@
     "rawg",
     "59199"
    ]
-  ]
+  ],
+  "classificacao": "18",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "1687950",
@@ -772,7 +828,9 @@
     "rawg",
     "339958"
    ]
-  ]
+  ],
+  "classificacao": "18",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "582010",
@@ -793,7 +851,9 @@
     "rawg",
     "46889"
    ]
-  ]
+  ],
+  "classificacao": "14",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "289070",
@@ -821,7 +881,9 @@
     "rawg",
     "10297"
    ]
-  ]
+  ],
+  "classificacao": "10",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "255710",
@@ -845,7 +907,9 @@
     "rawg",
     "10065"
    ]
-  ]
+  ],
+  "classificacao": "L",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "427520",
@@ -871,7 +935,8 @@
     "rawg",
     "10926"
    ]
-  ]
+  ],
+  "classificacao": null
  },
  {
   "external_id": "526870",
@@ -900,7 +965,8 @@
     "rawg",
     "58806"
    ]
-  ]
+  ],
+  "classificacao": null
  },
  {
   "external_id": "294100",
@@ -925,7 +991,8 @@
     "rawg",
     "12130"
    ]
-  ]
+  ],
+  "classificacao": null
  },
  {
   "external_id": "264710",
@@ -953,7 +1020,9 @@
     "rawg",
     "10419"
    ]
-  ]
+  ],
+  "classificacao": "10",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "892970",
@@ -979,7 +1048,8 @@
     "rawg",
     "248521"
    ]
-  ]
+  ],
+  "classificacao": null
  },
  {
   "external_id": "322330",
@@ -1007,7 +1077,8 @@
     "rawg",
     "9882"
    ]
-  ]
+  ],
+  "classificacao": null
  },
  {
   "external_id": "242760",
@@ -1031,7 +1102,9 @@
     "rawg",
     "9600"
    ]
-  ]
+  ],
+  "classificacao": "18",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "1326470",
@@ -1055,7 +1128,8 @@
     "rawg",
     "398405"
    ]
-  ]
+  ],
+  "classificacao": null
  },
  {
   "external_id": "252490",
@@ -1081,7 +1155,9 @@
     "rawg",
     "9671"
    ]
-  ]
+  ],
+  "classificacao": "18",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "346110",
@@ -1112,7 +1188,8 @@
     "rawg",
     "9810"
    ]
-  ]
+  ],
+  "classificacao": null
  },
  {
   "external_id": "3240220",
@@ -1135,7 +1212,9 @@
     "rawg",
     "998846"
    ]
-  ]
+  ],
+  "classificacao": "18",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "1551360",
@@ -1160,7 +1239,9 @@
     "rawg",
     "622492"
    ]
-  ]
+  ],
+  "classificacao": "L",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "227300",
@@ -1184,7 +1265,9 @@
     "rawg",
     "9609"
    ]
-  ]
+  ],
+  "classificacao": "L",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "394360",
@@ -1208,7 +1291,8 @@
     "rawg",
     "10715"
    ]
-  ]
+  ],
+  "classificacao": null
  },
  {
   "external_id": "281990",
@@ -1232,7 +1316,8 @@
     "rawg",
     "10040"
    ]
-  ]
+  ],
+  "classificacao": null
  },
  {
   "external_id": "1158310",
@@ -1257,7 +1342,8 @@
     "rawg",
     "384567"
    ]
-  ]
+  ],
+  "classificacao": null
  },
  {
   "external_id": "1142710",
@@ -1286,7 +1372,9 @@
     "rawg",
     "552923"
    ]
-  ]
+  ],
+  "classificacao": "14",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "268500",
@@ -1314,7 +1402,9 @@
     "rawg",
     "1256"
    ]
-  ]
+  ],
+  "classificacao": "14",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "646570",
@@ -1338,7 +1428,8 @@
     "rawg",
     "28121"
    ]
-  ]
+  ],
+  "classificacao": null
  },
  {
   "external_id": "2379780",
@@ -1362,7 +1453,8 @@
     "rawg",
     "977316"
    ]
-  ]
+  ],
+  "classificacao": null
  },
  {
   "external_id": "1794680",
@@ -1387,7 +1479,8 @@
     "rawg",
     "685577"
    ]
-  ]
+  ],
+  "classificacao": null
  },
  {
   "external_id": "632360",
@@ -1414,7 +1507,8 @@
     "rawg",
     "263590"
    ]
-  ]
+  ],
+  "classificacao": null
  },
  {
   "external_id": "553850",
@@ -1435,7 +1529,9 @@
     "rawg",
     "976564"
    ]
-  ]
+  ],
+  "classificacao": "18",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "1966720",
@@ -1459,7 +1555,8 @@
     "rawg",
     "968329"
    ]
-  ]
+  ],
+  "classificacao": null
  },
  {
   "external_id": "945360",
@@ -1480,7 +1577,9 @@
     "rawg",
     "356714"
    ]
-  ]
+  ],
+  "classificacao": "10",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "1172470",
@@ -1503,7 +1602,9 @@
     "rawg",
     "290856"
    ]
-  ]
+  ],
+  "classificacao": "14",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "440",
@@ -1526,7 +1627,9 @@
     "rawg",
     "11859"
    ]
-  ]
+  ],
+  "classificacao": "18",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "1085660",
@@ -1554,7 +1657,9 @@
     "rawg",
     "32"
    ]
-  ]
+  ],
+  "classificacao": "14",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "230410",
@@ -1582,7 +1687,8 @@
     "rawg",
     "766"
    ]
-  ]
+  ],
+  "classificacao": null
  },
  {
   "external_id": "238960",
@@ -1609,7 +1715,8 @@
     "rawg",
     "10533"
    ]
-  ]
+  ],
+  "classificacao": null
  },
  {
   "external_id": "1092790",
@@ -1639,7 +1746,8 @@
     "rawg",
     "479694"
    ]
-  ]
+  ],
+  "classificacao": null
  },
  {
   "external_id": "753640",
@@ -1666,7 +1774,9 @@
     "rawg",
     "58764"
    ]
-  ]
+  ],
+  "classificacao": "10",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "653530",
@@ -1689,7 +1799,9 @@
     "rawg",
     "46508"
    ]
-  ]
+  ],
+  "classificacao": "18",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "383870",
@@ -1713,7 +1825,9 @@
     "rawg",
     "2819"
    ]
-  ]
+  ],
+  "classificacao": "18",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "48000",
@@ -1742,7 +1856,9 @@
     "rawg",
     "1030"
    ]
-  ]
+  ],
+  "classificacao": "14",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "304430",
@@ -1770,7 +1886,9 @@
     "rawg",
     "1450"
    ]
-  ]
+  ],
+  "classificacao": "14",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "424840",
@@ -1791,7 +1909,8 @@
     "rawg",
     "41"
    ]
-  ]
+  ],
+  "classificacao": null
  },
  {
   "external_id": "219150",
@@ -1815,7 +1934,8 @@
     "rawg",
     "3612"
    ]
-  ]
+  ],
+  "classificacao": null
  },
  {
   "external_id": "460950",
@@ -1838,7 +1958,8 @@
     "rawg",
     "13856"
    ]
-  ]
+  ],
+  "classificacao": null
  },
  {
   "external_id": "1057090",
@@ -1859,7 +1980,9 @@
     "rawg",
     "28199"
    ]
-  ]
+  ],
+  "classificacao": "L",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "261570",
@@ -1880,7 +2003,9 @@
     "rawg",
     "19590"
    ]
-  ]
+  ],
+  "classificacao": "L",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "40800",
@@ -1908,7 +2033,8 @@
     "rawg",
     "3144"
    ]
-  ]
+  ],
+  "classificacao": null
  },
  {
   "external_id": "250900",
@@ -1936,7 +2062,9 @@
     "rawg",
     "250"
    ]
-  ]
+  ],
+  "classificacao": "18",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "418530",
@@ -1958,7 +2086,8 @@
     "rawg",
     "59613"
    ]
-  ]
+  ],
+  "classificacao": null
  },
  {
   "external_id": "683320",
@@ -1981,7 +2110,9 @@
     "rawg",
     "59313"
    ]
-  ]
+  ],
+  "classificacao": "L",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "1172620",
@@ -2003,7 +2134,9 @@
     "rawg",
     "50781"
    ]
-  ]
+  ],
+  "classificacao": "14",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "275850",
@@ -2026,7 +2159,9 @@
     "rawg",
     "2093"
    ]
-  ]
+  ],
+  "classificacao": "14",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "397540",
@@ -2053,7 +2188,9 @@
     "rawg",
     "58617"
    ]
-  ]
+  ],
+  "classificacao": "18",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "750920",
@@ -2082,7 +2219,8 @@
     "rawg",
     "479678"
    ]
-  ]
+  ],
+  "classificacao": null
  },
  {
   "external_id": "2208920",
@@ -2110,7 +2248,8 @@
     "rawg",
     "437059"
    ]
-  ]
+  ],
+  "classificacao": null
  },
  {
   "external_id": "812140",
@@ -2138,7 +2277,9 @@
     "rawg",
     "58616"
    ]
-  ]
+  ],
+  "classificacao": "18",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "552520",
@@ -2153,7 +2294,8 @@
   "platforms": [
    "Windows"
   ],
-  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/552520/library_600x900.jpg"
+  "cover_url": "https://cdn.cloudflare.steamstatic.com/steam/apps/552520/library_600x900.jpg",
+  "classificacao": null
  },
  {
   "external_id": "412020",
@@ -2181,7 +2323,9 @@
     "rawg",
     "28201"
    ]
-  ]
+  ],
+  "classificacao": "18",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "8870",
@@ -2209,7 +2353,9 @@
     "rawg",
     "4062"
    ]
-  ]
+  ],
+  "classificacao": "18",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "403640",
@@ -2230,7 +2376,9 @@
     "rawg",
     "864"
    ]
-  ]
+  ],
+  "classificacao": "18",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "480490",
@@ -2252,7 +2400,9 @@
     "rawg",
     "39"
    ]
-  ]
+  ],
+  "classificacao": "18",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "337000",
@@ -2276,7 +2426,9 @@
     "rawg",
     "1447"
    ]
-  ]
+  ],
+  "classificacao": "18",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "208650",
@@ -2307,7 +2459,9 @@
     "rawg",
     "3287"
    ]
-  ]
+  ],
+  "classificacao": "18",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "1817070",
@@ -2335,7 +2489,9 @@
     "rawg",
     "663742"
    ]
-  ]
+  ],
+  "classificacao": "14",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "1593500",
@@ -2363,7 +2519,9 @@
     "rawg",
     "58175"
    ]
-  ]
+  ],
+  "classificacao": "18",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "2561580",
@@ -2386,7 +2544,9 @@
     "rawg",
     "989802"
    ]
-  ]
+  ],
+  "classificacao": "14",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "1259420",
@@ -2413,7 +2573,9 @@
     "rawg",
     "29338"
    ]
-  ]
+  ],
+  "classificacao": "18",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "2215430",
@@ -2440,7 +2602,9 @@
     "rawg",
     "638650"
    ]
-  ]
+  ],
+  "classificacao": "18",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "1888930",
@@ -2467,7 +2631,9 @@
     "rawg",
     "799265"
    ]
-  ]
+  ],
+  "classificacao": "18",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "990080",
@@ -2495,7 +2661,9 @@
     "rawg",
     "906547"
    ]
-  ]
+  ],
+  "classificacao": "14",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "1623730",
@@ -2519,7 +2687,8 @@
     "rawg",
     "718135"
    ]
-  ]
+  ],
+  "classificacao": null
  },
  {
   "external_id": "2358720",
@@ -2547,7 +2716,9 @@
     "rawg",
     "481913"
    ]
-  ]
+  ],
+  "classificacao": "18",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "1627720",
@@ -2571,7 +2742,9 @@
     "rawg",
     "605674"
    ]
-  ]
+  ],
+  "classificacao": "18",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "1888160",
@@ -2592,7 +2765,9 @@
     "rawg",
     "892902"
    ]
-  ]
+  ],
+  "classificacao": "14",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "2138710",
@@ -2614,7 +2789,8 @@
     "rawg",
     "564757"
    ]
-  ]
+  ],
+  "classificacao": null
  },
  {
   "external_id": "1868140",
@@ -2639,7 +2815,8 @@
     "rawg",
     "871264"
    ]
-  ]
+  ],
+  "classificacao": null
  },
  {
   "external_id": "1313140",
@@ -2669,7 +2846,9 @@
     "rawg",
     "650605"
    ]
-  ]
+  ],
+  "classificacao": "14",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "1817230",
@@ -2690,7 +2869,9 @@
     "rawg",
     "914789"
    ]
-  ]
+  ],
+  "classificacao": "14",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "553420",
@@ -2723,7 +2904,9 @@
     "rawg",
     "29236"
    ]
-  ]
+  ],
+  "classificacao": "L",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "2231450",
@@ -2745,7 +2928,8 @@
     "rawg",
     "914795"
    ]
-  ]
+  ],
+  "classificacao": null
  },
  {
   "external_id": "1562430",
@@ -2777,7 +2961,8 @@
     "rawg",
     "842402"
    ]
-  ]
+  ],
+  "classificacao": null
  },
  {
   "external_id": "1144200",
@@ -2800,7 +2985,8 @@
     "rawg",
     "300682"
    ]
-  ]
+  ],
+  "classificacao": null
  },
  {
   "external_id": "739630",
@@ -2823,7 +3009,8 @@
     "rawg",
     "427930"
    ]
-  ]
+  ],
+  "classificacao": null
  },
  {
   "external_id": "1332010",
@@ -2846,7 +3033,9 @@
     "rawg",
     "452638"
    ]
-  ]
+  ],
+  "classificacao": "10",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "837470",
@@ -2874,7 +3063,8 @@
     "rawg",
     "59637"
    ]
-  ]
+  ],
+  "classificacao": null
  },
  {
   "external_id": "1426210",
@@ -2896,7 +3086,9 @@
     "rawg",
     "455597"
    ]
-  ]
+  ],
+  "classificacao": "10",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "728880",
@@ -2921,7 +3113,9 @@
     "rawg",
     "58827"
    ]
-  ]
+  ],
+  "classificacao": "L",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "477160",
@@ -2946,7 +3140,9 @@
     "rawg",
     "13247"
    ]
-  ]
+  ],
+  "classificacao": "L",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "1003590",
@@ -2968,7 +3164,9 @@
     "rawg",
     "471027"
    ]
-  ]
+  ],
+  "classificacao": "L",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "703080",
@@ -2991,7 +3189,9 @@
     "rawg",
     "311652"
    ]
-  ]
+  ],
+  "classificacao": "10",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "493340",
@@ -3017,7 +3217,9 @@
     "rawg",
     "9644"
    ]
-  ]
+  ],
+  "classificacao": "L",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "535930",
@@ -3046,7 +3248,8 @@
     "rawg",
     "51687"
    ]
-  ]
+  ],
+  "classificacao": null
  },
  {
   "external_id": "323190",
@@ -3073,7 +3276,9 @@
     "rawg",
     "45821"
    ]
-  ]
+  ],
+  "classificacao": "18",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "282070",
@@ -3102,7 +3307,9 @@
     "rawg",
     "1090"
    ]
-  ]
+  ],
+  "classificacao": "18",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "813780",
@@ -3124,7 +3331,8 @@
     "rawg",
     "326253"
    ]
-  ]
+  ],
+  "classificacao": null
  },
  {
   "external_id": "1361210",
@@ -3147,7 +3355,8 @@
     "rawg",
     "471029"
    ]
-  ]
+  ],
+  "classificacao": null
  },
  {
   "external_id": "261550",
@@ -3181,7 +3390,9 @@
     "rawg",
     "10069"
    ]
-  ]
+  ],
+  "classificacao": "18",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "379430",
@@ -3209,7 +3420,9 @@
     "rawg",
     "28172"
    ]
-  ]
+  ],
+  "classificacao": "18",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "2054970",
@@ -3231,7 +3444,8 @@
     "rawg",
     "804753"
    ]
-  ]
+  ],
+  "classificacao": null
  },
  {
   "external_id": "570940",
@@ -3252,7 +3466,8 @@
     "rawg",
     "51610"
    ]
-  ]
+  ],
+  "classificacao": null
  },
  {
   "external_id": "433340",
@@ -3283,7 +3498,9 @@
     "rawg",
     "9736"
    ]
-  ]
+  ],
+  "classificacao": "10",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "648800",
@@ -3306,7 +3523,8 @@
     "rawg",
     "46301"
    ]
-  ]
+  ],
+  "classificacao": null
  },
  {
   "external_id": "815370",
@@ -3330,7 +3548,8 @@
     "rawg",
     "61152"
    ]
-  ]
+  ],
+  "classificacao": null
  },
  {
   "external_id": "305620",
@@ -3356,7 +3575,9 @@
     "rawg",
     "11312"
    ]
-  ]
+  ],
+  "classificacao": "14",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "220200",
@@ -3385,7 +3606,9 @@
     "rawg",
     "2213"
    ]
-  ]
+  ],
+  "classificacao": "L",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "546560",
@@ -3407,7 +3630,9 @@
     "rawg",
     "392019"
    ]
-  ]
+  ],
+  "classificacao": "18",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "578080",
@@ -3436,7 +3661,8 @@
     "rawg",
     "10142"
    ]
-  ]
+  ],
+  "classificacao": null
  },
  {
   "external_id": "359550",
@@ -3463,7 +3689,9 @@
     "rawg",
     "8488"
    ]
-  ]
+  ],
+  "classificacao": "14",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "1253920",
@@ -3489,7 +3717,8 @@
     "rawg",
     "428839"
    ]
-  ]
+  ],
+  "classificacao": null
  },
  {
   "external_id": "607050",
@@ -3511,7 +3740,9 @@
     "rawg",
     "28195"
    ]
-  ]
+  ],
+  "classificacao": "10",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "590380",
@@ -3542,7 +3773,9 @@
     "rawg",
     "13566"
    ]
-  ]
+  ],
+  "classificacao": "10",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "212680",
@@ -3576,7 +3809,9 @@
     "rawg",
     "624"
    ]
-  ]
+  ],
+  "classificacao": "10",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "239030",
@@ -3600,7 +3835,9 @@
     "rawg",
     "1358"
    ]
-  ]
+  ],
+  "classificacao": "18",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "457140",
@@ -3629,7 +3866,8 @@
     "rawg",
     "9880"
    ]
-  ]
+  ],
+  "classificacao": null
  },
  {
   "external_id": "219740",
@@ -3654,7 +3892,9 @@
     "rawg",
     "9475"
    ]
-  ]
+  ],
+  "classificacao": "14",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "1703340",
@@ -3679,7 +3919,8 @@
     "rawg",
     "274758"
    ]
-  ]
+  ],
+  "classificacao": null
  },
  {
   "external_id": "322500",
@@ -3708,7 +3949,9 @@
     "rawg",
     "7819"
    ]
-  ]
+  ],
+  "classificacao": "14",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "287980",
@@ -3733,7 +3976,8 @@
     "rawg",
     "2666"
    ]
-  ]
+  ],
+  "classificacao": null
  },
  {
   "external_id": "1927720",
@@ -3762,7 +4006,9 @@
     "rawg",
     "591"
    ]
-  ]
+  ],
+  "classificacao": "L",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "1145360",
@@ -3791,7 +4037,9 @@
     "rawg",
     "274755"
    ]
-  ]
+  ],
+  "classificacao": "14",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "252950",
@@ -3815,7 +4063,9 @@
     "rawg",
     "3272"
    ]
-  ]
+  ],
+  "classificacao": "L",
+  "classificacao_origem": "rawg"
  },
  {
   "external_id": "2252570",
@@ -3839,7 +4089,8 @@
     "rawg",
     "971687"
    ]
-  ]
+  ],
+  "classificacao": null
  },
  {
   "external_id": "1097150",
@@ -3869,6 +4120,8 @@
     "rawg",
     "326292"
    ]
-  ]
+  ],
+  "classificacao": "L",
+  "classificacao_origem": "rawg"
  }
 ]
