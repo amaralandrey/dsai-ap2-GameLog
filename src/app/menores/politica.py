@@ -6,7 +6,7 @@ levanta ValueError, para nunca liberar por omissão. A página `/privacidade/men
 """
 from flask import Blueprint, render_template
 
-from ..models import Follow, MembroClube, User, db
+from ..models import ControleParental, Follow, MembroClube, User, db
 from ..notificacoes import registrar_filtro
 from .idade import ADOLESCENTE, ADULTO, NOMES_DAS_FAIXAS, VINCULADO, aguarda_responsavel, faixa_etaria
 
@@ -23,6 +23,14 @@ def e_menor(user):
 def visibilidade_padrao(user):
     """Lista nova de menor nasce privada (PMN-02, LIS-04)."""
     return "privada" if e_menor(user) else "publica"
+
+
+def controle_liberado(user, campo):
+    """Na faixa de 12 a 15 anos, só o que o responsável ligou (RSP-07); nas outras, nada a conferir."""
+    if faixa_etaria(user) != VINCULADO:
+        return True
+    controles = ControleParental.query.filter_by(menor_id=user.id).first()
+    return controles is not None and getattr(controles, campo)
 
 
 def segue_aprovado(seguidor, seguido):
@@ -53,19 +61,24 @@ def _seguir(user, alvo, liberado):
 def _comentar(user, review, liberado):
     """Avaliação de menor: só o próprio menor e quem o segue com o pedido aprovado (PMN-10).
 
-    Extensão de RSP-07: os comentários desligados pelo responsável também negam aqui, para o menor e para todos.
+    Os comentários desligados pelo responsável negam aqui, para o menor e nas avaliações dele (RSP-07).
     """
-    if not liberado or review is None or not e_menor(review.user):
-        return liberado
-    return user.id == review.user_id or segue_aprovado(user, review.user)
+    if not liberado or not controle_liberado(user, "comentarios"):
+        return False
+    if review is None or not e_menor(review.user):
+        return True
+    return controle_liberado(review.user, "comentarios") and (
+        user.id == review.user_id or segue_aprovado(user, review.user))
 
 
 def _torneio(user, torneio, liberado):
     """Menor só em torneio de clube do qual é membro ativo ou aberto a menores (PMN-11, TRN-01).
 
-    O torneio vem da spec TRN, com `clube_id` e `aberto_a_menores`. Extensão de RSP-07/RSP-08: os controles do
-    responsável e a inscrição `pendente_responsavel` de quem tem de 12 a 15 anos ficam com a spec TRN.
+    O torneio vem da spec TRN, com `clube_id` e `aberto_a_menores`. De 12 a 15 anos, só com o controle `torneios`
+    ligado pelo responsável (RSP-07), e a inscrição espera a aprovação dele (RSP-08).
     """
+    if not controle_liberado(user, "torneios"):
+        return False
     if liberado or torneio is None:
         return liberado
     if getattr(torneio, "aberto_a_menores", False):
@@ -75,14 +88,18 @@ def _torneio(user, torneio, liberado):
         clube_id=clube_id, user_id=user.id, situacao="ativo").first() is not None
 
 
-# Extensão de RSP-07: entrar em clube, postar no mural e comentar respeitam também os controles do responsável.
+def _clube(user, _, liberado):
+    return liberado and controle_liberado(user, "clubes")
+
+
 ACOES = {
     "seguir": Regra("Seguir outras pessoas", TODAS, social=True, ajuste=_seguir,
                     nota="Seguir um menor vira um pedido, aprovado por ele (16 e 17 anos) ou pelo responsável."),
     "aprovar_seguidor": Regra("Aprovar quem pediu para seguir", SEM_VINCULADO,
                               nota="De 12 a 15 anos, quem aprova é o responsável."),
     "comentar": Regra("Comentar avaliações", TODAS, social=True, ajuste=_comentar,
-                      nota="Na avaliação de um menor só comentam ele e quem ele aprovou como seguidor."),
+                      nota="Na avaliação de um menor só comentam ele e quem ele aprovou como seguidor; de 12 a 15 anos, "
+                           "só com o controle de comentários ligado pelo responsável."),
     "perfil_publico": Regra("Tornar o próprio perfil público", SEM_VINCULADO,
                             nota="O perfil de um menor nasce privado; de 12 a 15 anos, só o responsável o abre."),
     "ranking_global": Regra("Aparecer no ranking global", SO_ADULTO,
@@ -99,10 +116,13 @@ ACOES = {
     "alerta_preco": Regra("Criar alerta de preço", SO_ADULTO),
     "historico_para_terceiros": Regra("Ter o histórico usado nas recomendações e comparações de outras pessoas",
                                       SO_ADULTO),
-    "entrar_clube": Regra("Entrar em clubes", TODAS, social=True),
-    "publicar_clube": Regra("Postar no mural do clube", TODAS, social=True),
+    "entrar_clube": Regra("Entrar em clubes", TODAS, social=True, ajuste=_clube,
+                          nota="De 12 a 15 anos, só com o controle de clubes ligado pelo responsável."),
+    "publicar_clube": Regra("Postar no mural do clube", TODAS, social=True, ajuste=_clube,
+                            nota="De 12 a 15 anos, só com o controle de clubes ligado pelo responsável."),
     "torneio_inscrever": Regra("Se inscrever em torneios", SO_ADULTO, social=True, ajuste=_torneio,
-                               nota="Menores, só em torneio do próprio clube ou aberto a menores."),
+                               nota="Menores, só em torneio do próprio clube ou aberto a menores; de 12 a 15 anos, com o "
+                                    "controle de torneios ligado e a aprovação do responsável."),
 }
 
 

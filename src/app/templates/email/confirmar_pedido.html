@@ -1,0 +1,6 @@
+{% extends "email/_layout.html" %}
+{% block corpo %}
+<p style="margin:0 0 12px">Recebemos uma mensagem pelo canal do titular com este e-mail para resposta (protocolo <strong>{{ pedido.protocolo }}</strong>).</p>
+<p style="margin:0 0 12px"><a href="{{ link }}" style="color:#3b2f80;font-weight:bold">Confirmar o pedido</a> (vale por {{ horas }} horas)</p>
+<p style="margin:0">O prazo de resposta começa a contar depois da confirmação. Se não foi você, ignore este e-mail.</p>
+{% endblock %}

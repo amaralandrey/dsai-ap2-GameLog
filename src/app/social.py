@@ -9,7 +9,7 @@ from .menores.politica import e_menor, pode
 from .models import Activity, Comment, Follow, Game, GameList, Review, User, db, now
 from .diario import ocultos_para, perfil_ou_404
 from .gamificacao import emitir_evento
-from .notificacoes import avisar_seguidor
+from .notificacoes import avisar_seguidor, notificar
 from .util import current_user, login_required, paginate
 
 bp = Blueprint("social", __name__)
@@ -34,6 +34,8 @@ def follow(username):
             # NTF-05; o pedido a quem tem de 12 a 15 anos vai ao responsável (extensão de RSP-06)
             if not pedido or pode(target, "aprovar_seguidor"):
                 avisar_seguidor(target.id, me, pedido)
+            else:
+                avisar_responsaveis(target, me)
             db.session.commit()
         except IntegrityError:  # duplo envio: a outra requisição já gravou o mesmo par
             db.session.rollback()
@@ -43,6 +45,14 @@ def follow(username):
             else:
                 eventos_de_seguir(me.id, target.id)
     return redirect(f"/u/{target.username}")
+
+
+def avisar_responsaveis(menor, seguidor):
+    from .menores.responsavel import responsaveis_ativos
+
+    for rid in responsaveis_ativos(menor):
+        notificar(rid, "responsavel", ator_id=seguidor.id, alvo_url=f"/responsavel/{menor.id}",
+                  texto=f"@{seguidor.username} pediu para seguir {menor.display_name}.")
 
 
 def eventos_de_seguir(seguidor_id, seguido_id):

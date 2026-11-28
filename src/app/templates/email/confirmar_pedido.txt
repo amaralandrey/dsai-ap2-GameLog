@@ -1,0 +1,8 @@
+{% extends "email/_layout.txt" %}
+{% block assunto %}Confirme o seu pedido {{ pedido.protocolo }} ao GameLog{% endblock %}
+{% block corpo %}Recebemos uma mensagem pelo canal do titular com este e-mail para resposta (protocolo {{ pedido.protocolo }}).
+
+Para confirmar que foi você, abra o link em até {{ horas }} horas:
+{{ link }}
+
+O prazo de resposta começa a contar depois da confirmação. Se não foi você, ignore este e-mail.{% endblock %}

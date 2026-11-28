@@ -1,19 +1,52 @@
 {% extends "base.html" %}
 {% from "_macros.html" import pager, stars %}
 {% block title %}Denúncias — Admin{% endblock %}
+{% macro decisao(r, ocultar=True) %}
+<form method="post" action="/admin/denuncias/{{ r.id }}/decidir">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <label for="fund-{{ r.id }}">Fundamentação (ao menos 20 caracteres)</label>
+  <textarea id="fund-{{ r.id }}" name="fundamentacao" minlength="20" maxlength="1000" required></textarea>
+  {% if ocultar %}<button class="danger" name="decisao" value="ocultar">Ocultar</button>{% endif %}
+  <button class="danger" name="decisao" value="suspender">Suspender a conta</button>
+  {% if r.cautelar %}<button class="ghost" name="decisao" value="restaurar">Restaurar</button>{% endif %}
+  <button class="ghost" name="decisao" value="rejeitar">Rejeitar denúncia</button>
+</form>
+{% endmacro %}
+{% macro conteudo(r) %}{% set obj = alvo(r) %}
+  {% if r.alvo_tipo == 'avaliacao' and obj %}<p><strong>{{ obj.game.title }}</strong> — {{ stars(obj.score) }} por @{{ obj.user.username }}</p><p>“{{ obj.text or '(sem texto)' }}”</p>
+  {% elif r.alvo_tipo == 'comentario' and obj %}<p>Comentário de @{{ obj.user.username }}: “{{ obj.text }}”</p>
+  {% elif r.alvo_tipo == 'perfil' and obj %}<p>Perfil de @{{ obj.username }}</p>
+  {% elif r.alvo_tipo == 'post_clube' and obj %}<p>Post de clube: “{{ obj.texto }}”</p>
+  {% elif r.link %}<p>Link informado: {{ r.link }}</p>
+  {% else %}<p class="mut">O conteúdo não existe mais.</p>{% endif %}
+{% endmacro %}
 {% block content %}
 <h1>Denúncias</h1>
-<p>{% for s in ('pendente', 'ocultada', 'rejeitada', 'revertida') %}<a class="tag" href="?status={{ s }}">{{ s }}</a>{% endfor %}</p>
+
+<section class="panel risco-menores"><h2>Risco a menores <span class="tag">{{ risco | length }}</span></h2>
+{% for r in risco %}{% set atrasada = r.prazo_em and r.prazo_em < agora %}
+<div class="panel{{ ' atrasada' if atrasada }}">
+  <p><a href="/admin/denuncias/{{ r.id }}"><strong>#{{ r.id }} · {{ subcategorias.get(r.subcategoria, r.subcategoria) }}</strong></a>
+    {% if r.recurso_em %}<span class="tag">recurso</span>{% endif %}
+    {% if r.cautelar %}<span class="tag">ocultada na hora</span>{% endif %}
+    {% if comunicacao_pendente(r) %}<span class="tag err">comunicação pendente</span>{% endif %}
+    {% if atrasada %}<span class="tag err">atrasada</span>{% endif %}
+    <span class="mut">prazo {{ r.prazo_em.strftime('%d/%m/%Y %H:%M') if r.prazo_em }}</span></p>
+  {{ conteudo(r) }}
+  <p class="mut">{{ r.comment }}</p>
+</div>
+{% else %}<p class="mut">Nenhuma denúncia de risco a menores pendente.</p>{% endfor %}
+</section>
+
+<h2>Outras denúncias</h2>
+<p>{% for s in ('pendente', 'ocultada', 'suspensa', 'rejeitada', 'revertida') %}<a class="tag" href="?status={{ s }}">{{ s }}</a>{% endfor %}</p>
 {% for r in page.items %}
 <div class="panel">
-  <p><strong>{{ r.review.game.title }}</strong> — {{ stars(r.review.score) }} por <a href="/u/{{ r.review.user.username }}">@{{ r.review.user.username }}</a></p>
-  <p>“{{ r.review.text or '(sem texto)' }}”</p>
-  <p class="mut">Motivo: {{ r.reason }}{% if r.comment %} — {{ r.comment }}{% endif %} · denunciada por @{{ r.reporter.username }} em {{ r.created_at.strftime('%d/%m/%Y %H:%M') }}</p>
-  {% if r.decider %}<p class="mut">Decidida por @{{ r.decider.username }} em {{ r.decided_at.strftime('%d/%m/%Y %H:%M') }}</p>{% endif %}
-  {% if r.status == 'pendente' %}
-    <form class="inline" method="post" action="/admin/denuncias/{{ r.id }}/ocultar"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="danger">Ocultar avaliação</button></form>
-    <form class="inline" method="post" action="/admin/denuncias/{{ r.id }}/rejeitar"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="ghost">Rejeitar denúncia</button></form>
-  {% elif r.status == 'ocultada' %}
+  {{ conteudo(r) }}
+  <p class="mut">Motivo: {{ r.reason }}{% if r.comment %} — {{ r.comment }}{% endif %} · denunciada por @{{ r.reporter.username if r.reporter }} em {{ r.created_at.strftime('%d/%m/%Y %H:%M') }} · <a href="/admin/denuncias/{{ r.id }}">trilha</a></p>
+  {% if r.decider %}<p class="mut">Decidida por @{{ r.decider.username }} em {{ r.decided_at.strftime('%d/%m/%Y %H:%M') }}{% if r.fundamentacao %}: {{ r.fundamentacao }}{% endif %}</p>{% endif %}
+  {% if r.status == 'pendente' %}{{ decisao(r, r.alvo_tipo != 'perfil') }}
+  {% elif r.status == 'ocultada' and r.alvo_tipo == 'avaliacao' and r.review_id %}
     <form class="inline" method="post" action="/admin/avaliacoes/{{ r.review_id }}/reverter"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="ghost">Reverter ocultação</button></form>
   {% endif %}
 </div>

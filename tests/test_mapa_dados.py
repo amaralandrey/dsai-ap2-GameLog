@@ -20,6 +20,7 @@ def test_tarefas_de_job_e_dado_pessoal_nos_args():
     from app.privacidade import retencao  # noqa: F401  (registra o expurgo, RTN-01)
     from app.privacidade import incidentes  # noqa: F401  (incidentes_prazos, sem usuário em args)
     from app import backup  # noqa: F401
+    from app.menores import responsavel  # noqa: F401
 
     for chave in ("job.args", "job.chave_unica", "agendamento.args"):
         assert mapa.CAMPOS[chave].categoria == "tecnico" and not mapa.CAMPOS[chave].exportar
@@ -27,7 +28,7 @@ def test_tarefas_de_job_e_dado_pessoal_nos_args():
     assert mapa.retencao("job") == 30 and mapa.retencao("email_saida") == 90  # RTN-02
     assert set(jobs.TAREFAS) == {"sync_games", "enriquecer_snapshot", "precos", "enviar_email",
                                  "email_resumo_semanal", "email_resumo", "torneios", "incidentes_prazos",
-                                 "expurgo", "backup"}, \
+                                 "expurgo", "backup", "responsavel_idade"}, \
         "tarefa nova: confira se o que ela leva em args está anotado em job.args e agendamento.args"
 
 

@@ -554,14 +554,14 @@ def test_eml_09_resumo_ate_10_itens(app, consente):
     assert e.corpo_texto.count("criou a lista") == 10
 
 
-def test_pmn_08_resumo_de_menor_so_de_16_a_17(app, consente):
+def test_pmn_08_resumo_de_menor_com_o_consentimento(app, consente):
     teo = usuario(app, "teo", nascimento=ADOLESCENTE)
     lia = usuario(app, "lia", nascimento=VINCULADO)
     bia = usuario(app, "bia")
     for quem in (teo, lia):
         segue(app, quem, bia)
     lista_com_atividade(app, bia, "Favoritos")
-    assert [e.user_id for e in rodar_resumo(app)] == [teo]
+    assert [e.user_id for e in rodar_resumo(app)] == [teo, lia]
 
 
 # ---------- EML-10: caixa de saída do admin ----------

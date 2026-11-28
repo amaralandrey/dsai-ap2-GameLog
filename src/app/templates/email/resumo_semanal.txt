@@ -1,9 +1,13 @@
 {% extends "email/_layout.txt" %}
 {% block assunto %}Sua semana no GameLog{% endblock %}
 {% block corpo %}Olá, {{ user.display_name }}.
-
+{% if itens %}
 O que aconteceu na semana passada entre quem você segue:
 {% for texto, caminho in itens %}
 - {{ texto }}: {{ url_publica(caminho) }}{% endfor %}
-
+{% endif %}{% if ofertas %}
+Em promoção na sua wishlist:
+{% for texto, caminho in ofertas %}
+- {{ texto }}: {{ url_publica(caminho) }}{% endfor %}
+{% endif %}
 Veja tudo no seu feed: {{ url_publica('/feed') }}{% endblock %}

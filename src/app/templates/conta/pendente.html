@@ -10,6 +10,13 @@
 {% endif %}
 {% if confiavel %}<p><a href="/conta/idade">Pedir nova verificação de idade</a></p>{% endif %}
 <p>Quando o responsável aceitar o vínculo, a conta é liberada. Ele poderá acompanhar sua atividade e escolher o que fica ligado.</p>
+{% if not contestada %}<p><strong>Prazo:</strong> se nenhum responsável aceitar até {{ limite.strftime('%d/%m/%Y') }}, a conta e os dados dela são apagados.</p>{% endif %}
+<form method="post" action="/conta/pendente/convite">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <label for="email">E-mail do responsável</label>
+  <input id="email" name="email" type="email" required maxlength="200" autocomplete="off">
+  <p><button>Enviar convite</button> <span class="mut">{{ convites }} de {{ max_convites }} convites enviados hoje. O link vale por 7 dias.</span></p>
+</form>
 <p class="mut">Enquanto isso, você pode navegar pelo catálogo sem entrar.</p>
 {% if revisao_pedida %}<p class="mut">Você pediu a revisão da data. A moderação vai olhar a conta e, se for o caso, liberar para você informar a data de novo.</p>
 {% else %}<p class="mut">A data informada está errada? Peça à moderação para revisar.</p>

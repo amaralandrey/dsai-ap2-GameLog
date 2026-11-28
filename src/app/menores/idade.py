@@ -6,7 +6,7 @@ corrigir a data, e entre sinais de mesma confiança vale o mais protetivo (IDA-0
 """
 import os
 from collections import namedtuple
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 from flask import Blueprint, abort, flash, redirect, render_template, request, session
 from sqlalchemy import null, or_
@@ -203,12 +203,17 @@ def nascimento():
 @login_required
 def pendente():
     """Conta de 12 a 15 anos, ou com idade contestada, espera o vínculo com um responsável (IDA-04, IDA-11)."""
+    from ..privacidade.retencao import PENDENTE_DIAS
+    from .responsavel import MAX_CONVITES_POR_DIA, convites_hoje
+
     me = current_user()
     if not aguarda_responsavel(me):
         return redirect("/")
     confiavel = any(a.confiavel and a.disponivel() for a in ADAPTADORES.values())
+    limite = tempo.dia_de(me.created_at + timedelta(days=PENDENTE_DIAS))
     return render_template("conta/pendente.html", contestada=me.idade_contestada_em is not None,
-                           confiavel=confiavel, revisao_pedida=me.revisao_idade_pedida_em is not None)
+                           confiavel=confiavel, revisao_pedida=me.revisao_idade_pedida_em is not None,
+                           limite=limite, convites=convites_hoje(me), max_convites=MAX_CONVITES_POR_DIA)
 
 
 @bp.route("/conta/pendente/revisao", methods=["POST"])

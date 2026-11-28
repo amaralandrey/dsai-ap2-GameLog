@@ -1,0 +1,7 @@
+{% extends "email/_layout.html" %}
+{% block corpo %}
+<p style="margin:0 0 12px">Olá, {{ user.display_name }}.</p>
+<p style="margin:0 0 12px">{% if notificacao.tipo == 'preco_alvo' %}<strong>{{ jogo }}</strong>, que você vigia com um alerta de preço, está por <strong>{{ preco }}</strong> na {{ loja }}.{% else %}<strong>{{ jogo }}</strong>, da sua wishlist, está com <strong>{{ desconto }}% de desconto</strong> na {{ loja }}: <strong>{{ preco }}</strong>.{% endif %}</p>
+{% if url_loja %}<p style="margin:0 0 12px"><a href="{{ url_loja }}" rel="noopener nofollow" style="color:#3b2f80">Ver na {{ loja }}</a></p>{% endif %}
+<p style="margin:0"><a href="{{ url_publica(notificacao.alvo_url or '/ofertas') }}" style="color:#3b2f80;font-weight:bold">Ver no GameLog</a></p>
+{% endblock %}

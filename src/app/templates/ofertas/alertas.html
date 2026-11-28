@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Meus alertas de preço — GameLog{% endblock %}
+{% block content %}
+<h1>Meus alertas de preço</h1>
+<p class="mut">{{ itens | length }} de {{ maximo }} alertas. Para criar ou editar um alerta, abra a página do jogo. <a href="/ofertas">Ofertas da wishlist</a></p>
+{% if not consentiu %}<p class="panel">Os alertas estão salvos, mas só avisam depois que você permitir os avisos de ofertas em <a href="/conta/privacidade">Privacidade</a>.</p>{% endif %}
+{% if itens %}
+<table><thead><tr><th>Jogo</th><th>Preço-alvo</th><th>Mais barato agora</th><th>Situação</th><th></th></tr></thead><tbody>
+{% for a in itens %}{% set b = baratos.get(a.game_id) %}
+<tr><td><a href="/jogos/{{ a.game.slug }}">{{ a.game.title }}</a></td><td>{{ a.preco_alvo_centavos | reais }}</td>
+  <td>{% if b %}{{ b.preco_centavos | reais }} na {{ nomes_lojas[b.fonte] }}{% else %}<span class="mut">sem preço atual</span>{% endif %}</td>
+  <td>{% if a.disparado_em %}avisou em {{ a.disparado_em | dia }}{% else %}vigiando{% endif %}</td>
+  <td><form class="inline" method="post" action="/ofertas/alertas/{{ a.id }}/apagar"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button class="link danger-link">Apagar</button></form></td></tr>
+{% endfor %}</tbody></table>
+{% else %}
+<div class="panel"><p class="mut">Você ainda não tem alertas de preço.</p></div>
+{% endif %}
+{% endblock %}

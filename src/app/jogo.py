@@ -6,11 +6,13 @@ from .bloqueios import com_bloqueio
 from .catalogo_merge import principal_do_mesclado
 from .diario import minutos_por_usuario, ocultos_para
 from .models import (
-    NOMES_DAS_LOJAS, REPORT_REASONS, STATUSES, Comment, Game, GameList, Like, Review, Status, avg_subquery, db, game_genres, game_stats,
+    NOMES_DAS_LOJAS, REPORT_REASONS, STATUSES, AlertaPreco, Comment, Game, GameList, Like, Review, Status, avg_subquery, db, game_genres, game_stats,
     visible_games,
 )
 from .menores.classificacao import IDADES, NOTA, pode_ver
+from .ofertas import mais_barato, url_segura
 from .precos import atual, atuais, grafico, historico, menor_preco
+from .privacidade import consentimentos
 from .util import current_user, paginate
 
 bp = Blueprint("jogo", __name__)
@@ -62,7 +64,7 @@ def game_page(slug):
     sort = "recentes" if request.args.get("ordem") == "recentes" else "curtidas"
     q = q.order_by(likes.desc(), Review.created_at.desc()) if sort == "curtidas" else q.order_by(Review.created_at.desc())
     page = paginate(q, request.args.get("page"))
-    mine = status = None
+    mine = status = alerta = None
     liked, my_lists = set(), []
     if me:
         mine = Review.query.filter_by(user_id=me.id, game_id=game.id).first()
@@ -72,6 +74,7 @@ def game_page(slug):
         liked = {i for (i,) in db.session.query(Like.review_id).filter(Like.user_id == me.id,
                                                                         Like.review_id.in_(da_pagina))}
         my_lists = GameList.query.filter_by(user_id=me.id).order_by(GameList.name).all()
+        alerta = AlertaPreco.query.filter_by(user_id=me.id, game_id=game.id).first()
     stats = game_stats(game.id)
     horas = minutos_por_usuario(game.id, [r.user_id for r, _ in page.items] + ([mine.user_id] if mine else []))
     precos = atuais(game.id)  # PRC-13: duas consultas, com qualquer número de lojas e de linhas
@@ -82,6 +85,8 @@ def game_page(slug):
         com_bloqueio=com_bloqueio(me.id) if me else set(),
         precos=precos, vigentes={f for f, p in precos.items() if atual(p)}, menor=menor_preco(game.id),
         nota_classificacao=NOTA,
+        barato=mais_barato(precos.values()), url_segura=url_segura, alerta=alerta,
+        pedido_ofertas=consentimentos.pedido(me, "ofertas") if me else None,
     )
 
 

@@ -33,7 +33,9 @@ def audit(action, detail=""):
 @bp.route("/")
 def index():
     return render_template(
-        "admin/index.html", pending=Report.query.filter_by(status="pendente", alvo_tipo="avaliacao").count(),
+        "admin/index.html", pending=Report.query.filter(Report.status == "pendente", Report.reason != "risco_menor",
+                                                        Report.alvo_tipo != "post_clube").count(),
+        risco=Report.query.filter_by(status="pendente", reason="risco_menor").count(),
         games=Game.query.count(),
         duplicatas=PendenciaMerge.query.filter_by(status="pendente").count(),
     )
@@ -367,38 +369,28 @@ def tax_delete(kind, iid):
 # ---------- moderação ----------
 @bp.route("/denuncias")
 def reports():
+    """Risco a menores primeiro (DEN-04); as outras seguem ADM-05, e os posts de clube ficam no clube (CLB-11)."""
+    from .denuncias import GRAVES, SUBCATEGORIAS, alvo_da_denuncia, comunicacao_pendente, paginas_da_fila
+
     status = request.args.get("status", "pendente")
-    q = Report.query.filter_by(status=status, alvo_tipo="avaliacao")  # posts de clube vão para a fila do clube (CLB-11)
-    q = q.order_by(Report.created_at, Report.id) if status == "pendente" else q.order_by(Report.decided_at.desc())
-    return render_template("admin/denuncias.html", page=paginate(q, request.args.get("page")), status=status)
-
-
-def decide(rid, new_status, hide):
-    rep = db.get_or_404(Report, rid)
-    if rep.alvo_tipo != "avaliacao":  # post de clube é decidido na fila do clube (CLB-11)
-        abort(404)
-    if rep.status != "pendente":
-        flash("Esta denúncia já foi decidida.", "erro")
-        return redirect("/admin/denuncias")
-    targets = [rep]
-    if hide:  # ocultar encerra todas as denúncias pendentes da mesma avaliação
-        rep.review.hidden = True
-        targets = Report.query.filter_by(review_id=rep.review_id, status="pendente").all()
-    for r in targets:
-        r.status, r.decided_by, r.decided_at = new_status, current_user().id, now()  # ADM-06
-    audit(f"denuncia.{new_status}", f"avaliação #{rep.review_id}")
-    db.session.commit()  # ADM-07: médias, histogramas e feed leem is hidden em tempo de consulta
-    return redirect("/admin/denuncias")
+    risco, page = paginas_da_fila(status, request.args.get("page"))
+    return render_template("admin/denuncias.html", page=page, status=status, risco=risco, agora=now(),
+                           subcategorias=SUBCATEGORIAS, graves=GRAVES, comunicacao_pendente=comunicacao_pendente,
+                           alvo=alvo_da_denuncia)
 
 
 @bp.route("/denuncias/<int:rid>/ocultar", methods=["POST"])
 def report_hide(rid):
-    return decide(rid, "ocultada", True)
+    from .denuncias import decidir_pela_fila
+
+    return decidir_pela_fila(rid, "ocultar")
 
 
 @bp.route("/denuncias/<int:rid>/rejeitar", methods=["POST"])
 def report_reject(rid):
-    return decide(rid, "rejeitada", False)
+    from .denuncias import decidir_pela_fila
+
+    return decidir_pela_fila(rid, "rejeitar")
 
 
 @bp.route("/avaliacoes/<int:rid>/reverter", methods=["POST"])

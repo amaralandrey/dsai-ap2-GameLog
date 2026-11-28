@@ -1,0 +1,6 @@
+{% extends "email/_layout.html" %}
+{% block corpo %}
+<p style="margin:0 0 12px">Seu pedido <strong>{{ pedido.protocolo }}</strong> ({{ tipo_pedido | lower }}) foi <strong>{{ situacao | lower }}</strong>.</p>
+<p style="margin:0 0 12px;white-space:pre-line">{{ pedido.resposta }}</p>
+{% if pedido.user_id %}<p style="margin:0"><a href="{{ url_publica('/conta/privacidade/direitos') }}" style="color:#3b2f80;font-weight:bold">Ver seus pedidos</a></p>{% endif %}
+{% endblock %}

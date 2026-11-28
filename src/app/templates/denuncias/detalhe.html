@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Denúncia #{{ rep.id }} — Admin{% endblock %}
+{% block content %}
+<h1>Denúncia #{{ rep.id }}</h1>
+<p><a href="/admin/denuncias">← Denúncias</a></p>
+<section class="panel">
+  <p><strong>{{ subcategorias.get(rep.subcategoria) or reasons.get(rep.reason, rep.reason) }}</strong> · {{ rep.alvo_tipo }} · {{ rep.status }}
+    {% if rep.recurso_em %}<span class="tag">recurso</span>{% endif %}
+    {% if rep.prazo_em %}<span class="mut">prazo {{ rep.prazo_em.strftime('%d/%m/%Y %H:%M') }}{% if rep.prazo_em < agora and rep.status == 'pendente' %} (atrasada){% endif %}</span>{% endif %}</p>
+  <p>{{ rep.comment }}</p>
+  {% if rep.reporter %}<p class="mut">Denunciada por @{{ rep.reporter.username }}</p>
+  {% elif rep.notificante_nome %}<p class="mut">Notificação de {{ rep.notificante_nome }} ({{ rep.notificante_email }}), {{ qualidades.get(rep.qualidade, rep.qualidade) }}</p>{% endif %}
+  {% if caminho %}<p>Conteúdo: <a href="{{ caminho }}">{{ caminho }}</a></p>{% endif %}
+  {% if obj is not none and rep.alvo_tipo == 'avaliacao' %}<p>“{{ obj.text or '(sem texto)' }}”</p>
+  {% elif obj is not none and rep.alvo_tipo == 'comentario' %}<p>“{{ obj.text }}”</p>
+  {% elif obj is not none and rep.alvo_tipo == 'post_clube' %}<p>“{{ obj.texto }}”</p>{% endif %}
+  {% if dono %}<p class="mut">Autor: @{{ dono.username }} · e-mail {{ dono.email }}{% if dono.preservar_ate %} · preservada até {{ dono.preservar_ate | dia }}{% endif %}</p>{% endif %}
+  {% if rep.recurso_texto %}<p><strong>Recurso:</strong> {{ rep.recurso_texto }}</p>{% endif %}
+</section>
+
+{% if rep.status == 'pendente' %}<section class="panel"><h2>Decisão</h2>
+<form method="post" action="/admin/denuncias/{{ rep.id }}/decidir">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <label for="fundamentacao">Fundamentação (ao menos 20 caracteres)</label>
+  <textarea id="fundamentacao" name="fundamentacao" minlength="20" maxlength="1000" required></textarea>
+  {% for k, v in decisoes.items() %}{% if not (k == 'ocultar' and rep.alvo_tipo == 'perfil') %}<button class="{{ 'danger' if k in ('ocultar', 'suspender') else 'ghost' }}" name="decisao" value="{{ k }}">{{ {'ocultar': 'Ocultar', 'suspender': 'Suspender a conta', 'restaurar': 'Restaurar', 'rejeitar': 'Rejeitar'}[k] }}</button> {% endif %}{% endfor %}
+</form></section>{% endif %}
+
+{% if rep.subcategoria in graves %}<section class="panel"><h2>Comunicação às autoridades</h2>
+{% for c in comunicacoes %}<p>{{ c.orgao }} · protocolo {{ c.protocolo }} · {{ c.data.strftime('%d/%m/%Y') }}</p>
+{% else %}<p class="err">Comunicação pendente.</p>{% endfor %}
+<form method="post" action="/admin/denuncias/{{ rep.id }}/comunicacao">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <label for="orgao">Órgão</label><input id="orgao" name="orgao" required maxlength="120" placeholder="Polícia Federal">
+  <label for="protocolo">Protocolo</label><input id="protocolo" name="protocolo" required maxlength="80">
+  <label for="data">Data</label><input id="data" name="data" type="date" required>
+  <p><button>Registrar comunicação</button></p>
+</form></section>{% endif %}
+
+<section class="panel"><h2>Trilha</h2>
+<table><thead><tr><th>Quando</th><th>Passo</th><th>Quem</th><th>Detalhe</th></tr></thead><tbody>
+{% for e in eventos %}<tr><td>{{ e.created_at.strftime('%d/%m/%Y %H:%M') }}</td><td>{{ e.tipo }}</td><td>{{ '@' ~ e.autor.username if e.autor }}</td><td>{{ e.detalhe }}</td></tr>{% endfor %}
+</tbody></table></section>
+{% endblock %}

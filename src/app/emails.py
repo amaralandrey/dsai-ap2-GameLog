@@ -48,15 +48,17 @@ def conta_excluida(user):
 
 
 def pode_ligar_email(user, tipo=RESUMO):
-    """PMN-08: e-mail de engajamento começa desligado; de 16 a 17 anos o próprio usuário liga, de 12 a 15 só o
-    responsável. Sem RSP não há responsável que ligue (RSP-07 é o ponto de extensão), então de 12 a 15 fica desligado.
+    """PMN-08: e-mail de engajamento começa desligado; de 16 a 17 anos o próprio usuário liga, de 12 a 15 não: lá o
+    resumo depende do consentimento `email_resumo` dado pelo responsável (CNS-09, RSP-07).
     """
     return tipo in SEM_ENGAJAMENTO or faixa_etaria(user) != VINCULADO
 
 
 def email_engajamento_liberado(user, tipo=RESUMO):
-    """Na hora do envio: a mesma regra de PMN-08 e a política de menores (PMN-01)."""
-    return tipo in SEM_ENGAJAMENTO or (pode_ligar_email(user, tipo) and pode(user, "email_engajamento"))
+    """Na hora do envio: a mesma regra de PMN-08 e a política de menores (PMN-01); o resumo de 12 a 15 anos vale
+    pelo consentimento dado pelo responsável, que quem chama confere."""
+    liberado = pode_ligar_email(user, tipo) or tipo == RESUMO
+    return tipo in SEM_ENGAJAMENTO or (liberado and pode(user, "email_engajamento"))
 
 
 # ---------- renderização e enfileiramento (EML-01, EML-02) ----------
@@ -241,10 +243,14 @@ def processar(email_id):
 
 
 # ---------- notificações e descadastro (EML-06, EML-07) ----------
-def avisar_por_email(notificacao):
-    """O modelo `notificacao` para quem quer aquele tipo por e-mail; chamada por `notificar` (NTF-11)."""
-    return enviar_email(db.session.get(User, notificacao.user_id), "notificacao", tipo=notificacao.tipo,
-                        rotulo=TIPOS[notificacao.tipo], notificacao=notificacao)
+def avisar_por_email(notificacao, oferta=None):
+    """O modelo `notificacao` para quem quer aquele tipo por e-mail; chamada por `notificar` (NTF-11). O aviso de
+    oferta e de preço-alvo usa o modelo `oferta`, com preço, loja e link da loja (OFR-09)."""
+    user = db.session.get(User, notificacao.user_id)
+    if oferta:
+        return enviar_email(user, "oferta", tipo=notificacao.tipo, notificacao=notificacao, **oferta)
+    return enviar_email(user, "notificacao", tipo=notificacao.tipo, rotulo=TIPOS[notificacao.tipo],
+                        notificacao=notificacao)
 
 
 @bp.route("/email/descadastro/<token>", methods=["GET", "POST"])
@@ -317,9 +323,10 @@ def resumo_semanal():
 def resumo_do_usuario(user_id, semana):
     """Monta e enfileira o resumo; sem item nenhum, não grava nada na caixa de saída (EML-09).
 
-    A seção de ofertas da wishlist entra com OFR: ela depende do consentimento `ofertas` (OFR-07) e de
-    `pode(user, "ver_ofertas")` (PMN).
+    A seção de ofertas da wishlist depende do consentimento `ofertas` e da política de menores (OFR-07).
     """
+    from .ofertas import do_resumo
+
     user = db.session.get(User, user_id)
     if user is None or not elegivel_ao_resumo(user):
         return
@@ -327,8 +334,9 @@ def resumo_do_usuario(user_id, semana):
         EmailSaida.user_id == user_id, EmailSaida.modelo == "resumo_semanal",
         EmailSaida.criado_em >= tempo.inicio_do_dia_utc(tempo.segunda_da_semana(semana))).first()
     itens = [] if ja_enviado else itens_do_resumo(user, semana)
-    if itens:
-        enviar_email(user, "resumo_semanal", semana=semana, itens=[frase(a) for a in itens])
+    ofertas = [] if ja_enviado else do_resumo(user)
+    if itens or ofertas:
+        enviar_email(user, "resumo_semanal", semana=semana, itens=[frase(a) for a in itens], ofertas=ofertas)
 
 
 agenda_padrao("email_resumo_semanal", "0 8 * * 1", "email_resumo_semanal")  # segunda às 08:00 de Belém

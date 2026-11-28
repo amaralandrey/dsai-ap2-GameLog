@@ -1,10 +1,10 @@
 {% extends "base.html" %}
-{% from "_macros.html" import game_card, pager, avatar, stars, star_input, comments with context %}
+{% from "_macros.html" import game_card, pager, avatar, stars, star_input, comments, form_denuncia with context %}
 {% block title %}{{ game.title }} — GameLog{% endblock %}
 {% block description %}{{ game.synopsis[:150] }}{% endblock %}
 {% macro review_card(r, likes) %}
 <article class="panel" id="av-{{ r.id }}">
-  {{ avatar(r.user) }} <a href="/u/{{ r.user.username }}"><strong>{{ r.user.display_name }}</strong></a>
+  {{ avatar(r.user) }} {% if anonimizada(r.user) %}<strong>{{ r.user.display_name }}</strong>{% else %}<a href="/u/{{ r.user.username }}"><strong>{{ r.user.display_name }}</strong></a>{% endif %}
   {{ stars(r.score) }}
   {% if horas.get(r.user_id) %}<span class="tag" title="Horas registradas no diário">{{ horas[r.user_id] | selo_horas }} registradas</span>{% endif %}
   <span class="mut">{{ r.created_at.strftime('%d/%m/%Y') }}{% if r.edited %} · editada{% endif %}</span>
@@ -15,12 +15,7 @@
   {% if me and me.id != r.user_id and not r.hidden %}
     <form class="inline" method="post" action="/avaliacoes/{{ r.id }}/{{ 'descurtir' if r.id in liked else 'curtir' }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="link">{{ 'Descurtir' if r.id in liked else 'Curtir' }}</button></form>
-    <details style="display:inline"><summary style="display:inline;cursor:pointer" class="mut">Denunciar</summary>
-      <form method="post" action="/avaliacoes/{{ r.id }}/denunciar">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <select name="reason" required>{% for k, v in reasons.items() %}<option value="{{ k }}">{{ v }}</option>{% endfor %}</select>
-        <input name="comment" maxlength="500" placeholder="Comentário (opcional)"><button class="ghost">Enviar denúncia</button>
-      </form></details>
+    {{ form_denuncia('/avaliacoes/' ~ r.id ~ '/denunciar') }}
   {% elif not me %}<a class="mut" href="/entrar?next={{ request.path }}">Entre para curtir e comentar</a>{% endif %}
   {{ comments(r, request.path) }}
 </article>
@@ -44,6 +39,10 @@
       {%- elif p %} <span class="preco mut">{{ p.preco_centavos | reais }}, preço de {{ p.verificado_em | dia }}</span>{% endif %}{% endfor %}</p>{% endif %}
     {% if menor %}<p class="mut">Menor preço já visto: {{ menor.preco_centavos | reais }} na {{ nomes_lojas[menor.fonte] }} em {{ menor.coletado_em | dia }}
       · <a href="/jogos/{{ game.slug }}/precos">histórico de preços</a></p>{% endif %}
+    {% if barato and not (me and e_menor(me)) %}{% set link = url_segura((game.lojas | selectattr("fonte", "equalto", barato.fonte) | map(attribute="url_loja") | first) or "") %}
+    <p class="mais-barato"><strong>Onde está mais barato:</strong>
+      {% if link %}<a href="{{ link }}" target="_blank" rel="noopener nofollow">{{ nomes_lojas[barato.fonte] }}</a>{% else %}{{ nomes_lojas[barato.fonte] }}{% endif %}
+      por {{ barato.preco_centavos | reais }}{% if barato.desconto_pct %} (−{{ barato.desconto_pct }}%){% endif %}</p>{% endif %}
     {% if game.fontes | selectattr("fonte", "equalto", "rawg") | first %}<p class="mut">Dados fornecidos por <a href="https://rawg.io" target="_blank" rel="noopener">RAWG</a></p>{% endif %}
     <p style="font-size:1.4rem">
       {% if stats.avg is not none %}{{ stars(stats.avg, media=True) }} <span class="mut">({{ stats.total }} avaliaç{{ 'ões' if stats.total != 1 else 'ão' }})</span>
@@ -76,6 +75,17 @@
         {% with form={}, erros={} %}{% include "diario/_form.html" %}{% endwith %}
         <p><button>Salvar sessão</button> <a href="/diario?jogo={{ game.slug }}">Minhas sessões deste jogo</a></p>
       </form></details>
+    {% if pode(me, "alerta_preco") %}
+    <details class="alerta-preco"{{ ' open' if alerta }}><summary class="btn ghost">{{ 'Editar alerta de preço' if alerta else 'Criar alerta de preço' }}</summary>
+      <form method="post" action="/jogos/{{ game.slug }}/alerta">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label for="preco_alvo">Avise quando custar até (R$)</label>
+        <input id="preco_alvo" name="preco_alvo" inputmode="decimal" required value="{{ '%.2f' | format(alerta.preco_alvo_centavos / 100) | replace('.', ',') if alerta }}">
+        {% if alerta and alerta.disparado_em %}<p class="mut">Este alerta já avisou. Salvar de novo volta a vigiar o preço.</p>{% endif %}
+        {% if not pedido_ofertas.marcado %}{% with p=pedido_ofertas %}{% include "privacidade/_pedido_consentimento.html" %}{% endwith %}{% endif %}
+        <p><button>Salvar alerta</button> <a href="/ofertas/alertas">Meus alertas</a></p>
+      </form></details>
+    {% endif %}
     <h3>{{ 'Editar minha avaliação' if mine else 'Avaliar' }}</h3>
     <form method="post" action="/jogos/{{ game.slug }}/avaliar">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

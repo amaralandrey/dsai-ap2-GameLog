@@ -60,8 +60,10 @@ def ocultos_para(visitante):
 
 def perfil_ou_404(username):
     """Dono do perfil, ou 404 quando o visitante não pode ver o perfil (DIA-12, GLOBAL-18)."""
+    from .privacidade.anonimizar import anonimizada
+
     dono = User.query.filter_by(username_lower=username.lower()).first_or_404()
-    if not pode_ver_perfil(current_user(), dono):
+    if anonimizada(dono) or not pode_ver_perfil(current_user(), dono):
         abort(404)
     return dono
 
