@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import game_card, pager, avatar, stars, star_input, comments with context %}
+{% from "_macros.html" import game_card, pager, avatar, stars, star_input, comments, form_denuncia with context %}
 {% block title %}{{ game.title }} — GameLog{% endblock %}
 {% block description %}{{ game.synopsis[:150] }}{% endblock %}
 {% macro review_card(r, likes) %}
@@ -15,12 +15,7 @@
   {% if me and me.id != r.user_id and not r.hidden %}
     <form class="inline" method="post" action="/avaliacoes/{{ r.id }}/{{ 'descurtir' if r.id in liked else 'curtir' }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="link">{{ 'Descurtir' if r.id in liked else 'Curtir' }}</button></form>
-    <details style="display:inline"><summary style="display:inline;cursor:pointer" class="mut">Denunciar</summary>
-      <form method="post" action="/avaliacoes/{{ r.id }}/denunciar">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <select name="reason" required>{% for k, v in reasons.items() %}<option value="{{ k }}">{{ v }}</option>{% endfor %}</select>
-        <input name="comment" maxlength="500" placeholder="Comentário (opcional)"><button class="ghost">Enviar denúncia</button>
-      </form></details>
+    {{ form_denuncia('/avaliacoes/' ~ r.id ~ '/denunciar') }}
   {% elif not me %}<a class="mut" href="/entrar?next={{ request.path }}">Entre para curtir e comentar</a>{% endif %}
   {{ comments(r, request.path) }}
 </article>

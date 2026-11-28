@@ -14,7 +14,7 @@ CHAVE = "k" * 32
 TABELAS_NO_BACKUP = frozenset({
     "aceite_documento", "activity", "agendamento", "anotacao_incidente", "audit_log", "auditoria_token",
     "aviso_documento_fechado", "bloqueio", "clube", "codigo_recuperacao", "comment", "conquista", "consentimento",
-    "contribuinte_meta", "controle_parental", "desclassificacao", "developer", "dismissed", "documento_legal", "email_saida",
+    "comunicacao_autoridade", "contribuinte_meta", "controle_parental", "desclassificacao", "developer", "dismissed", "documento_legal", "email_saida", "evento_denuncia",
     "evento_seguranca", "extrato_xp", "follow", "game", "game_genres", "game_list", "game_platforms", "genre",
     "incidente", "inscricao_torneio", "job", "jogo_do_mes", "jogo_fonte", "like", "list_item", "lista_inteligente",
     "membro_clube", "meta_clube", "notificacao", "partida_torneio", "pedido_titular", "pendencia_merge",

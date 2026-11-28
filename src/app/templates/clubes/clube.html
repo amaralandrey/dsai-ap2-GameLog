@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import pager, avatar %}
+{% from "_macros.html" import pager, avatar, form_denuncia with context %}
 {% block title %}{{ clube.nome }} — Clubes — GameLog{% endblock %}
 {% block content %}
 <section class="panel">
@@ -58,9 +58,7 @@
     <span class="mut">{{ p.created_at.strftime('%d/%m/%Y %H:%M') }}</span>{% if p.oculto %} <span class="tag">oculto: {{ p.motivo_ocultacao }}</span>{% endif %}
     {% if p.spoiler %}<details class="spoiler"><summary>Spoiler — clique para ler</summary><p>{{ p.texto }}</p></details>{% else %}<p>{{ p.texto }}</p>{% endif %}
     {% if me and p.user_id == me.id %}<form class="inline" method="post" action="/clubes/{{ clube.slug }}/mural/{{ p.id }}/apagar"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="link danger-link">Apagar</button></form>
-    {% elif ativo %}<details style="display:inline"><summary class="mut" style="display:inline;cursor:pointer">Denunciar</summary>
-      <form method="post" action="/clubes/{{ clube.slug }}/mural/{{ p.id }}/denunciar"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <select name="reason">{% for k, v in reasons.items() %}<option value="{{ k }}">{{ v }}</option>{% endfor %}</select><button class="ghost">Enviar</button></form></details>{% endif %}
+    {% elif ativo %}{{ form_denuncia('/clubes/' ~ clube.slug ~ '/mural/' ~ p.id ~ '/denunciar') }}{% endif %}
     {% if modera and not p.oculto %}<form class="inline" method="post" action="/clubes/{{ clube.slug }}/mural/{{ p.id }}/ocultar"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <input name="motivo" placeholder="motivo" style="width:auto" required><button class="link">Ocultar</button></form>{% endif %}
   </div>

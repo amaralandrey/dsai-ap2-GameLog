@@ -15,7 +15,8 @@ from flask import Blueprint, abort, flash, redirect, render_template, request, s
 from sqlalchemy import select
 
 from .. import tempo
-from ..models import Consentimento, Follow, Game, GameList, PedidoTitular, Review, SessaoJogo, User, db, now
+from ..models import (Comment, Consentimento, Follow, Game, GameList, PedidoTitular, PostClube, Review, SessaoJogo, User,
+                      db, now)
 from ..util import admin_required, current_user, login_required, paginate
 from . import mapa
 from .anonimizar import anonimizar_conta
@@ -248,16 +249,50 @@ def baixar():
 
 # ---------- exclusão (DIR-06..08) ----------
 def excluir_conta(user, quem_pediu):
-    """Avisa o endereço antigo, anonimiza pelo mapa e registra o pedido concluído; quem chama faz o commit."""
+    """Avisa o endereço antigo, anonimiza pelo mapa e registra o pedido concluído; quem chama faz o commit.
+
+    Conta preservada por denúncia (DEN-09) só é desligada: sessões e tokens caem, o conteúdo some, e o pedido fica
+    aberto até o expurgo anonimizar a conta depois da preservação (DIR-07).
+    """
     from ..emails import enviar_email
 
     uid = user.id
+    detalhe = "Pedida pelo titular." if quem_pediu.id == uid else "Pedida pelo responsável."
     enviar_email(None, "conta_excluida", para=user.email)
+    if user.preservar_ate is not None and user.preservar_ate > now():
+        desligar(user)
+        novo_pedido(user, "exclusao", TIPOS["exclusao"], f"{detalhe} Conta preservada por denúncia até "
+                    f"{tempo.dia_de(user.preservar_ate):%d/%m/%Y}.", user.email)
+        return
     anonimizar_conta(user)
     anonimo = db.session.get(User, uid)
-    detalhe = "Pedida pelo titular." if quem_pediu.id == uid else "Pedida pelo responsável."
     pedido = novo_pedido(anonimo, "exclusao", TIPOS["exclusao"], detalhe, anonimo.email)
     pedido.status, pedido.concluido_em = "concluido", now()
+
+
+def desligar(user):
+    from ..tokens import revogar_todos
+
+    user.suspensa_em, user.session_version = user.suspensa_em or now(), user.session_version + 1
+    revogar_todos(user.id)
+    Review.query.filter_by(user_id=user.id).update({Review.hidden: True})
+    Comment.query.filter_by(user_id=user.id).update({Comment.oculto: True})
+    PostClube.query.filter_by(user_id=user.id).update({PostClube.oculto: True})
+
+
+def exclusoes_adiadas(agora):
+    """Contas com exclusão pedida cuja preservação venceu: o expurgo as anonimiza (DIR-07, DEN-09)."""
+    return (User.query.join(PedidoTitular, PedidoTitular.user_id == User.id)
+            .filter(PedidoTitular.tipo == "exclusao", PedidoTitular.status == "aberto",
+                    User.preservar_ate.isnot(None), User.preservar_ate <= agora).order_by(User.id).all())
+
+
+def concluir_exclusao(user):
+    pedidos = PedidoTitular.query.filter_by(user_id=user.id, tipo="exclusao", status="aberto").all()
+    anonimizar_conta(user)
+    for pedido in pedidos:
+        pedido = db.session.get(PedidoTitular, pedido.id)
+        pedido.status, pedido.concluido_em = "concluido", now()
 
 
 @bp.route("/conta/excluir", methods=["GET", "POST"])

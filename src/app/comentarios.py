@@ -51,8 +51,13 @@ def delete(cid):
     if comment.user_id != me.id:
         from .admin import audit
         audit("comentario.apagar", f"#{comment.id} de @{comment.user.username}: {comment.text}")
+    from .denuncias import preservado
+
     review = comment.review
-    db.session.delete(comment)
+    if preservado(comment):
+        comment.oculto = True
+    else:
+        db.session.delete(comment)
     db.session.commit()
     flash("Comentário apagado.", "ok")
     return back(review)

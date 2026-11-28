@@ -4,6 +4,7 @@
 <h1>Administração</h1>
 <div class="row">
   <a class="panel" href="/admin/jogos"><strong>Jogos</strong><br><span class="mut">{{ games }} no total</span></a>
+  <a class="panel" href="/admin/denuncias"><strong>Risco a menores</strong><br><span class="mut">{{ risco }} pendente{{ 's' if risco != 1 }}</span></a>
   <a class="panel" href="/admin/denuncias"><strong>Denúncias pendentes</strong><br><span class="mut">{{ pending }}</span></a>
   <a class="panel" href="/admin/importar"><strong>Importar jogos</strong><br><span class="mut">Steam, GOG e RAWG</span></a>
   <a class="panel" href="/admin/catalogo/duplicatas"><strong>Duplicatas</strong><br><span class="mut">{{ duplicatas }} pendente{{ 's' if duplicatas != 1 }}</span></a>
