@@ -2,6 +2,7 @@
 from .catalogo_merge import assumir_vinculo, reconhecer, registrar_pendencia
 from .fontes import FONTES, Interrompido, base, jogo_por_fonte, lancamento, registrada, vincular_lojas, vincular_origem
 from .fontes.normalizar import generos, plataformas
+from .menores.classificacao import aplicar
 from .models import Developer, Game, Genre, Platform, db, now
 from .util import slugify
 
@@ -137,6 +138,8 @@ def _sincronizar_item(fonte, j):
         if status == "ignorado":
             return status
     elif dona_dos_dados(game, fonte) and _atualizar(game, j, titulo, data):
+        status = "atualizado"
+    if aplicar(game, j.get("classificacao"), j.get("classificacao_origem") or fonte) and status == "ignorado":
         status = "atualizado"
     vinculos = vincular_origem(game, fonte, {**j, "external_id": external_id}) + vincular_lojas(game, j.get("lojas"))
     for v in vinculos:

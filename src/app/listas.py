@@ -115,10 +115,11 @@ def get_list(lid, owner_only=False):
 @bp.route("/listas/<int:lid>")
 def view_list(lid):
     from .listas_inteligentes import progresso_comum
+    from .menores.classificacao import pode_ver
 
     gl, own = get_list(lid)
     todos = ListItem.query.options(joinedload(ListItem.game)).filter_by(list_id=gl.id).order_by(ListItem.position)
-    items = [i for i in todos if own or i.game.removed_at is None]  # LIS-09
+    items = [i for i in todos if own or (i.game.removed_at is None and pode_ver(current_user(), i.game))]  # LIS-09
     return render_template("listas/lista.html", gl=gl, own=own, items=items, prog=progresso_comum(gl, own),
                            statuses=STATUSES)
 

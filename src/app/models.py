@@ -170,6 +170,16 @@ class Game(db.Model):
     external_id = db.Column(db.String(40), nullable=True)
     cover_url = db.Column(db.String(500), nullable=True)
     mesclado_em_id = db.Column(db.ForeignKey("game.id"), nullable=True)  # jogo principal da mesclagem (MRG-08)
+    classificacao = db.Column(db.String(2), nullable=True)
+    classificacao_origem = db.Column(db.String(5), nullable=True)
+
+    @validates("classificacao", "classificacao_origem")
+    def _classificacao_valida(self, campo, valor):
+        from .menores.classificacao import FAIXAS, ORIGENS
+
+        if valor is not None and valor not in (FAIXAS if campo == "classificacao" else ORIGENS):
+            raise ValueError(f"{campo} inválida: {valor}")
+        return valor
     developer = db.relationship(Developer, backref="games")
     genres = db.relationship(Genre, secondary=game_genres, backref="games")
     platforms = db.relationship(Platform, secondary=game_platforms, backref="games")
@@ -1039,9 +1049,12 @@ class AnotacaoIncidente(db.Model):
     autor = db.relationship(User)
 
 
-def visible_games():
-    """Jogos não removidos (CAT-07)."""
-    return Game.query.filter(Game.removed_at.is_(None))
+def visible_games(classificacao=True):
+    """Jogos não removidos (CAT-07) e, para quem tem idade abaixo da faixa, sem os classificados acima dela (CLS-07)."""
+    from .menores.classificacao import filtro_da_requisicao
+
+    q = Game.query.filter(Game.removed_at.is_(None))
+    return q.filter(*filtro_da_requisicao()) if classificacao else q
 
 
 def game_stats(game_id):

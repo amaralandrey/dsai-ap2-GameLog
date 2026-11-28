@@ -25,6 +25,8 @@
   <div style="flex:0 0 260px"><img class="cover" src="{{ game.cover }}" alt="Capa de {{ game.title }}"></div>
   <div style="flex:3">
     <h1>{{ game.title }}</h1>
+    <p class="classificacao">{% if game.classificacao %}<span class="selo-classificacao selo-{{ game.classificacao }}" title="Classificação indicativa">{{ game.classificacao }}</span>{% else %}<span class="tag">Classificação não informada</span>{% endif %}
+      <span class="mut">{{ nota_classificacao }}</span></p>
     <p class="mut">Lançamento: {{ game.release_date.year if game.data_aproximada else game.release_date.strftime('%d/%m/%Y') }} · por <a href="/desenvolvedoras/{{ game.developer.slug }}">{{ game.developer.name }}</a></p>
     <p>{% for g in game.genres %}<a class="tag" href="/generos/{{ g.slug }}">{{ g.name }}</a>{% endfor %}
        {% for p in game.platforms %}<a class="tag" href="/plataformas/{{ p.slug }}">{{ p.name }}</a>{% endfor %}</p>

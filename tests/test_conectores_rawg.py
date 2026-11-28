@@ -194,7 +194,7 @@ def test_gog06_detalhe_mapeia_metadados_e_lojas(loja):
         "release_date": date(2020, 9, 17), "data_aproximada": False, "developer": "Supergiant Games",
         "genres": ["Action", "RPG"], "platforms": ["PC", "macOS", "Nintendo Switch"],
         "cover_url": "https://media.rawg.io/media/games/1.jpg",
-        "lojas": [("steam", STEAM[1]), ("gog", GOG[1]), ("epic", EPIC[1])],
+        "lojas": [("steam", STEAM[1]), ("gog", GOG[1]), ("epic", EPIC[1])], "classificacao": None,
     }
 
 

@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}{{ game.title }} — GameLog{% endblock %}
+{% block content %}
+<section class="panel" style="max-width:560px;margin:0 auto">
+<h1>{{ game.title }}</h1>
+<p><span class="selo-classificacao selo-{{ game.classificacao }}">{{ game.classificacao }}</span> Este jogo é classificado para {{ idade }} anos.</p>
+<p class="mut">Por isso ele não aparece para a sua conta no catálogo, na busca nem nas recomendações.</p>
+<p><a class="btn ghost" href="/">Voltar ao início</a></p>
+</section>
+{% endblock %}

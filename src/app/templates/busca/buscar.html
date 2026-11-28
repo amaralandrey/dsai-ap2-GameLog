@@ -14,6 +14,7 @@
   <div class="row">
     <div><label for="ano_de">Ano de</label><input id="ano_de" name="ano_de" inputmode="numeric" value="{{ request.args.get('ano_de', '') }}"></div>
     <div><label for="ano_ate">Ano até</label><input id="ano_ate" name="ano_ate" inputmode="numeric" value="{{ request.args.get('ano_ate', '') }}"></div>
+    <div><label for="classificacao_max">Classificação até</label><select id="classificacao_max" name="classificacao_max"><option value="">Qualquer</option>{% for f in faixas %}<option value="{{ f }}"{{ ' selected' if request.args.get('classificacao_max') == f }}>{{ f }}</option>{% endfor %}</select></div>
     <div><label for="nota_min">Nota mínima</label><input id="nota_min" name="nota_min" inputmode="decimal" value="{{ request.args.get('nota_min', '') }}"></div>
     <div><label for="ordem">Ordenar por</label><select id="ordem" name="ordem">{% for k, v in sorts.items() %}<option value="{{ k }}" {{ 'selected' if k == sort }}>{{ v }}</option>{% endfor %}</select></div>
   </div>
