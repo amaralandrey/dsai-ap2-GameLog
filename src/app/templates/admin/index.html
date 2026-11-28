@@ -4,6 +4,7 @@
 <h1>Administração</h1>
 <div class="row">
   <a class="panel" href="/admin/jogos"><strong>Jogos</strong><br><span class="mut">{{ games }} no total</span></a>
+  <a class="panel" href="/admin/denuncias"><strong>Risco a menores</strong><br><span class="mut">{{ risco }} pendente{{ 's' if risco != 1 }}</span></a>
   <a class="panel" href="/admin/denuncias"><strong>Denúncias pendentes</strong><br><span class="mut">{{ pending }}</span></a>
   <a class="panel" href="/admin/importar"><strong>Importar jogos</strong><br><span class="mut">Steam, GOG e RAWG</span></a>
   <a class="panel" href="/admin/catalogo/duplicatas"><strong>Duplicatas</strong><br><span class="mut">{{ duplicatas }} pendente{{ 's' if duplicatas != 1 }}</span></a>
@@ -23,6 +24,7 @@
   <a class="panel" href="/admin/privacidade/registro"><strong>Registro das operações</strong><br><span class="mut">mapa de dados</span></a>
   <a class="panel" href="/admin/privacidade/documentos"><strong>Política e termos</strong><br><span class="mut">versões e aceites</span></a>
   <a class="panel" href="/admin/privacidade/consentimentos"><strong>Consentimentos</strong><br><span class="mut">totais por finalidade</span></a>
+  <a class="panel" href="/admin/privacidade/pedidos"><strong>Pedidos dos titulares</strong><br><span class="mut">fila com prazo</span></a>
   <a class="panel" href="/admin/privacidade/retencao"><strong>Retenção</strong><br><span class="mut">prazos e expurgo</span></a>
   <a class="panel" href="/admin/backup"><strong>Backup</strong><br><span class="mut">baixar e restaurar o banco</span></a>
 </div>

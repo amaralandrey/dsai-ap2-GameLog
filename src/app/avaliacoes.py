@@ -2,7 +2,7 @@ from flask import Blueprint, abort, flash, redirect, request
 from sqlalchemy.exc import IntegrityError
 
 from .bloqueios import bloqueado_entre
-from .models import REPORT_REASONS, Activity, Like, Notificacao, Report, Review, Status, db, visible_games
+from .models import Activity, Like, Notificacao, Report, Review, Status, db, visible_games
 from .gamificacao import emitir_evento
 from .notificacoes import avisar_curtida
 from .tempo import agora_utc
@@ -21,9 +21,15 @@ def own_or_403(review):
 
 
 def delete_review(review):
-    """Remove a avaliação e tudo que depende dela (AVA-04)."""
+    """Remove a avaliação e tudo que depende dela (AVA-04); a preservada (DEN-09) só fica oculta, e as denúncias ficam
+    com a trilha, sem a avaliação."""
+    from .denuncias import preservado
+
+    if preservado(review):
+        review.hidden = True
+        return
     Like.query.filter_by(review_id=review.id).delete()
-    Report.query.filter_by(review_id=review.id).delete()
+    Report.query.filter_by(review_id=review.id).update({Report.review_id: None})
     Activity.query.filter_by(review_id=review.id).delete()
     Notificacao.query.filter_by(review_id=review.id).delete()
     db.session.delete(review)
@@ -141,21 +147,9 @@ def unlike(rid):
 @bp.route("/avaliacoes/<int:rid>/denunciar", methods=["POST"])
 @login_required
 def report(rid):
+    from .denuncias import denunciar
+
     review = db.get_or_404(Review, rid)
-    me = current_user()
-    reason, comment = request.form.get("reason", ""), request.form.get("comment", "").strip()
-    if reason not in REPORT_REASONS:
-        flash("Escolha o motivo da denúncia.", "erro")  # AVA-08
-    elif len(comment) > 500:
-        flash("O comentário deve ter até 500 caracteres.", "erro")
-    elif Report.query.filter_by(review_id=rid, reporter_id=me.id).first():
-        flash("Você já denunciou esta avaliação.", "erro")
-    else:
-        db.session.add(Report(review_id=rid, reporter_id=me.id, reason=reason, comment=comment))
-        try:
-            db.session.commit()
-            flash("Denúncia enviada. Obrigado!", "ok")
-        except IntegrityError:  # duplo envio: a outra requisição já gravou a denúncia
-            db.session.rollback()
-            flash("Você já denunciou esta avaliação.", "erro")
+    erro = denunciar(current_user(), "avaliacao", review, request.form)
+    flash(erro or "Denúncia enviada. Obrigado!", "erro" if erro else "ok")
     return back(review.game, review)

@@ -56,5 +56,19 @@
 {{ pager(page) }}
 </section>
 
+{% if vinculado %}<section class="panel"><h2>Dados de {{ menor.display_name }}</h2>
+<form method="post" action="/responsavel/{{ menor.id }}/dados">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <label for="senha-dados">Sua senha</label><input id="senha-dados" name="senha" type="password" required autocomplete="current-password">
+  {% if me.totp_ativado_em %}<label for="codigo-dados">Código de verificação</label><input id="codigo-dados" name="codigo" inputmode="numeric" autocomplete="one-time-code">{% endif %}
+  <p><button class="ghost">Baixar os dados</button></p>
+</form>
+<form method="post" action="/responsavel/{{ menor.id }}/excluir">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <label for="senha-excluir">Sua senha</label><input id="senha-excluir" name="senha" type="password" required autocomplete="current-password">
+  {% if me.totp_ativado_em %}<label for="codigo-excluir">Código de verificação</label><input id="codigo-excluir" name="codigo" inputmode="numeric" autocomplete="one-time-code">{% endif %}
+  <p><button class="danger">Excluir a conta de {{ menor.display_name }}</button></p>
+</form></section>{% endif %}
+
 <form method="post" action="/responsavel/{{ menor.id }}/desvincular"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="danger">Desfazer o vínculo</button></form>
 {% endblock %}

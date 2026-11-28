@@ -15,6 +15,13 @@
 </table>
 {% else %}<p class="mut">Nenhum aceite registrado.</p>{% endif %}
 {% include "privacidade/_consentimentos.html" %}
+<h2>Recomendações</h2>
+<form method="post" action="/conta/privacidade/oposicao">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <label style="font-weight:400"><input type="checkbox" name="ligado" value="1" style="width:auto"{{ ' checked' if me.oposicao_recomendacao }}> Não usar minhas notas para recomendar jogos a outras pessoas</label>
+  <p><button class="ghost">Salvar</button></p>
+</form>
+<p><a class="btn" href="/conta/privacidade/direitos">Meus direitos: baixar meus dados, corrigir, excluir a conta</a></p>
 <p class="mut">Dúvidas ou pedidos sobre seus dados: <a href="/privacidade/contato">fale com a gente</a>.</p>
 </section>
 {% endblock %}

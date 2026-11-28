@@ -177,10 +177,13 @@ def logout():
 
 @bp.route("/u/<username>")
 def profile(username):
+    from .privacidade.anonimizar import anonimizada
+
     user = User.query.filter_by(username_lower=username.lower()).first_or_404()
     me = current_user()
     own = me is not None and me.id == user.id
-    if bloqueado_entre(me, user):
+    suspensa = user.suspensa_em is not None and not (me is not None and me.is_admin)
+    if anonimizada(user) or suspensa or bloqueado_entre(me, user):
         abort(404)  # BLQ-03: como um perfil inexistente, sem dizer quem bloqueou
     follow = Follow.query.filter_by(follower_id=me.id, followed_id=user.id).first() if me and not own else None
     following, pedido = follow is not None, follow is not None and not follow.aprovado  # PMN-03

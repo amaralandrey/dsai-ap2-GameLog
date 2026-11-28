@@ -15,6 +15,8 @@ def adm(app, client):
     return client
 
 
+FUNDAMENTO = {"fundamentacao": "Spam repetido, viola as regras da comunidade."}
+
 def form_ok(app, **over):
     with app.app_context():
         g, d = Genre.query.first(), Developer.query.first()
@@ -113,12 +115,14 @@ def test_adm06_decisao_registra_quem_e_quando(app, adm):
     slug, rid = reported(app, adm)
     with app.app_context():
         repid = Report.query.one().id
-    adm.post(f"/admin/denuncias/{repid}/rejeitar")
+    assert adm.post(f"/admin/denuncias/{repid}/rejeitar").status_code == 400
+    adm.post(f"/admin/denuncias/{repid}/rejeitar", data=FUNDAMENTO)
     with app.app_context():
         r = Report.query.one()
         assert r.status == "rejeitada" and r.decided_at and r.decider.username == "root"
+        assert r.fundamentacao == FUNDAMENTO["fundamentacao"]
         assert Review.query.one().hidden is False
-    assert adm.post(f"/admin/denuncias/{repid}/ocultar", follow_redirects=True).status_code == 200
+    assert adm.post(f"/admin/denuncias/{repid}/ocultar", data=FUNDAMENTO).status_code == 400
     with app.app_context():
         assert Review.query.one().hidden is False  # já decidida
 
@@ -147,7 +151,7 @@ def test_adm07_adm08_ocultar_atualiza_e_reverter(app, adm):
     with app.app_context():
         repid = Report.query.one().id
         gid = Review.query.one().game_id
-    adm.post(f"/admin/denuncias/{repid}/ocultar")
+    adm.post(f"/admin/denuncias/{repid}/ocultar", data=FUNDAMENTO)
     with app.app_context():
         assert game_stats(gid)["total"] == 0 and Report.query.one().status == "ocultada"
     assert "texto polêmico" not in app.test_client().get(f"/jogos/{slug}").get_data(as_text=True)

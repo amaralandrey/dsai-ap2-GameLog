@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import avatar, grafico, pager, stars, conquista_tag %}
+{% from "_macros.html" import avatar, grafico, pager, stars, conquista_tag, form_denuncia with context %}
 {% block title %}{{ u.display_name }} (@{{ u.username }}) — GameLog{% endblock %}
 {% block content %}
 <section class="panel">
@@ -20,6 +20,7 @@
         <form method="post" action="/u/{{ u.username }}/{{ 'dessilenciar' if silenciado else 'silenciar' }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <button class="link">{{ 'Dessilenciar' if silenciado else 'Silenciar' }}</button></form>
+        {{ form_denuncia('/denunciar/perfil/' ~ u.id) }}
         <form method="post" action="/u/{{ u.username }}/bloquear">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <button class="link danger-link">Bloquear</button></form>

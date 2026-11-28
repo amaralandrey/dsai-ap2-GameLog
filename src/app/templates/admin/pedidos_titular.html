@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% from "_macros.html" import pager %}
+{% block title %}Pedidos dos titulares — Admin — GameLog{% endblock %}
+{% block content %}
+<h1>Pedidos dos titulares</h1>
+<p class="mut">Abertos, do prazo mais próximo para o mais distante. A resposta vai para a pessoa por e-mail e fica na página de direitos dela.</p>
+{% for p in page.items %}{% set atrasado = p.prazo_em < agora %}{% set logo = not atrasado and p.prazo_em <= logo %}
+<section class="panel{{ ' atrasado' if atrasado }}">
+  <strong>{{ p.protocolo }}</strong> · {{ tipos[p.tipo] }} · prazo {{ p.prazo_em | dia }}
+  {% if atrasado %}<span class="tag err">atrasado</span>{% elif logo %}<span class="tag">vence em até 3 dias</span>{% endif %}
+  <p><strong>{{ p.assunto }}</strong></p><p style="white-space:pre-line">{{ p.detalhe }}</p>
+  <form method="post" action="/admin/privacidade/pedidos/{{ p.id }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label for="resposta-{{ p.id }}">Resposta</label><textarea id="resposta-{{ p.id }}" name="resposta" maxlength="2000" required></textarea>
+    <p><button name="decisao" value="concluido">Concluir</button> <button class="ghost" name="decisao" value="recusado">Recusar</button></p>
+  </form>
+</section>
+{% else %}<div class="panel"><p class="mut">Nenhum pedido aberto.</p></div>{% endfor %}
+{{ pager(page) }}
+{% endblock %}
