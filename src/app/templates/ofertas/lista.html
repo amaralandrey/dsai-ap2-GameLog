@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% from "_macros.html" import pager %}
+{% block title %}Ofertas da wishlist — GameLog{% endblock %}
+{% block content %}
+<h1>Ofertas da wishlist</h1>
+<p class="mut">Jogos que você marcou como planejado e estão em promoção agora. <a href="/ofertas/alertas">Meus alertas de preço</a></p>
+<form method="get" action="/ofertas" class="panel filtros-ofertas">
+  <label for="loja">Loja</label>
+  <select id="loja" name="loja"><option value="">Todas</option>
+    {% for l in lojas %}<option value="{{ l }}"{{ ' selected' if filtros.loja == l }}>{{ nomes_lojas[l] }}</option>{% endfor %}</select>
+  <label for="desconto_min">Desconto mínimo (%)</label>
+  <input id="desconto_min" name="desconto_min" type="number" min="10" max="90" step="5" value="{{ filtros.desconto_min or '' }}">
+  <label for="preco_max">Preço máximo (R$)</label>
+  <input id="preco_max" name="preco_max" inputmode="decimal" value="{{ '%.2f' | format(filtros.preco_max / 100) | replace('.', ',') if filtros.preco_max }}">
+  <p><button>Filtrar</button>{% if filtros %} <a href="/ofertas">limpar filtros</a>{% endif %}</p>
+</form>
+{% if page.items %}
+<table><thead><tr><th>Jogo</th><th>Loja</th><th>Preço</th><th>Preço base</th><th>Desconto</th><th>Menor preço já visto</th></tr></thead><tbody>
+{% for p, g, url in page.items %}{% set link = url_segura(url) %}{% set menor = menores.get(g.id) %}
+<tr><td><a href="/jogos/{{ g.slug }}">{{ g.title }}</a></td>
+  <td>{% if link %}<a href="{{ link }}" target="_blank" rel="noopener nofollow">{{ nomes_lojas[p.fonte] }}</a>{% else %}{{ nomes_lojas[p.fonte] }}{% endif %}</td>
+  <td>{{ p.preco_centavos | reais }}</td><td><del>{{ p.preco_base_centavos | reais }}</del></td><td>−{{ p.desconto_pct }}%</td>
+  <td>{% if menor %}{{ menor.preco_centavos | reais }} na {{ nomes_lojas[menor.fonte] }} em {{ menor.coletado_em | dia }}{% endif %}</td></tr>
+{% endfor %}</tbody></table>
+{{ pager(page) }}
+<p class="mut">O GameLog não vende jogos: os preços são das lojas, em reais, e podem ter mudado desde a última verificação.</p>
+{% else %}
+<div class="panel"><p class="mut">Nenhum jogo da sua wishlist está em promoção agora.</p></div>
+{% endif %}
+{% endblock %}

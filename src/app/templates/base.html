@@ -23,6 +23,7 @@
       <a class="nav-link{% if request.path == '/diario' %} is-active{% endif %}" href="/diario"{% if request.path == '/diario' %} aria-current="page"{% endif %}>Diário</a>
       <a class="nav-link{% if request.path == '/listas' %} is-active{% endif %}" href="/listas"{% if request.path == '/listas' %} aria-current="page"{% endif %}>Listas</a>
       <a class="nav-link{% if request.path == '/recomendacoes' %} is-active{% endif %}" href="/recomendacoes"{% if request.path == '/recomendacoes' %} aria-current="page"{% endif %}>Para você</a>
+      {% if pode(me, "ver_ofertas") %}<a class="nav-link{% if request.path.startswith('/ofertas') %} is-active{% endif %}" href="/ofertas">Ofertas</a>{% endif %}
       <a class="nav-link{% if request.path.startswith('/clubes') %} is-active{% endif %}" href="/clubes">Clubes</a>
       <a class="nav-link{% if request.path.startswith('/torneios') %} is-active{% endif %}" href="/torneios">Torneios</a>
       <a class="nav-link{% if request.path.startswith('/rankings') %} is-active{% endif %}" href="/rankings">Rankings</a>

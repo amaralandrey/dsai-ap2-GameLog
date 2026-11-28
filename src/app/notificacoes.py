@@ -78,7 +78,7 @@ def notificar(user_id, tipo, **ctx):
     if deve_enviar_email(n):  # EML-06
         from .emails import avisar_por_email
 
-        avisar_por_email(n)
+        avisar_por_email(n, ctx.get("email"))
     return n
 
 

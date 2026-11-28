@@ -12,7 +12,7 @@ from test_api_v2_tokens import token
 
 CHAVE = "k" * 32
 TABELAS_NO_BACKUP = frozenset({
-    "aceite_documento", "activity", "agendamento", "anotacao_incidente", "audit_log", "auditoria_token",
+    "aceite_documento", "activity", "agendamento", "alerta_preco", "anotacao_incidente", "audit_log", "auditoria_token",
     "aviso_documento_fechado", "bloqueio", "clube", "codigo_recuperacao", "comment", "conquista", "consentimento",
     "contribuinte_meta", "desclassificacao", "developer", "dismissed", "documento_legal", "email_saida",
     "evento_seguranca", "extrato_xp", "follow", "game", "game_genres", "game_list", "game_platforms", "genre",

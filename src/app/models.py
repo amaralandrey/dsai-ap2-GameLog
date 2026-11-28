@@ -218,6 +218,21 @@ class PrecoLoja(db.Model):
         return self.preco_centavos, self.preco_base_centavos, self.desconto_pct
 
 
+MAX_ALERTAS = 50
+
+
+class AlertaPreco(db.Model):
+    """Preço-alvo de um jogo para uma pessoa; único por pessoa e jogo (OFR-04)."""
+    __table_args__ = (db.UniqueConstraint("user_id", "game_id"),)
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.ForeignKey("user.id"), nullable=False, index=True)
+    game_id = db.Column(db.ForeignKey("game.id"), nullable=False, index=True)
+    preco_alvo_centavos = db.Column(db.Integer, nullable=False)
+    criado_em = db.Column(db.DateTime, default=now, nullable=False)
+    disparado_em = db.Column(db.DateTime, nullable=True)
+    game = db.relationship(Game)
+
+
 PENDENCIA_STATUS = ("pendente", "mesclada", "ignorada")
 
 
