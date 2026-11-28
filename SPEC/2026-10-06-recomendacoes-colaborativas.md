@@ -11,7 +11,7 @@ As recomendações usam só gênero e nota média. Passam a usar também quem te
 - COL-05: pessoa sem vizinhos recebe exatamente as recomendações de antes desta spec
 - COL-06: pessoa sem avaliações continua com o aviso e os mais bem avaliados (REC-04), sem consulta a vizinhos
 - COL-07: o resultado é determinístico (REC-05) e simétrico no sentido de que os vizinhos são os mesmos que a comparação de gosto mostra
-- COL-08: a página `/recomendacoes` responde em até 800 ms com o seed padrão (REC-09) e faz um número fixo de consultas, sem crescer com o número de vizinhos (no máximo 14)
+- COL-08: a página `/recomendacoes` faz um número fixo de consultas com o seed padrão, sem crescer com o número de vizinhos (no máximo 14); o tempo de resposta fica com o REC-09, medido em ambiente local
 
 ## Fora do escopo
 Fatoração de matrizes, aprendizado de máquina, recomendar a partir de pessoas que não têm jogos em comum, explicação com mais de um vizinho, ajuste de pesos pela interface.
