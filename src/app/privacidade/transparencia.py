@@ -5,7 +5,6 @@ As seções que descrevem os dados saem do mapa (`CAMPOS`, `suboperadores`), ent
 `/termos/aceitar`, depois das pendências de idade (PRV-05).
 """
 import os
-import secrets
 import time
 from pathlib import Path
 
@@ -15,7 +14,7 @@ from sqlalchemy import func
 from .. import tempo
 from ..admin import audit
 from ..menores.idade import ADULTO, faixa_etaria
-from ..models import AceiteDocumento, AvisoDocumentoFechado, DocumentoLegal, PedidoTitular, User, db
+from ..models import AceiteDocumento, AvisoDocumentoFechado, DocumentoLegal, User, db
 from ..util import (LIVRES_DO_ACEITE, _destino, _pendencia_de_idade, admin_required, current_user, login_required,
                     rota_livre, safe_next)
 from . import consentimentos, mapa
@@ -270,9 +269,11 @@ def criar_contato(user, assunto, mensagem, email):
         erros["email"] = "Informe um e-mail para a resposta."
     if erros:
         raise ValueError(erros)
-    pedido = PedidoTitular(protocolo=f"{tempo.hoje():%Y%m%d}-{secrets.token_hex(3).upper()}", tipo="contato",
-                           user_id=user.id if user else None, email_contato=email, assunto=assunto, detalhe=mensagem)
-    db.session.add(pedido)
+    from .direitos import novo_pedido, pedir_confirmacao
+
+    pedido = novo_pedido(user, "contato", assunto, mensagem, email, confirmado=user is not None)
+    if user is None:
+        pedir_confirmacao(pedido)
     return pedido
 
 
@@ -289,7 +290,11 @@ def contato():
         return render_template("privacidade/contato.html", erros=exc.args[0], form=request.form,
                                encarregado=encarregado()), 400
     db.session.commit()
-    flash(f"Recebemos sua mensagem. Protocolo {pedido.protocolo}.", "ok")
+    if pedido.status == "aguardando_confirmacao":
+        flash(f"Protocolo {pedido.protocolo}. Enviamos um link ao seu e-mail: o pedido vale depois da confirmação, "
+              "em até 48 horas.", "ok")
+    else:
+        flash(f"Recebemos sua mensagem. Protocolo {pedido.protocolo}.", "ok")
     return redirect("/privacidade/contato")
 
 

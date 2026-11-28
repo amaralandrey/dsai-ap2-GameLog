@@ -65,10 +65,10 @@ def follow(app, quem, alvo):
 
 # ---------- PMN-01, PMN-14: matriz faixa × ação ----------
 S, N = True, False
-MATRIZ = {  # adulto, adolescente, vinculado, pendente, sem data (sem alvo)
+MATRIZ = {  # adulto, adolescente, vinculado sem controle ligado (RSP-07), pendente, sem data (sem alvo)
     "seguir": (S, S, S, N, S),
     "aprovar_seguidor": (S, S, N, N, N),
-    "comentar": (S, S, S, N, S),
+    "comentar": (S, S, N, N, N),
     "perfil_publico": (S, S, N, N, N),
     "ranking_global": (S, N, N, N, N),
     "conquista_por_tempo": (S, N, N, N, N),
@@ -77,8 +77,8 @@ MATRIZ = {  # adulto, adolescente, vinculado, pendente, sem data (sem alvo)
     "ver_ofertas": (S, N, N, N, N),
     "alerta_preco": (S, N, N, N, N),
     "historico_para_terceiros": (S, N, N, N, N),
-    "entrar_clube": (S, S, S, N, S),
-    "publicar_clube": (S, S, S, N, S),
+    "entrar_clube": (S, S, N, N, N),
+    "publicar_clube": (S, S, N, N, N),
     "torneio_inscrever": (S, N, N, N, N),
 }
 

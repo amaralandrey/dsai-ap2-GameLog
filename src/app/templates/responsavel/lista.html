@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Responsável — GameLog{% endblock %}
+{% block content %}
+<h1>Contas sob sua responsabilidade</h1>
+{% for v in vinculos %}
+<div class="panel"><a href="/responsavel/{{ v.menor_id }}"><strong>{{ v.menor.display_name }}</strong></a> <span class="mut">@{{ v.menor.username }} · vínculo desde {{ v.aceito_em | dia }}</span></div>
+{% else %}
+<div class="panel"><p class="mut">Nenhuma conta vinculada a você. O vínculo começa pelo convite que a criança ou o adolescente envia para o seu e-mail.</p></div>
+{% endfor %}
+{% endblock %}

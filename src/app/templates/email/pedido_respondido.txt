@@ -1,0 +1,7 @@
+{% extends "email/_layout.txt" %}
+{% block assunto %}Resposta ao seu pedido {{ pedido.protocolo }}{% endblock %}
+{% block corpo %}Seu pedido {{ pedido.protocolo }} ({{ tipo_pedido | lower }}) foi {{ situacao | lower }}.
+
+{{ pedido.resposta }}
+{% if pedido.user_id %}
+Veja seus pedidos: {{ url_publica('/conta/privacidade/direitos') }}{% endif %}{% endblock %}

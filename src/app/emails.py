@@ -48,15 +48,17 @@ def conta_excluida(user):
 
 
 def pode_ligar_email(user, tipo=RESUMO):
-    """PMN-08: e-mail de engajamento começa desligado; de 16 a 17 anos o próprio usuário liga, de 12 a 15 só o
-    responsável. Sem RSP não há responsável que ligue (RSP-07 é o ponto de extensão), então de 12 a 15 fica desligado.
+    """PMN-08: e-mail de engajamento começa desligado; de 16 a 17 anos o próprio usuário liga, de 12 a 15 não: lá o
+    resumo depende do consentimento `email_resumo` dado pelo responsável (CNS-09, RSP-07).
     """
     return tipo in SEM_ENGAJAMENTO or faixa_etaria(user) != VINCULADO
 
 
 def email_engajamento_liberado(user, tipo=RESUMO):
-    """Na hora do envio: a mesma regra de PMN-08 e a política de menores (PMN-01)."""
-    return tipo in SEM_ENGAJAMENTO or (pode_ligar_email(user, tipo) and pode(user, "email_engajamento"))
+    """Na hora do envio: a mesma regra de PMN-08 e a política de menores (PMN-01); o resumo de 12 a 15 anos vale
+    pelo consentimento dado pelo responsável, que quem chama confere."""
+    liberado = pode_ligar_email(user, tipo) or tipo == RESUMO
+    return tipo in SEM_ENGAJAMENTO or (liberado and pode(user, "email_engajamento"))
 
 
 # ---------- renderização e enfileiramento (EML-01, EML-02) ----------

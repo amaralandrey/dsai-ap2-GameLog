@@ -80,6 +80,7 @@ CONTEUDO = dict(CONTA, categoria="conteudo", finalidade="conteudo")
 CONTEUDO_PRIVADO = dict(CONTEUDO, anonimizar="apagar_linha")  # listas: some com a conta (DIR-07)
 DIARIO = dict(CONTA, categoria="atividade", finalidade="acompanhamento", anonimizar="apagar_linha")
 ENGAJAMENTO = dict(CONTA, categoria="atividade", finalidade="engajamento", anonimizar="apagar_linha")
+PRESERVACAO = {"finalidade": "protecao_menores", "base_legal": "obrigacao_legal", "exportar": False}  # DEN-09
 MODERACAO = dict(CONTA, categoria="atividade", finalidade="moderacao", base_legal="legitimo_interesse",
                  avaliacao_li=LI_MODERACAO, exportar=False)
 IDADE = dict(CONTA, categoria="idade", finalidade="protecao_menores", base_legal="obrigacao_legal",
@@ -113,11 +114,14 @@ CAMPOS = {
         ("display_name", {"categoria": "perfil", "finalidade": "perfil_social", "anonimizar": "substituir"}),
         ("bio", {"categoria": "perfil", "finalidade": "perfil_social", "anonimizar": "apagar"}),
         ("perfil_privado", {"categoria": "preferencia", "finalidade": "perfil_social"}),
+        ("oposicao_recomendacao", {"categoria": "preferencia", "finalidade": "direitos",
+                                   "base_legal": "exercicio_direitos"}),  # DIR-09
         ("steam_id", {"finalidade": "acompanhamento", "anonimizar": "apagar"}),
         ("email_pendente totp_segredo totp_ativado_em totp_ultimo_passo", AUTENTICACAO),
         # RTN-05, RTN-06: o prazo de `ultimo_acesso` é o da conta inativa, que o expurgo anonimiza depois do aviso
         ("ultimo_acesso", {"categoria": "atividade", "retencao_dias": 730, "anonimizar": "apagar"}),
         ("aviso_inatividade_em", {"categoria": "atividade", "exportar": False, "anonimizar": "apagar"}),
+        ("preservar_ate", dict(PRESERVACAO, categoria="atividade", anonimizar="apagar")),
         ("nascimento nascimento_confiavel aguardando_responsavel idade_contestada_em suspensa_em "
          "revisao_idade_pedida_em", IDADE),
     ),
@@ -125,6 +129,13 @@ CAMPOS = {
               ("codigo_hash usado_em created_at", {})),
     **_tabela("evento_seguranca", dict(CONTA, categoria="atividade", anonimizar="apagar_linha"),
               ("id", TECNICO), ("user_id", DONO), ("tipo created_at", {})),
+    **_tabela("vinculo_responsavel", dict(IDADE, categoria="identificacao", anonimizar="apagar_linha"),
+              ("id", TECNICO), ("menor_id", DONO), ("responsavel_id", {"exportar": False}),
+              ("email_convite", {"categoria": "contato", "exportar": False}),
+              ("convidado_em aceito_em recusado_em revogado_em encerrado_idade_em versao_declaracao", {})),  # RSP-01
+    **_tabela("controle_parental", dict(IDADE, categoria="preferencia", anonimizar="apagar_linha"), ("id", TECNICO),
+              ("menor_id", DONO), ("alterado_por", {"exportar": False}),
+              ("comentarios clubes torneios perfil_publico alterado_em", {})),  # RSP-07
     **_tabela("verificacao_idade", dict(IDADE, anonimizar="apagar_linha"), ("id", TECNICO), ("user_id", DONO),
               ("metodo faixa_resultante confiavel divergente created_at", {})),
     **_tabela("aceite_documento", dict(CONTA, categoria="atividade"), ("id", TECNICO), ("user_id", DONO),
@@ -136,7 +147,8 @@ CAMPOS = {
               ("id", TECNICO), ("user_id", DONO), ("documento_id fechado_em", {})),  # PRV-06
     **_tabela("pedido_titular", dict(CONTA, categoria="atividade", finalidade="direitos", base_legal="obrigacao_legal"),
               ("id", TECNICO), ("user_id", DONO), ("email_contato", {"categoria": "contato", "anonimizar": "substituir"}),
-              ("protocolo tipo assunto detalhe status criado_em", {})),  # LGPD art. 18 e 41 (PRV-07, DIR-01)
+              ("protocolo tipo assunto detalhe status criado_em prazo_em concluido_em resposta", {}),
+              ("decidido_por", {"exportar": False})),  # LGPD art. 18 e 41 (PRV-07, DIR-01)
     **_tabela("token_api", dict(AUTENTICACAO, finalidade="integracoes", anonimizar="apagar_linha"), ("id", TECNICO),
               ("user_id", DONO), ("nome prefixo token_hash escopos criado_em expira_em ultimo_uso_em revogado_em", {})),
     **_tabela("auditoria_token", dict(AUTENTICACAO, categoria="atividade", finalidade="integracoes",
@@ -153,8 +165,9 @@ CAMPOS = {
     ),
     # ---------- conteúdo publicado ----------
     **_tabela("review", CONTEUDO, ("id", TECNICO), ("user_id", DONO),
-              ("game_id score text spoiler edited hidden created_at", {})),
-    **_tabela("comment", CONTEUDO, ("id", TECNICO), ("user_id", DONO), ("review_id text created_at", {})),
+              ("game_id score text spoiler edited hidden created_at", {}), ("preservar_ate", PRESERVACAO)),
+    **_tabela("comment", CONTEUDO, ("id", TECNICO), ("user_id", DONO), ("review_id text created_at oculto", {}),
+              ("preservar_ate", PRESERVACAO)),
     **_tabela("like", dict(CONTEUDO, anonimizar="apagar_linha"), ("id", TECNICO), ("user_id", DONO),
               ("review_id created_at", {})),
     **_tabela("game_list", CONTEUDO_PRIVADO, ("id", TECNICO), ("user_id", DONO),
@@ -163,7 +176,7 @@ CAMPOS = {
     **_tabela("lista_inteligente", CONTEUDO_PRIVADO, ("id", TECNICO), ("user_id", DONO),
               ("nome publica regra created_at", {})),
     **_tabela("post_clube", dict(CONTEUDO, finalidade="engajamento"), ("id", TECNICO), ("user_id", DONO),
-              ("clube_id texto spoiler oculto created_at", {}),
+              ("clube_id texto spoiler oculto created_at", {}), ("preservar_ate", PRESERVACAO),
               ("motivo_ocultacao oculto_por", {"finalidade": "moderacao", "exportar": False})),
     # ---------- perfil e feed ----------
     **_tabela("follow", SOCIAL, ("id", TECNICO), ("follower_id followed_id", {}),
@@ -219,8 +232,13 @@ CAMPOS = {
               ("torneio_id acao partida_id justificativa created_at", {})),
     # ---------- moderação e auditoria ----------
     **_tabela("report", MODERACAO, ("id", TECNICO), ("reporter_id", DONO),
-              ("review_id alvo_tipo alvo_id reason comment created_at", {"exportar": True}),
-              ("status decided_by decided_at", {})),
+              ("review_id alvo_tipo alvo_id reason comment created_at subcategoria", {"exportar": True}),
+              ("status decided_by decided_at prazo_em cautelar decisao fundamentacao primeiro_decisor recurso_em "
+               "recurso_texto qualidade link", {}),
+              ("notificante_nome", {"categoria": "identificacao"}), ("notificante_email", {"categoria": "contato"})),
+    **_tabela("evento_denuncia", MODERACAO, ("id report_id", TECNICO), ("tipo detalhe autor_id created_at", {})),
+    **_tabela("comunicacao_autoridade", dict(MODERACAO, base_legal="obrigacao_legal"), ("id report_id", TECNICO),
+              ("orgao protocolo data registrado_por created_at", {})),  # ECA Digital art. 27
     **_tabela("desclassificacao", MODERACAO, ("id temporada_id", TECNICO), ("user_id", DONO),
               ("categoria motivo created_at revertida_em", {"exportar": True}), ("admin_id", {})),
     **_tabela("audit_log", dict(AUDITORIA, retencao_dias=730), ("id", TECNICO),

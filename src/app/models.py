@@ -43,6 +43,7 @@ class User(db.Model):
     session_version = db.Column(db.Integer, default=0, nullable=False)
     created_at = db.Column(db.DateTime, default=now, nullable=False)
     perfil_privado = db.Column(db.Boolean, default=False, nullable=False)  # DIA-11
+    oposicao_recomendacao = db.Column(db.Boolean, default=False, server_default="0", nullable=False)
     steam_id = db.Column(db.String(17), unique=True, nullable=True)  # SteamID64 vinculado (HRS-01)
     # segurança da conta (CTA): o segredo do TOTP nunca sai do servidor depois da ativação (CTA-06)
     email_pendente = db.Column(db.String(200), nullable=True)  # espera a confirmação pelo link (CTA-03)
@@ -51,6 +52,7 @@ class User(db.Model):
     totp_ultimo_passo = db.Column(db.Integer, nullable=True)  # o código já usado não vale de novo (CTA-07)
     ultimo_acesso = db.Column(db.DateTime, nullable=True)  # RTN-05: login e, no máximo uma vez por dia, a navegação
     aviso_inatividade_em = db.Column(db.DateTime, nullable=True)  # RTN-06: e-mail `conta_inativa` enviado
+    preservar_ate = db.Column(db.DateTime, nullable=True)  # DEN-09
 
     @property
     def is_admin(self):
@@ -71,6 +73,42 @@ class VerificacaoIdade(db.Model):
 @db.event.listens_for(VerificacaoIdade, "before_update")
 def _historico_imutavel(*_):
     raise ValueError("o histórico de verificações de idade é só de inserção")
+
+
+class VinculoResponsavel(db.Model):
+    """Convite e vínculo entre um menor e o responsável legal; o próprio vínculo registra o aceite (RSP-01, RSP-02)."""
+    id = db.Column(db.Integer, primary_key=True)
+    menor_id = db.Column(db.ForeignKey("user.id"), nullable=False, index=True)
+    email_convite = db.Column(db.String(200), nullable=False)
+    responsavel_id = db.Column(db.ForeignKey("user.id"), nullable=True, index=True)
+    convidado_em = db.Column(db.DateTime, default=now, nullable=False)
+    aceito_em = db.Column(db.DateTime, nullable=True)
+    recusado_em = db.Column(db.DateTime, nullable=True)
+    revogado_em = db.Column(db.DateTime, nullable=True)
+    encerrado_idade_em = db.Column(db.DateTime, nullable=True)
+    versao_declaracao = db.Column(db.Integer, nullable=True)
+    menor = db.relationship(User, foreign_keys=[menor_id])
+    responsavel = db.relationship(User, foreign_keys=[responsavel_id])
+
+    @property
+    def ativo(self):
+        return self.aceito_em is not None and self.revogado_em is None and self.encerrado_idade_em is None
+
+    @property
+    def aberto(self):
+        return self.aceito_em is None and self.recusado_em is None and self.revogado_em is None
+
+
+class ControleParental(db.Model):
+    """O que o responsável liberou para o menor de 12 a 15 anos; nasce tudo desligado (RSP-07)."""
+    id = db.Column(db.Integer, primary_key=True)
+    menor_id = db.Column(db.ForeignKey("user.id"), unique=True, nullable=False)
+    comentarios = db.Column(db.Boolean, default=False, nullable=False)
+    clubes = db.Column(db.Boolean, default=False, nullable=False)
+    torneios = db.Column(db.Boolean, default=False, nullable=False)
+    perfil_publico = db.Column(db.Boolean, default=False, nullable=False)
+    alterado_por = db.Column(db.ForeignKey("user.id"), nullable=True)
+    alterado_em = db.Column(db.DateTime, nullable=True)
 class Instancia(db.Model):
     """Uma linha por banco: muda quando o banco é recriado e invalida cookies da cópia anterior."""
     id = db.Column(db.Integer, primary_key=True)
@@ -282,6 +320,7 @@ class Review(db.Model):
     edited = db.Column(db.Boolean, default=False, nullable=False)
     hidden = db.Column(db.Boolean, default=False, nullable=False)
     created_at = db.Column(db.DateTime, default=now, nullable=False)
+    preservar_ate = db.Column(db.DateTime, nullable=True)
     user = db.relationship(User)
     game = db.relationship(Game)
     comments = db.relationship(
@@ -297,6 +336,8 @@ class Comment(db.Model):
     user_id = db.Column(db.ForeignKey("user.id"), nullable=False)
     text = db.Column(db.String(500), nullable=False)
     created_at = db.Column(db.DateTime, default=now, nullable=False)
+    oculto = db.Column(db.Boolean, default=False, server_default="0", nullable=False)
+    preservar_ate = db.Column(db.DateTime, nullable=True)
     user = db.relationship(User)
     review = db.relationship(Review, back_populates="comments")
 
@@ -322,18 +363,58 @@ class Report(db.Model):
                       db.UniqueConstraint("alvo_tipo", "alvo_id", "reporter_id"))
     id = db.Column(db.Integer, primary_key=True)
     review_id = db.Column(db.ForeignKey("review.id"), nullable=True)  # só nas denúncias de avaliação
-    alvo_tipo = db.Column(db.String(12), default="avaliacao", nullable=False)  # avaliacao|post_clube (DEN-01)
+    alvo_tipo = db.Column(db.String(12), default="avaliacao", server_default="avaliacao", nullable=False)  # DEN-01
     alvo_id = db.Column(db.Integer, nullable=True)
-    reporter_id = db.Column(db.ForeignKey("user.id"), nullable=False)
+    reporter_id = db.Column(db.ForeignKey("user.id"), nullable=True)  # vazio na notificação pública (DEN-03)
     reason = db.Column(db.String(12), nullable=False)
-    comment = db.Column(db.String(500), default="", nullable=False)
-    status = db.Column(db.String(10), default="pendente", nullable=False)  # pendente|ocultada|rejeitada
+    comment = db.Column(db.String(1000), default="", nullable=False)
+    status = db.Column(db.String(10), default="pendente", nullable=False)  # pendente|ocultada|suspensa|restaurada|rejeitada
     decided_by = db.Column(db.ForeignKey("user.id"), nullable=True)
     decided_at = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=now, nullable=False)
+    subcategoria = db.Column(db.String(25), nullable=True)
+    prazo_em = db.Column(db.DateTime, nullable=True)
+    cautelar = db.Column(db.Boolean, default=False, server_default="0", nullable=False)
+    decisao = db.Column(db.String(12), nullable=True)
+    fundamentacao = db.Column(db.String(1000), default="", server_default="", nullable=False)
+    primeiro_decisor = db.Column(db.ForeignKey("user.id"), nullable=True)
+    recurso_em = db.Column(db.DateTime, nullable=True)
+    recurso_texto = db.Column(db.String(1000), default="", server_default="", nullable=False)
+    notificante_nome = db.Column(db.String(120), nullable=True)
+    notificante_email = db.Column(db.String(200), nullable=True)
+    qualidade = db.Column(db.String(20), nullable=True)
+    link = db.Column(db.String(500), nullable=True)
     review = db.relationship(Review)
     reporter = db.relationship(User, foreign_keys=[reporter_id])
     decider = db.relationship(User, foreign_keys=[decided_by])
+
+
+class EventoDenuncia(db.Model):
+    """Trilha da denúncia, só de inserção (DEN-10)."""
+    id = db.Column(db.Integer, primary_key=True)
+    report_id = db.Column(db.ForeignKey("report.id"), nullable=False, index=True)
+    tipo = db.Column(db.String(20), nullable=False)
+    detalhe = db.Column(db.String(1000), default="", nullable=False)
+    autor_id = db.Column(db.ForeignKey("user.id"), nullable=True)
+    created_at = db.Column(db.DateTime, default=now, nullable=False)
+    autor = db.relationship(User)
+
+
+@db.event.listens_for(EventoDenuncia, "before_update")
+@db.event.listens_for(EventoDenuncia, "before_delete")
+def _trilha_imutavel(*_):
+    raise ValueError("a trilha da denúncia é só de inserção")
+
+
+class ComunicacaoAutoridade(db.Model):
+    """Registro de que o admin comunicou o caso às autoridades; o GameLog não envia nada sozinho (DEN-08)."""
+    id = db.Column(db.Integer, primary_key=True)
+    report_id = db.Column(db.ForeignKey("report.id"), nullable=False, index=True)
+    orgao = db.Column(db.String(120), nullable=False)
+    protocolo = db.Column(db.String(80), nullable=False)
+    data = db.Column(db.Date, nullable=False)
+    registrado_por = db.Column(db.ForeignKey("user.id"), nullable=False)
+    created_at = db.Column(db.DateTime, default=now, nullable=False)
 
 
 class GameList(db.Model):
@@ -637,6 +718,7 @@ class PostClube(db.Model):
     motivo_ocultacao = db.Column(db.String(200), default="", nullable=False)
     oculto_por = db.Column(db.ForeignKey("user.id"), nullable=True)
     created_at = db.Column(db.DateTime, default=now, nullable=False)
+    preservar_ate = db.Column(db.DateTime, nullable=True)
     user = db.relationship(User, foreign_keys=[user_id])
 
 
@@ -838,11 +920,7 @@ def _consentimento_so_insercao(*_):
 
 
 class PedidoTitular(db.Model):
-    """Pedido ou mensagem do titular, com protocolo; por ora só o tipo `contato` do canal (PRV-07).
-
-    A spec de direitos do titular (DIR-01) estende este modelo com os outros tipos, o prazo
-    (`prazo_em`, `concluido_em`), a resposta, `decidido_por` e a fila do admin.
-    """
+    """Pedido ou mensagem do titular, com protocolo (PRV-07, DIR-01); o prazo só conta depois da confirmação."""
     id = db.Column(db.Integer, primary_key=True)
     protocolo = db.Column(db.String(20), unique=True, nullable=False)
     tipo = db.Column(db.String(20), nullable=False)
@@ -852,6 +930,10 @@ class PedidoTitular(db.Model):
     detalhe = db.Column(db.String(2000), nullable=False)
     status = db.Column(db.String(25), default="aberto", nullable=False)
     criado_em = db.Column(db.DateTime, default=now, nullable=False)
+    prazo_em = db.Column(db.DateTime, nullable=True)
+    concluido_em = db.Column(db.DateTime, nullable=True)
+    resposta = db.Column(db.String(2000), default="", nullable=False)
+    decidido_por = db.Column(db.ForeignKey("user.id"), nullable=True)
 
 
 JOB_STATUS = ("pendente", "rodando", "ok", "falhou", "morto")

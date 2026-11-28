@@ -28,13 +28,16 @@ RESPOSTA = "Se houver uma conta com esse e-mail, enviamos um link para redefinir
 
 # ---------- ganchos das specs que ainda não estão na main ----------
 def conta_anonimizada(user):
-    """DIR-06: troque pela marca de conta anonimizada quando DIR entrar; até lá nenhuma conta tem a marca."""
-    return getattr(user, "anonimizada_em", None) is not None
+    from .privacidade.anonimizar import anonimizada
+
+    return anonimizada(user)
 
 
 def responsaveis_ativos(user):
-    """RSP: ids dos responsáveis com vínculo ativo; troque pela consulta de RSP quando ela entrar (hoje, nenhum)."""
-    return []
+    """Ids dos responsáveis com vínculo ativo (RSP-05)."""
+    from .menores.responsavel import responsaveis_ativos as ativos
+
+    return ativos(user)
 
 
 # ---------- token (RSN-02, RSN-05) ----------

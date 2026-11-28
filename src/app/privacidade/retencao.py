@@ -3,7 +3,7 @@
 Nenhum prazo mora aqui: `REGRAS` só diz qual coluna data cada linha e quais linhas contam (a notificação lida, o
 e-mail enviado, o job terminado). Uma tabela sem prazo no mapa nunca é tocada, e mudar o prazo no mapa muda o
 expurgo. O `Incidente` conta do encerramento (INC-08) e leva as anotações junto (ON DELETE CASCADE); os pedidos de
-exclusão adiados pela preservação (DIR-07) entram em `contas` com DIR.
+exclusão adiados pela preservação (DIR-07, DEN-09) são concluídos em `contas` quando ela vence.
 """
 from collections import namedtuple
 from datetime import timedelta
@@ -19,6 +19,7 @@ from ..models import AuditLog, EmailSaida, Incidente, Job, LoginAttempt, Notific
 from ..util import admin_required, current_user
 from . import mapa
 from .anonimizar import DOMINIO, anonimizar_conta, apagar_conta
+from .direitos import concluir_exclusao, exclusoes_adiadas
 
 bp = Blueprint("retencao", __name__)
 
@@ -112,10 +113,11 @@ def contas(agora, simular=False):
         "contas_avisadas": (a_avisar(prazo, agora).all() if prazo else [], lambda u: avisar(u, prazo, agora)),
         "contas_anonimizadas": (a_anonimizar(agora).all() if prazo else [], anonimizar_conta),
         "contas_pendentes_apagadas": (pendentes_vencidas(agora), apagar_conta),
+        "exclusoes_concluidas": (exclusoes_adiadas(agora), concluir_exclusao),
     }
     if simular:
         return {nome: len(usuarios) for nome, (usuarios, _) in etapas.items()}
-    for nome in ("contas_pendentes_apagadas", "contas_anonimizadas", "contas_avisadas"):
+    for nome in ("exclusoes_concluidas", "contas_pendentes_apagadas", "contas_anonimizadas", "contas_avisadas"):
         for user in etapas[nome][0]:
             etapas[nome][1](user)
             db.session.commit()

@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Convite de responsável — GameLog{% endblock %}
+{% block content %}
+<section class="panel" style="max-width:560px;margin:0 auto">
+<h1>Ser responsável por {{ menor.display_name }}</h1>
+<p><strong>{{ menor.display_name }}</strong> (@{{ menor.username }}) pediu você como responsável. Contas de 12 a 15 anos só funcionam vinculadas a um responsável legal (ECA Digital, art. 24).</p>
+<p class="mut">Ao aceitar, você vê a atividade da conta, aprova quem pede para segui-la e escolhe se ela pode comentar, entrar em clubes, se inscrever em torneios e ter o perfil público. Tudo começa desligado.</p>
+{% if erro %}<p class="err">{{ erro }}</p>{% endif %}
+<form method="post" action="{{ request.path }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <label for="nascimento">Data de nascimento de {{ menor.display_name }}</label>
+  <input id="nascimento" name="nascimento" type="date" required value="{{ request.form.get('nascimento', '') }}">
+  <label style="font-weight:400"><input type="checkbox" name="declaro" value="1" style="width:auto"> {{ declaracao }}</label>
+  <p><button>Aceitar</button></p>
+</form>
+<form method="post" action="{{ request.path }}/recusar"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="ghost">Recusar o convite</button></form>
+</section>
+{% endblock %}

@@ -42,17 +42,27 @@
 
 {# Comentários de uma avaliação (COM-01..05). Importar "with context" para enxergar me, csrf_token e com_bloqueio.
    O texto passa pelo autoescape do Jinja2 — nada de |safe aqui (COM-04). #}
+{% macro form_denuncia(acao) %}{# AVA-08, DEN-01, DEN-02 #}
+<details style="display:inline"><summary class="mut" style="display:inline;cursor:pointer">Denunciar</summary>
+  <form method="post" action="{{ acao }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <select name="reason" aria-label="Motivo">{% for k, v in denuncia_motivos.items() %}<option value="{{ k }}">{{ v }}</option>{% endfor %}<option value="risco_menor">Risco a criança ou adolescente</option></select>
+    <select name="subcategoria" aria-label="Tipo de risco"><option value="">Tipo de risco (só no risco a menor)</option>{% for k, v in denuncia_subcategorias.items() %}<option value="{{ k }}">{{ v }}</option>{% endfor %}</select>
+    <input name="comment" maxlength="1000" placeholder="Comentário (obrigatório no risco a menor)"><button class="ghost">Enviar denúncia</button>
+  </form></details>
+{% endmacro %}
 {% macro comments(r, next) %}
 {% if not r.hidden %}
 <section class="comments" aria-label="Comentários">
-  {% for c in r.comments if c.user_id not in (com_bloqueio or ()) %}{# BLQ-04 #}
+  {% for c in r.comments if c.user_id not in (com_bloqueio or ()) and (not c.oculto or (me and (me.id == c.user_id or me.is_admin))) %}{# BLQ-04, DEN-05 #}
   <div class="comment" id="com-{{ c.id }}">
-    {{ avatar(c.user, 'small') }} <a href="/u/{{ c.user.username }}"><strong>{{ c.user.display_name }}</strong></a>
+    {{ avatar(c.user, 'small') }} {% if anonimizada(c.user) %}<strong>{{ c.user.display_name }}</strong>{% else %}<a href="/u/{{ c.user.username }}"><strong>{{ c.user.display_name }}</strong></a>{% endif %}
     <span class="mut">{{ c.created_at.strftime('%d/%m/%Y %H:%M') }}</span>
     {% if me and (me.id == c.user_id or me.is_admin) %}
     <form class="inline" method="post" action="/comentarios/{{ c.id }}/apagar">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="next" value="{{ next }}">
-      <button class="link danger-link">Apagar</button></form>{% endif %}
+      <button class="link danger-link">Apagar</button></form>
+    {% elif me %}{{ form_denuncia('/denunciar/comentario/' ~ c.id) }}{% endif %}
+    {% if c.oculto %}<p class="err">Este comentário foi ocultado pela moderação e só você o vê.</p>{% endif %}
     <p>{{ c.text }}</p>
   </div>
   {% endfor %}

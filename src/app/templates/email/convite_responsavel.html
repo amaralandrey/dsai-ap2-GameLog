@@ -1,0 +1,7 @@
+{% extends "email/_layout.html" %}
+{% block corpo %}
+<p style="margin:0 0 12px">Olá.</p>
+<p style="margin:0 0 12px"><strong>{{ menor.display_name }}</strong> (@{{ menor.username }}) criou uma conta no GameLog e informou este e-mail como o do responsável. Pela lei (ECA Digital, art. 24), contas de 12 a 15 anos só funcionam vinculadas a um responsável legal.</p>
+<p style="margin:0 0 12px"><a href="{{ link }}" style="color:#3b2f80;font-weight:bold">Aceitar ou recusar o convite</a> (vale por {{ dias }} dias)</p>
+<p style="margin:0">Ao aceitar, você confirma a data de nascimento e passa a acompanhar a atividade e escolher o que fica ligado na conta. Se você não conhece essa pessoa, ignore este e-mail.</p>
+{% endblock %}

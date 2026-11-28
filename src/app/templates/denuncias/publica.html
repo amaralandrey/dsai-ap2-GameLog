@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Denunciar risco a criança ou adolescente — GameLog{% endblock %}
+{% block content %}
+<section class="panel" style="max-width:640px;margin:0 auto">
+<h1>Denunciar risco a criança ou adolescente</h1>
+<p>Use este canal se um conteúdo ou perfil do GameLog põe em risco uma criança ou um adolescente. Pela lei (ECA Digital, art. 29), recebemos notificação da vítima, do responsável, do Ministério Público ou de uma entidade de proteção, sempre identificada: não aceitamos notificação anônima.</p>
+<p class="mut">Em caso de perigo imediato, procure a polícia (190) ou o Disque 100.</p>
+{% if erro %}<p class="err">{{ erro }}</p>{% endif %}
+<form method="post" action="/denunciar-risco-a-menor">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <label for="nome">Seu nome</label><input id="nome" name="nome" required maxlength="120" value="{{ form.get('nome', '') }}">
+  <label for="email">Seu e-mail</label><input id="email" name="email" type="email" required maxlength="200" value="{{ form.get('email', '') }}">
+  <label for="qualidade">Você é</label>
+  <select id="qualidade" name="qualidade" required>{% for k, v in qualidades.items() %}<option value="{{ k }}"{{ ' selected' if form.get('qualidade') == k }}>{{ v }}</option>{% endfor %}</select>
+  <label for="link">Link do conteúdo ou do perfil</label><input id="link" name="link" required maxlength="500" value="{{ form.get('link', '') }}">
+  <label for="subcategoria">Tipo de risco</label>
+  <select id="subcategoria" name="subcategoria" required>{% for k, v in subcategorias.items() %}<option value="{{ k }}"{{ ' selected' if form.get('subcategoria') == k }}>{{ v }}</option>{% endfor %}</select>
+  <label for="descricao">O que aconteceu</label><textarea id="descricao" name="descricao" required minlength="10" maxlength="1000">{{ form.get('descricao', '') }}</textarea>
+  <p><button>Enviar notificação</button></p>
+</form>
+</section>
+{% endblock %}
