@@ -189,6 +189,9 @@ CAMPOS = {
               ("kind game_id review_id list_id dia valor texto created_at", {})),
     # ---------- diário e acompanhamento ----------
     **_tabela("status", DIARIO, ("id", TECNICO), ("user_id", DONO), ("game_id value updated_at zerado_em", {})),
+    **_tabela("alerta_preco", dict(DIARIO, finalidade="engajamento", base_legal="consentimento",
+                                   finalidade_consentimento="ofertas"), ("id", TECNICO), ("user_id", DONO),
+              ("game_id preco_alvo_centavos criado_em disparado_em", {})),  # OFR-04
     **_tabela("sessao_jogo", DIARIO, ("id", TECNICO), ("user_id", DONO),
               ("game_id jogada_em duracao_min inicio plataforma_id zerou anotacao spoiler origem created_at", {})),
     **_tabela("previa_importacao", dict(DIARIO, exportar=False), ("id", TECNICO), ("user_id", DONO),

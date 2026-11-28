@@ -58,7 +58,7 @@ def ultima(user, finalidade):
             .order_by(Consentimento.id.desc()).first())
 
 
-def _vale(linha, user):
+def vale(linha, user):
     if linha is None or not linha.concedido or linha.versao_texto < versao_minima(linha.finalidade):
         return False
     if linha.finalidade in SO_ADULTOS and e_menor(user):
@@ -68,7 +68,7 @@ def _vale(linha, user):
 
 def tem_consentimento(user, finalidade):
     _finalidade(finalidade)
-    return user is not None and _vale(ultima(user, finalidade), user)
+    return user is not None and vale(ultima(user, finalidade), user)
 
 
 def precisa_renovar(user, finalidade):
@@ -210,7 +210,7 @@ def contagem_por_finalidade():
               .filter(Consentimento.id.in_(recentes), User.suspensa_em.is_(None)))
     contagem = dict.fromkeys(FINALIDADES, 0)
     for linha, user in linhas:
-        if linha.finalidade in contagem and _vale(linha, user):
+        if linha.finalidade in contagem and vale(linha, user):
             contagem[linha.finalidade] += 1
     return contagem
 

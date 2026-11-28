@@ -1,0 +1,9 @@
+{% extends "email/_layout.txt" %}
+{% block assunto %}{% if notificacao.tipo == 'preco_alvo' %}{{ jogo }} chegou ao seu preço-alvo{% else %}{{ jogo }} em promoção: {{ desconto }}% de desconto{% endif %}{% endblock %}
+{% block corpo %}Olá, {{ user.display_name }}.
+
+{% if notificacao.tipo == 'preco_alvo' %}{{ jogo }}, que você vigia com um alerta de preço, está por {{ preco }} na {{ loja }}.{% else %}{{ jogo }}, da sua wishlist, está com {{ desconto }}% de desconto na {{ loja }}: {{ preco }}.{% endif %}
+{% if url_loja %}
+Na loja: {{ url_loja }}
+{% endif %}
+Veja no GameLog: {{ url_publica(notificacao.alvo_url or '/ofertas') }}{% endblock %}
